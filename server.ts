@@ -6,9 +6,50 @@ import session from "express-session";
 import path from "path";
 import { fileURLToPath } from "url";
 import { Firestore } from "@google-cloud/firestore";
+import pg from "pg";
+
+const { Pool } = pg;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Initialize PostgreSQL
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
+// Initialize Tables
+async function initDb() {
+  try {
+    const client = await pool.connect();
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS assistant_messages (
+        id SERIAL PRIMARY KEY,
+        user_phone TEXT,
+        sender TEXT,
+        message TEXT,
+        timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE TABLE IF NOT EXISTS form_submissions (
+        id SERIAL PRIMARY KEY,
+        user_phone TEXT,
+        form_type TEXT,
+        form_title TEXT,
+        data JSONB,
+        whatsapp_message TEXT,
+        timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    client.release();
+    console.log("PostgreSQL tables initialized");
+  } catch (err) {
+    console.error("Error initializing PostgreSQL tables:", err);
+  }
+}
+initDb();
 
 // Initialize Firestore
 let firestore: Firestore;
@@ -57,6 +98,34 @@ async function startServer() {
   };
 
   // API Routes
+  app.post("/api/chat/save", async (req, res) => {
+    const { userPhone, sender, message } = req.body;
+    try {
+      await pool.query(
+        "INSERT INTO assistant_messages (user_phone, sender, message) VALUES ($1, $2, $3)",
+        [userPhone, sender, message]
+      );
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error saving chat message to PG:", error);
+      res.status(500).json({ error: "Failed to save message" });
+    }
+  });
+
+  app.post("/api/forms/save", async (req, res) => {
+    const { userPhone, formType, formTitle, data, whatsappMessage } = req.body;
+    try {
+      await pool.query(
+        "INSERT INTO form_submissions (user_phone, form_type, form_title, data, whatsapp_message) VALUES ($1, $2, $3, $4, $5)",
+        [userPhone, formType, formTitle, JSON.stringify(data), whatsappMessage]
+      );
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error saving form submission to PG:", error);
+      res.status(500).json({ error: "Failed to save form" });
+    }
+  });
+
   app.get("/api/workers", async (req, res) => {
     if (!firestore) return res.status(503).json({ error: "Database not initialized" });
     try {

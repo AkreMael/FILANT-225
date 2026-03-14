@@ -185,6 +185,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, activeTab, currentMe
 
     setMessages(prev => [...prev, userMsg]);
     databaseService.saveChatMessage(userPhone, userMsg);
+    
+    // Save to PostgreSQL
+    fetch('/api/chat/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userPhone, sender: 'user', message: textToSend })
+    }).catch(err => console.error("Error saving user message to PG:", err));
+
     setInput('');
     
     let aiResponseText = "";
@@ -236,6 +244,13 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, activeTab, currentMe
     setMessages(prev => [...prev, aiMsg]);
     databaseService.saveChatMessage(userPhone, aiMsg);
     
+    // Save to PostgreSQL
+    fetch('/api/chat/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userPhone, sender: 'ai', message: aiResponseText })
+    }).catch(err => console.error("Error saving AI message to PG:", err));
+
     if (isAILoading) {
         setIsTyping(false);
     }

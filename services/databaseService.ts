@@ -1,6 +1,6 @@
 import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification } from '../types';
 import { db } from '../firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 
 // --- CONSTANTS ---
 const USERS_KEY = 'filant_users';
@@ -116,6 +116,7 @@ export interface StoredChatMessage {
     text: string;
     sender: 'user' | 'ai';
     timestamp: number;
+    paymentInfo?: any;
 }
 
 // --- Mock Data ---
@@ -181,7 +182,7 @@ const mockOffers: Offer[] = [
 // --- Database Service ---
 
 export const databaseService = {
-  logConnection: (user: User) => {
+  logConnection: async (user: User) => {
     try {
         const logsString = localStorage.getItem(CONNECTION_LOGS_KEY);
         let logs: ConnectionLog[] = logsString ? JSON.parse(logsString) : [];
@@ -203,7 +204,7 @@ export const databaseService = {
         localStorage.setItem(CONNECTION_LOGS_KEY, JSON.stringify(logs));
         
         // Sync to Firestore
-        databaseService.syncUserToFirestore(user);
+        await databaseService.syncUserToFirestore(user);
     } catch (e) {
         console.error("Error logging connection", e);
     }
@@ -211,16 +212,19 @@ export const databaseService = {
 
   syncUserToFirestore: async (user: User) => {
     try {
+      if (!user.phone) return;
       const userRef = doc(db, 'users', user.phone.replace(/\s/g, ''));
       await setDoc(userRef, {
         name: user.name,
         phone: user.phone,
         city: user.city,
-        role: user.role || 'Client',
+        role: user.role || localStorage.getItem('filant_user_role') || 'Client',
         lastSeen: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
+        // Add more fields if necessary
+        lastConnection: new Date().toISOString()
       }, { merge: true });
-      console.log("User synced to Firestore:", user.name);
+      console.log("User synced to Firestore successfully:", user.name);
     } catch (e) {
       console.error("Error syncing user to Firestore:", e);
     }
@@ -235,6 +239,11 @@ export const databaseService = {
       }
   },
 
+  getUserByPhone: (phone: string): User | null => {
+    const users = getUsers();
+    return users.find(u => u.phone === phone.replace(/\s/g, '')) || null;
+  },
+
   loginUser: async (name: string, phone: string): Promise<User | null> => {
     await new Promise(res => setTimeout(res, 500));
     const users = getUsers();
@@ -245,7 +254,7 @@ export const databaseService = {
         u.name.trim().toLowerCase() === normalizedInputName
     );
     if (user) {
-      databaseService.logConnection(user);
+      await databaseService.logConnection(user);
       return user;
     }
     return null;
@@ -261,11 +270,16 @@ export const databaseService = {
     const newUser: User = { 
         name: name.trim(), 
         city: city.trim(), 
-        phone: normalizedPhone 
+        phone: normalizedPhone,
+        role: 'Client'
     };
     users.push(newUser);
     saveUsers(users);
+    
+    // Explicitly sync to Firestore
+    await databaseService.syncUserToFirestore(newUser);
     databaseService.logConnection(newUser);
+    
     return { user: newUser };
   },
   
@@ -327,6 +341,18 @@ export const databaseService = {
 
   saveRecruitment: async (data: any) => {
     try {
+      // Sync to Firestore
+      try {
+        const recruitmentRef = collection(db, 'recruitments');
+        await addDoc(recruitmentRef, {
+          ...data,
+          createdAt: serverTimestamp()
+        });
+        console.log("Recruitment synced to Firestore");
+      } catch (fsError) {
+        console.error("Error syncing recruitment to Firestore:", fsError);
+      }
+
       const response = await fetch('/api/recruitment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -458,7 +484,28 @@ export const databaseService = {
           history.push(message);
           if (history.length > 100) history.shift();
           localStorage.setItem(historyKey, JSON.stringify(history));
+          
+          // Sync to Firestore (async)
+          databaseService.syncChatMessageToFirestore(phone, message);
       } catch (e) {}
+  },
+
+  syncChatMessageToFirestore: async (phone: string, message: StoredChatMessage) => {
+    try {
+      const messagesRef = collection(db, 'messages');
+      const user = databaseService.getUserByPhone(phone);
+      await addDoc(messagesRef, {
+        userId: phone,
+        userName: user?.name || 'Utilisateur inconnu',
+        role: message.sender,
+        content: message.text,
+        timestamp: serverTimestamp(),
+        paymentInfo: message.paymentInfo || null
+      });
+      console.log("Chat message synced to Firestore successfully");
+    } catch (e) {
+      console.error("Error syncing chat message to Firestore:", e);
+    }
   },
 
   clearChatHistory: (phone: string) => {

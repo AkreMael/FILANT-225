@@ -187,6 +187,19 @@ const EmbeddedForm: React.FC<EmbeddedFormProps> = ({
     setTimeout(() => {
         const message = generateWhatsAppMessage(title, questions, answers, user, totalPrice, serviceMode, count);
 
+        // Save to PostgreSQL
+        fetch('/api/forms/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                userPhone: user.phone, 
+                formType, 
+                formTitle: title, 
+                data: answers, 
+                whatsappMessage: message 
+            })
+        }).catch(err => console.error("Error saving form to PG:", err));
+
         if (target === 'whatsapp') {
           window.open(`https://wa.me/2250705052632?text=${encodeURIComponent(message)}`, '_blank');
         } else {

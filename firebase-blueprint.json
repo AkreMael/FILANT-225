@@ -33,12 +33,51 @@
         }
       },
       "required": ["name", "phone", "city"]
+    },
+    "Recruitment": {
+      "title": "Recruitment",
+      "description": "Demande d'inscription professionnelle (Travailleur, Agence, etc.)",
+      "type": "object",
+      "properties": {
+        "titre": { "type": "string" },
+        "nomPrenom": { "type": "string" },
+        "ville": { "type": "string" },
+        "telephone": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "formation": { "type": "string" },
+        "naissance": { "type": "string" },
+        "gmail": { "type": "string" },
+        "typeInscription": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nomPrenom", "telephone", "typeInscription"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Message de la messagerie assistant.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "role": { "type": "string" },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "content", "timestamp"]
     }
   },
   "firestore": {
     "/users/{phone}": {
       "schema": "User",
       "description": "Collection des utilisateurs enregistrés."
+    },
+    "/recruitments/{id}": {
+      "schema": "Recruitment",
+      "description": "Collection des demandes d'inscription professionnelle."
+    },
+    "/messages/{id}": {
+      "schema": "Message",
+      "description": "Collection des messages de chat."
     }
   }
 }

@@ -34,10 +34,19 @@ service cloud.firestore {
              data.city is string && data.city.size() > 0;
     }
 
+    match /messages/{id} {
+      allow create: if isAuthenticated();
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+
+    match /recruitments/{id} {
+      allow create: if true; // Allow anyone to submit a recruitment form
+      allow read, update, delete: if isAdmin();
+    }
+
     match /users/{phone} {
       // Allow creation if data is valid
-      // Note: In a production app, we would use request.auth.uid == phone or similar
-      allow read: if true; // Allow public read for now to facilitate verification
+      allow read: if true; 
       allow create: if isValidUser(request.resource.data);
       allow update: if isValidUser(request.resource.data);
       allow delete: if isAdmin();

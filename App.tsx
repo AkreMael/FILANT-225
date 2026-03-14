@@ -304,21 +304,40 @@ const App: React.FC = () => {
         setIsTransitioning(true);
         setTransitionMessage(`Configuration de votre espace ${selectedProMode}...`);
         
-        setTimeout(() => {
+        setTimeout(async () => {
             localStorage.setItem('filant_selected_pro_role', selectedProMode);
+            localStorage.setItem('filant_user_role', selectedProMode);
             setIsClientModeActive(false);
             setActiveTab(Tab.Menu);
             setMenuView('hub');
             setIsProfileOpen(false);
+            
+            // Sync to Firestore
+            if (currentUser) {
+                const updatedUser = { ...currentUser, role: selectedProMode };
+                setCurrentUser(updatedUser);
+                await databaseService.syncUserToFirestore(updatedUser);
+            }
+            
             setIsTransitioning(false);
         }, 3000);
     } else {
         setIsClientModeActive(active);
+        const newRole = active ? 'Client' : (localStorage.getItem('filant_selected_pro_role') || 'Professionnel');
+        localStorage.setItem('filant_user_role', newRole);
+        
+        // Sync to Firestore
+        if (currentUser) {
+            const updatedUser = { ...currentUser, role: newRole };
+            setCurrentUser(updatedUser);
+            databaseService.syncUserToFirestore(updatedUser);
+        }
+        
         setActiveTab(Tab.Menu);
         setMenuView('hub');
         setIsProfileOpen(false);
     }
-  }, []);
+  }, [currentUser]);
   
   const handleToggleProfile = () => {
     setIsProfileOpen(prev => !prev);
