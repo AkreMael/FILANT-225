@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
 let firestore: Firestore;
 try {
   firestore = new Firestore({
-    projectId: process.env.GCP_PROJECT_ID || "gen-lang-client-0439729178",
+    projectId: process.env.GCP_PROJECT_ID || "filant225-base",
   });
   console.log("Firestore initialized successfully");
 } catch (error) {

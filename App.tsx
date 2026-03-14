@@ -33,6 +33,17 @@ import ProfessionalCardScreen from './components/ProfessionalCardScreen';
 import { motion, AnimatePresence } from 'motion/react';
 import { databaseService, SavedContact, ConnectionLog } from './services/databaseService';
 import { isAdmin, getCardType } from './utils/authUtils';
+import app from './firebase';
+import { getAnalytics } from "firebase/analytics";
+
+// Initialisation Analytics si supporté
+if (typeof window !== 'undefined') {
+  try {
+    getAnalytics(app);
+  } catch (e) {
+    console.warn("Firebase Analytics not supported in this environment");
+  }
+}
 
 const maelUser: User = {
   name: 'Mael',
