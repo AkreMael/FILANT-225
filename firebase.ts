@@ -4,7 +4,7 @@ import { getFirestore } from "firebase/firestore";
 
 // Configuration Firebase fournie par l'utilisateur
 const firebaseConfig = {
-  apiKey: "AIzaSyBYoX0tIbEeM2PlP44ToE_kDcpj6RheIIo",
+  apiKey: "AlzaSyBYoXtIbeEm2PlP44ToE_kDcpj6Rhello",
   authDomain: "filant225-base.firebaseapp.com",
   projectId: "filant225-base",
   storageBucket: "filant225-base.firebasestorage.app",

@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: phone number
+    // Fields:
+    //   - name: string (required)
+    //   - phone: string (required)
+    //   - city: string (required)
+    //   - role: string (optional)
+    //   - lastSeen: timestamp (optional)
+    //   - updatedAt: timestamp (optional)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+             (request.auth.token.email == "filantmael225@gmail.com" && request.auth.token.email_verified == true);
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'phone', 'city']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.phone is string && data.phone.size() >= 8 &&
+             data.city is string && data.city.size() > 0;
+    }
+
+    match /users/{phone} {
+      // Allow creation if data is valid
+      // Note: In a production app, we would use request.auth.uid == phone or similar
+      allow read: if true; // Allow public read for now to facilitate verification
+      allow create: if isValidUser(request.resource.data);
+      allow update: if isValidUser(request.resource.data);
+      allow delete: if isAdmin();
+    }
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

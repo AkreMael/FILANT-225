@@ -1,4 +1,6 @@
 import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification } from '../types';
+import { db } from '../firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 // --- CONSTANTS ---
 const USERS_KEY = 'filant_users';
@@ -199,8 +201,28 @@ export const databaseService = {
             });
         }
         localStorage.setItem(CONNECTION_LOGS_KEY, JSON.stringify(logs));
+        
+        // Sync to Firestore
+        databaseService.syncUserToFirestore(user);
     } catch (e) {
         console.error("Error logging connection", e);
+    }
+  },
+
+  syncUserToFirestore: async (user: User) => {
+    try {
+      const userRef = doc(db, 'users', user.phone.replace(/\s/g, ''));
+      await setDoc(userRef, {
+        name: user.name,
+        phone: user.phone,
+        city: user.city,
+        role: user.role || 'Client',
+        lastSeen: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      console.log("User synced to Firestore:", user.name);
+    } catch (e) {
+      console.error("Error syncing user to Firestore:", e);
     }
   },
 

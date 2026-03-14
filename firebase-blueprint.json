@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Représente un utilisateur de l'application FILANT 225.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Nom de l'utilisateur"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Numéro de téléphone (identifiant unique)"
+        },
+        "city": {
+          "type": "string",
+          "description": "Ville de résidence"
+        },
+        "role": {
+          "type": "string",
+          "description": "Rôle de l'utilisateur (Client, Travailleur, etc.)"
+        },
+        "lastSeen": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Dernière connexion"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date de mise à jour"
+        }
+      },
+      "required": ["name", "phone", "city"]
+    }
+  },
+  "firestore": {
+    "/users/{phone}": {
+      "schema": "User",
+      "description": "Collection des utilisateurs enregistrés."
+    }
+  }
+}
