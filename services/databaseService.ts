@@ -1,6 +1,58 @@
 import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification } from '../types';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { doc, setDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
+
+// --- ENUMS & INTERFACES FOR ERROR HANDLING ---
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+    tenantId: string | null | undefined;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email || undefined,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 // --- CONSTANTS ---
 const USERS_KEY = 'filant_users';
@@ -211,6 +263,7 @@ export const databaseService = {
   },
 
   syncUserToFirestore: async (user: User) => {
+    const userPath = `users/${user.phone.replace(/\s/g, '')}`;
     try {
       if (!user.phone) return;
       const userRef = doc(db, 'users', user.phone.replace(/\s/g, ''));
@@ -221,12 +274,14 @@ export const databaseService = {
         role: user.role || localStorage.getItem('filant_user_role') || 'Client',
         lastSeen: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        // Add more fields if necessary
         lastConnection: new Date().toISOString()
       }, { merge: true });
       console.log("User synced to Firestore successfully:", user.name);
     } catch (e) {
       console.error("Error syncing user to Firestore:", e);
+      if (e instanceof Error && e.message.includes('permission')) {
+        handleFirestoreError(e, OperationType.WRITE, userPath);
+      }
     }
   },
 
@@ -351,6 +406,9 @@ export const databaseService = {
         console.log("Recruitment synced to Firestore");
       } catch (fsError) {
         console.error("Error syncing recruitment to Firestore:", fsError);
+        if (fsError instanceof Error && fsError.message.includes('permission')) {
+          handleFirestoreError(fsError, OperationType.WRITE, 'recruitments');
+        }
       }
 
       const response = await fetch('/api/recruitment', {
@@ -505,6 +563,9 @@ export const databaseService = {
       console.log("Chat message synced to Firestore successfully");
     } catch (e) {
       console.error("Error syncing chat message to Firestore:", e);
+      if (e instanceof Error && e.message.includes('permission')) {
+        handleFirestoreError(e, OperationType.WRITE, 'messages');
+      }
     }
   },
 

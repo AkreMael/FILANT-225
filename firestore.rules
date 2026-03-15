@@ -6,7 +6,7 @@ service cloud.firestore {
     // ===============================================================
     //
     // Collection: users
-    // Document ID: phone number
+    // Document ID: phone number (sanitized)
     // Fields:
     //   - name: string (required)
     //   - phone: string (required)
@@ -14,6 +14,22 @@ service cloud.firestore {
     //   - role: string (optional)
     //   - lastSeen: timestamp (optional)
     //   - updatedAt: timestamp (optional)
+    //   - lastConnection: string (optional)
+    //
+    // Collection: recruitments
+    // Document ID: auto-generated
+    // Fields:
+    //   - nomPrenom: string (required)
+    //   - telephone: string (required)
+    //   - typeInscription: string (required)
+    //   - createdAt: timestamp (optional)
+    //
+    // Collection: messages
+    // Document ID: auto-generated
+    // Fields:
+    //   - userId: string (required)
+    //   - content: string (required)
+    //   - timestamp: timestamp (required)
     //
     // ===============================================================
 
@@ -27,28 +43,72 @@ service cloud.firestore {
              (request.auth.token.email == "filantmael225@gmail.com" && request.auth.token.email_verified == true);
     }
 
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
     function isValidUser(data) {
-      return data.keys().hasAll(['name', 'phone', 'city']) &&
+      let requiredFields = ['name', 'phone', 'city'];
+      let allowedFields = ['name', 'phone', 'city', 'role', 'lastSeen', 'updatedAt', 'lastConnection'];
+      
+      return data.keys().hasAll(requiredFields) &&
+             data.keys().hasOnly(allowedFields) &&
              data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.phone is string && data.phone.size() >= 8 &&
-             data.city is string && data.city.size() > 0;
+             data.phone is string && data.phone.size() >= 8 && data.phone.size() < 20 &&
+             data.city is string && data.city.size() > 0 && data.city.size() < 100 &&
+             (!('role' in data) || (data.role is string && data.role.size() < 50)) &&
+             (!('lastConnection' in data) || (data.lastConnection is string && data.lastConnection.size() < 100)) &&
+             (!('lastSeen' in data) || data.lastSeen is timestamp) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function isValidRecruitment(data) {
+      let requiredFields = ['nomPrenom', 'telephone', 'typeInscription'];
+      let allowedFields = ['nomPrenom', 'telephone', 'typeInscription', 'titre', 'ville', 'whatsapp', 'formation', 'naissance', 'gmail', 'createdAt'];
+      
+      return data.keys().hasAll(requiredFields) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.nomPrenom is string && data.nomPrenom.size() > 0 &&
+             data.telephone is string && data.telephone.size() >= 8 &&
+             (!('whatsapp' in data) || data.whatsapp is string) &&
+             (!('gmail' in data) || data.gmail is string) &&
+             (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    function isValidMessage(data) {
+      let requiredFields = ['userId', 'content', 'timestamp'];
+      let allowedFields = ['userId', 'content', 'timestamp', 'userName', 'role', 'paymentInfo'];
+      
+      return data.keys().hasAll(requiredFields) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.userId is string && 
+             data.content is string && data.content.size() > 0 &&
+             data.timestamp is timestamp &&
+             (!('userName' in data) || data.userName is string) &&
+             (!('role' in data) || data.role is string);
     }
 
     match /messages/{id} {
-      allow create: if isAuthenticated();
-      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      // Allow creation for any authenticated user (including anonymous)
+      allow create: if isAuthenticated() && isValidMessage(request.resource.data);
+      // Allow users to read their own messages, or admin to read all
+      allow read: if isAdmin() || (isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid || resource.data.userId == request.resource.data.userId));
+      allow update, delete: if isAdmin();
     }
 
     match /recruitments/{id} {
-      allow create: if true; // Allow anyone to submit a recruitment form
+      // Allow anyone to submit a recruitment form
+      allow create: if isValidRecruitment(request.resource.data);
       allow read, update, delete: if isAdmin();
     }
 
     match /users/{phone} {
-      // Allow creation if data is valid
-      allow read: if true; 
-      allow create: if isValidUser(request.resource.data);
-      allow update: if isValidUser(request.resource.data);
+      // Allow public read for profiles (needed for verification/search)
+      allow read: if true;
+      // Allow creation/update if data is valid. 
+      // We don't strictly require isAuthenticated() here to allow initial registration, 
+      // but it's better to have it if anonymous auth is active.
+      allow create, update: if isValidUser(request.resource.data);
       allow delete: if isAdmin();
     }
     

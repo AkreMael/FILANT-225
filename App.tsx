@@ -36,6 +36,10 @@ import { isAdmin, getCardType } from './utils/authUtils';
 import app from './firebase';
 import { getAnalytics } from "firebase/analytics";
 
+import { auth, db } from './firebase';
+import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDocFromServer } from 'firebase/firestore';
+
 // Initialisation Analytics si supporté
 if (typeof window !== 'undefined') {
   try {
@@ -141,6 +145,31 @@ const App: React.FC = () => {
     const savedMode = localStorage.getItem('filant_darkMode');
     return savedMode ? JSON.parse(savedMode) : true;
   });
+
+  // Authentification anonyme pour Firestore
+  useEffect(() => {
+    const testConnection = async () => {
+      try {
+        // Test de connexion selon les directives
+        await getDocFromServer(doc(db, 'test', 'connection'));
+        console.log("Firestore connection test successful");
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('the client is offline')) {
+          console.error("Please check your Firebase configuration. The client is offline.");
+        }
+        // On ignore les autres erreurs (ex: permission denied sur le doc de test) car c'est juste un test de connectivité
+      }
+    };
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        signInAnonymously(auth).catch(err => console.error("Anonymous sign-in failed:", err));
+      } else {
+        testConnection();
+      }
+    });
+    return () => unsubscribe();
+  }, []);
   
   const [menuView, setMenuView] = useState<'hub' | 'worker_list' | 'registration_hub' | 'registration_info' | 'tally_form' | 'custom_registration' | 'my_worker' | 'location_hub' | 'schedule_service_form' | 'location_propose_form' | 'admin_sms' | 'location_map' | 'notifications' | 'emergency_form' | 'assistant_qr' | 'admin_connections' | 'admin_active_contacts' | 'admin_associations'>('hub');
   const [locationInitialTab, setLocationInitialTab] = useState<'appartement' | 'equipement'>('appartement');
@@ -234,6 +263,9 @@ const App: React.FC = () => {
         setCurrentUser(userData);
         setShowSplash(true);
         
+        // Synchronisation avec Firestore au chargement
+        databaseService.syncUserToFirestore(userData);
+        
         const role = localStorage.getItem('filant_user_role');
         if (role && role !== 'Client') {
             setIsClientModeActive(false);
@@ -276,6 +308,9 @@ const App: React.FC = () => {
     setCurrentUser(user);
     setShowSplash(true);
     localStorage.setItem('filant_currentUserPhone', user.phone);
+    
+    // Synchronisation avec Firestore lors de la connexion
+    databaseService.syncUserToFirestore(user);
     
     const role = localStorage.getItem('filant_user_role');
     if (role && role !== 'Client') {
