@@ -169,6 +169,7 @@ export interface StoredChatMessage {
     sender: 'user' | 'ai';
     timestamp: number;
     paymentInfo?: any;
+    whatsAppPayload?: string;
 }
 
 // --- Mock Data ---
@@ -585,7 +586,8 @@ export const databaseService = {
         role: message.sender,
         content: message.text,
         timestamp: serverTimestamp(),
-        paymentInfo: message.paymentInfo || null
+        paymentInfo: message.paymentInfo || null,
+        whatsAppPayload: message.whatsAppPayload || null
       });
       console.log("Chat message synced to Firestore successfully with ID:", messageId);
     } catch (e) {

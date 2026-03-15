@@ -130,8 +130,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, activeTab, currentMe
         };
     }
 
-    // Priorité 2: Recherche générique du libellé Montant
-    const amountMatch = cleanText.match(/Montant\s*[:]\s*(\d+)/i);
+    // Priorité 2: Recherche générique du libellé Montant/Frais/Prix
+    const amountMatch = cleanText.match(/(?:Montant|Frais|Prix|Tarif|Total)\s*[:]\s*(\d+)/i);
     if (amountMatch && parseInt(amountMatch[1]) > 0) {
         return {
             amount: amountMatch[1],
@@ -173,7 +173,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, activeTab, currentMe
     if (!textToSend.trim()) return;
 
     let detected = detectPrice(textToSend);
-    const isFormSubmission = textToSend.includes("Nouvelle demande via FILANT");
+    const isFormSubmission = textToSend.includes("Nouvelle demande via FILANT") || textToSend.includes("Nouvelle inscription via FILANT");
     const isCardRecovery = textToSend.includes("récupération de carte");
     
     const userMsg: Message = { 
@@ -199,7 +199,11 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, activeTab, currentMe
     let isAILoading = false;
 
     if (isFormSubmission) {
-        aiResponseText = "J'ai bien reçu votre demande. Voici le récapitulatif de votre commande. Veuillez procéder au paiement des frais de mise en relation via le bouton ci-dessous, puis cliquez sur 'Transmettre sur WhatsApp' pour finaliser avec un conseiller.";
+        if (textToSend.includes("Nouvelle inscription")) {
+            aiResponseText = "J'ai bien reçu votre demande d'inscription. Voici le récapitulatif. Veuillez procéder au paiement des frais de mise en ligne via le bouton ci-dessous, puis cliquez sur 'WhatsApp' pour finaliser avec un conseiller.";
+        } else {
+            aiResponseText = "J'ai bien reçu votre demande. Voici le récapitulatif de votre commande. Veuillez procéder au paiement des frais de mise en relation via le bouton ci-dessous, puis cliquez sur 'Transmettre sur WhatsApp' pour finaliser avec un conseiller.";
+        }
     } else if (isCardRecovery) {
         aiResponseText = "C'est noté. Pour récupérer et intégrer votre carte FILANT°225, un paiement de 7 100 FCFA est requis. Veuillez utiliser le bouton de paiement ci-dessous, puis transmettez votre demande sur WhatsApp.";
     } else {

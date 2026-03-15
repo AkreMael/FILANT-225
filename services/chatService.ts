@@ -40,12 +40,18 @@ class ChatService {
 
   startNewSession() {
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+          console.error("GEMINI_API_KEY is missing!");
+          return;
+      }
+      const ai = new GoogleGenAI({ apiKey });
+      
       this.chatSession = ai.chats.create({
         model: 'gemini-3-flash-preview',
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,
-          temperature: 0.2, // Température basse pour éviter les hallucinations de prix
+          temperature: 0.2,
         }
       });
 
@@ -56,6 +62,7 @@ class ChatService {
               temperature: 0.5,
           }
       });
+      console.log("AI Chat sessions initialized successfully");
     } catch (error) {
       console.error("Error starting chat session:", error);
     }
@@ -65,21 +72,35 @@ class ChatService {
     if (!this.chatSession) {
         this.startNewSession();
     }
+    
+    if (!this.chatSession) {
+        return "Désolé, le service d'assistance est temporairement indisponible. Veuillez réessayer plus tard.";
+    }
+
     try {
       const result = await this.chatSession.sendMessage({
           message: message
       });
+      
+      if (!result || !result.text) {
+          throw new Error("Empty response from AI");
+      }
+      
       return result.text;
     } catch (error) {
       console.error("Chat Error:", error);
+      // Tentative de réinitialisation de la session sur erreur
       this.startNewSession();
+      
       try {
+         if (!this.chatSession) throw new Error("Session not re-initialized");
          const retryResult = await this.chatSession.sendMessage({
             message: message
          });
-         return retryResult.text;
+         return retryResult.text || "Désolé, j'ai rencontré une petite erreur. Veuillez réessayer.";
       } catch (retryError) {
-         return "Désolé, j'ai rencontré une petite erreur. Veuillez réessayer.";
+         console.error("Retry Chat Error:", retryError);
+         return "Désolé, j'ai rencontré une petite erreur technique. Veuillez réessayer dans quelques instants.";
       }
     }
   }

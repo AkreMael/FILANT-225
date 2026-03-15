@@ -77,7 +77,7 @@ service cloud.firestore {
 
     function isValidMessage(data) {
       let requiredFields = ['userId', 'content', 'timestamp'];
-      let allowedFields = ['userId', 'content', 'timestamp', 'userName', 'role', 'paymentInfo'];
+      let allowedFields = ['userId', 'content', 'timestamp', 'userName', 'role', 'paymentInfo', 'whatsAppPayload'];
       
       return data.keys().hasAll(requiredFields) &&
              data.keys().hasOnly(allowedFields) &&
@@ -85,7 +85,8 @@ service cloud.firestore {
              data.content is string && data.content.size() > 0 &&
              data.timestamp is timestamp &&
              (!('userName' in data) || data.userName is string) &&
-             (!('role' in data) || data.role is string);
+             (!('role' in data) || data.role is string) &&
+             (!('whatsAppPayload' in data) || data.whatsAppPayload is string);
     }
 
     match /messages/{id} {
