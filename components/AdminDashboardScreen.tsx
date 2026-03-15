@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { databaseService, ConnectionLog, Association, ActiveContact, AdminContact } from '../services/databaseService';
+import { User } from '../types';
 import { smsService } from '../services/smsService';
 import Typewriter from './common/Typewriter';
 
@@ -43,7 +44,9 @@ interface AdminDashboardScreenProps {
 }
 
 const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onSelectUser, initialView = 'grid' }) => {
-  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms'>(initialView);
+  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms' | 'firestore-users'>(initialView);
+  const [firestoreUsers, setFirestoreUsers] = useState<User[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [logs, setLogs] = useState<ConnectionLog[]>([]);
   const [associations, setAssociations] = useState<Association[]>([]);
   const [activeContacts, setActiveContacts] = useState<ActiveContact[]>([]);
@@ -88,6 +91,13 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
       if (view === 'contacts') setAdminContacts(databaseService.getAdminContacts());
       if (view === 'sms') setLogs(databaseService.getConnectionLogs());
       if (view === 'associations') setAssociations(databaseService.getAssociations());
+      if (view === 'firestore-users') {
+          setIsSyncing(true);
+          databaseService.getUsersFromFirestore().then(users => {
+              setFirestoreUsers(users);
+              setIsSyncing(false);
+          });
+      }
       if (view === 'active-contacts') {
           const list = databaseService.getActiveContacts();
           const now = Date.now();
@@ -822,10 +832,69 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
       );
   };
 
+  const renderFirestoreUsersView = () => (
+    <div className="flex-1 flex flex-col h-full bg-white font-sans animate-unfold-in text-left">
+        <header className="p-4 flex items-center justify-between border-b border-gray-100 bg-white sticky top-0 z-20">
+            <button onClick={() => setView('grid')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-400 transition-transform active:scale-90">
+                <BackIcon />
+            </button>
+            <h2 className="text-sm font-black text-gray-800 uppercase tracking-widest flex-1 text-center">Utilisateurs Cloud (Firebase)</h2>
+            <button 
+                onClick={() => {
+                    setIsSyncing(true);
+                    databaseService.getUsersFromFirestore().then(users => {
+                        setFirestoreUsers(users);
+                        setIsSyncing(false);
+                    });
+                }}
+                disabled={isSyncing}
+                className={`p-2 rounded-full hover:bg-gray-100 text-blue-600 transition-all ${isSyncing ? 'animate-spin' : ''}`}
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            </button>
+        </header>
+        <div className="p-4 space-y-4 flex-1 overflow-y-auto scrollbar-hide">
+            {firestoreUsers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                    <StorageIcon />
+                    <p className="mt-4 font-bold uppercase text-xs tracking-widest">
+                        {isSyncing ? 'Chargement...' : 'Aucun utilisateur dans le Cloud'}
+                    </p>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {firestoreUsers.map((user, idx) => (
+                        <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 shadow-sm">
+                            <div className="flex justify-between items-start mb-2">
+                                <div>
+                                    <h4 className="font-black text-gray-900 uppercase text-sm">{user.name}</h4>
+                                    <p className="text-xs text-gray-500 font-bold">{user.city}</p>
+                                </div>
+                                <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${
+                                    user.role === 'Admin 225' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
+                                }`}>
+                                    {user.role || 'Client'}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between mt-4">
+                                <a href={`tel:${user.phone}`} className="text-blue-600 font-mono text-xs font-bold">+225 {user.phone}</a>
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">
+                                    {user.lastSeen ? (typeof user.lastSeen === 'object' && 'toDate' in user.lastSeen ? (user.lastSeen as any).toDate().toLocaleDateString() : 'Actif') : 'Inscrit'}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    </div>
+  );
+
   if (view === 'contacts') return renderContactStorageView();
   if (view === 'associations') return renderAssociationView();
   if (view === 'active-contacts') return renderActiveContactsView();
   if (view === 'sms') return renderSmsView();
+  if (view === 'firestore-users') return renderFirestoreUsersView();
 
   return (
     <div className="flex-1 bg-slate-900 flex flex-col h-full text-left">
@@ -855,6 +924,11 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
                 <button onClick={() => setView('sms')} className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-700 flex flex-col items-center gap-3 hover:bg-slate-700 transition-all transform hover:scale-105 group">
                      <div className="bg-orange-500/20 p-4 rounded-full group-hover:bg-orange-500/30 transition-colors"><SMSIcon /></div>
                     <span className="text-white text-sm font-semibold text-center leading-tight">Gestion des SMS</span>
+                </button>
+
+                <button onClick={() => setView('firestore-users')} className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-700 flex flex-col items-center gap-3 hover:bg-slate-700 transition-all transform hover:scale-105 group">
+                     <div className="bg-blue-500/20 p-4 rounded-full group-hover:bg-blue-500/30 transition-colors"><StorageIcon /></div>
+                    <span className="text-white text-sm font-semibold text-center leading-tight">Utilisateurs Cloud</span>
                 </button>
             </div>
         </main>

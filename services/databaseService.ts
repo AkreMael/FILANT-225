@@ -1,6 +1,6 @@
 import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification } from '../types';
 import { db, auth } from '../firebase';
-import { doc, setDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore';
 
 // --- ENUMS & INTERFACES FOR ERROR HANDLING ---
 enum OperationType {
@@ -263,24 +263,47 @@ export const databaseService = {
   },
 
   syncUserToFirestore: async (user: User) => {
-    const userPath = `users/${user.phone.replace(/\s/g, '')}`;
+    if (!user.phone) return;
+    const sanitizedPhone = user.phone.replace(/\s/g, '');
+    const userPath = `users/${sanitizedPhone}`;
+    
     try {
-      if (!user.phone) return;
-      const userRef = doc(db, 'users', user.phone.replace(/\s/g, ''));
-      await setDoc(userRef, {
+      // Ensure we are authenticated (anonymous or otherwise) before writing to Firestore
+      if (!auth.currentUser) {
+        console.log("Waiting for authentication before syncing user...");
+        // If not authenticated, we try to sign in anonymously
+        try {
+          const { signInAnonymously } = await import('firebase/auth');
+          await signInAnonymously(auth);
+        } catch (authErr) {
+          console.error("Failed to sign in anonymously for sync:", authErr);
+          // We continue anyway, setDoc might fail with permission error which we handle
+        }
+      }
+
+      const userRef = doc(db, 'users', sanitizedPhone);
+      const userData = {
         name: user.name,
-        phone: user.phone,
+        phone: sanitizedPhone,
         city: user.city,
         role: user.role || localStorage.getItem('filant_user_role') || 'Client',
         lastSeen: serverTimestamp(),
         updatedAt: serverTimestamp(),
         lastConnection: new Date().toISOString()
-      }, { merge: true });
+      };
+
+      await setDoc(userRef, userData, { merge: true });
       console.log("User synced to Firestore successfully:", user.name);
     } catch (e) {
       console.error("Error syncing user to Firestore:", e);
-      if (e instanceof Error && e.message.includes('permission')) {
-        handleFirestoreError(e, OperationType.WRITE, userPath);
+      // If it's a permission error, we use our structured handler
+      if (e instanceof Error && (e.message.includes('permission') || e.message.includes('Missing or insufficient permissions'))) {
+        try {
+          handleFirestoreError(e, OperationType.WRITE, userPath);
+        } catch (handlerErr) {
+          // Re-throw or handle as needed. For now we just log it.
+          console.error("Firestore permission error details logged.");
+        }
       }
     }
   },
@@ -646,5 +669,24 @@ export const databaseService = {
 
   saveAdminContacts: (contacts: AdminContact[]) => {
       localStorage.setItem(ADMIN_CONTACTS_KEY, JSON.stringify(contacts));
+  },
+
+  getUsersFromFirestore: async (): Promise<User[]> => {
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, orderBy('lastSeen', 'desc'));
+      const querySnapshot = await getDocs(q);
+      const users: User[] = [];
+      querySnapshot.forEach((doc) => {
+        users.push(doc.data() as User);
+      });
+      return users;
+    } catch (e) {
+      console.error("Error getting users from Firestore:", e);
+      if (e instanceof Error && (e.message.includes('permission') || e.message.includes('Missing or insufficient permissions'))) {
+        handleFirestoreError(e, OperationType.LIST, 'users');
+      }
+      return [];
+    }
   }
 };
