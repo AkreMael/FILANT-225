@@ -1,6 +1,6 @@
 import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification } from '../types';
 import { db, auth } from '../firebase';
-import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc } from 'firebase/firestore';
 
 // --- ENUMS & INTERFACES FOR ERROR HANDLING ---
 enum OperationType {
@@ -573,20 +573,24 @@ export const databaseService = {
 
   syncChatMessageToFirestore: async (phone: string, message: StoredChatMessage) => {
     try {
-      const messagesRef = collection(db, 'messages');
+      const sanitizedPhone = phone.replace(/\D/g, '');
+      // Utilisation d'un ID composite : Téléphone + Timestamp pour identification directe dans la console
+      const messageId = `${sanitizedPhone}_${Date.now()}`;
+      const messageRef = doc(db, 'messages', messageId);
+      
       const user = databaseService.getUserByPhone(phone);
-      await addDoc(messagesRef, {
-        userId: phone,
+      await setDoc(messageRef, {
+        userId: sanitizedPhone,
         userName: user?.name || 'Utilisateur inconnu',
         role: message.sender,
         content: message.text,
         timestamp: serverTimestamp(),
         paymentInfo: message.paymentInfo || null
       });
-      console.log("Chat message synced to Firestore successfully");
+      console.log("Chat message synced to Firestore successfully with ID:", messageId);
     } catch (e) {
       console.error("Error syncing chat message to Firestore:", e);
-      if (e instanceof Error && e.message.includes('permission')) {
+      if (e instanceof Error && (e.message.includes('permission') || e.message.includes('Missing or insufficient permissions'))) {
         handleFirestoreError(e, OperationType.WRITE, 'messages');
       }
     }
