@@ -3,11 +3,20 @@ import { databaseService, ConnectionLog, Association, ActiveContact, AdminContac
 import { User } from '../types';
 import { smsService } from '../services/smsService';
 import Typewriter from './common/Typewriter';
+import MenuBackground from './common/MenuBackground';
+
+const IconWrapper: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
+    <div className={`flex items-center justify-center rounded-full ${className}`}>
+        {children}
+    </div>
+);
 
 const BackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>;
 const StorageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" /></svg>;
-const CardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H4a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>;
-const ContactIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
+const ActivationIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H4a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>;
+const AssociationIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
+const SMSAdminIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>;
+const CloudIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
 const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
 const MicIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>;
@@ -897,41 +906,89 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
   if (view === 'firestore-users') return renderFirestoreUsersView();
 
   return (
-    <div className="flex-1 bg-slate-900 flex flex-col h-full text-left">
-        <header className="flex items-center p-4 bg-orange-600 shadow-lg sticky top-0 z-10">
-            <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-orange-700 text-white transition-colors"><BackIcon /></button>
-            <h1 className="text-xl font-bold text-white ml-2">Administrateur 225</h1>
-        </header>
+    <div className="flex-1 bg-slate-900 flex flex-col h-full text-left relative overflow-hidden">
+        <MenuBackground />
+        
+        <div className="relative z-10 flex flex-col h-full">
+            <header className="pt-5">
+                <div className="flex justify-between items-center px-4 h-20">
+                    <div className="flex items-center gap-3">
+                        <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-white/10 text-white transition-colors active:scale-90">
+                            <BackIcon />
+                        </button>
+                        <div className="flex items-center gap-2">
+                             <img src="https://i.supaimg.com/5cd01a23-e101-4415-9e28-ff02a617cd11.png" alt="Logo" className="w-12 h-12 object-contain" referrerPolicy="no-referrer" />
+                             <h2 className="text-xl font-black text-white uppercase tracking-tighter">Administration</h2>
+                        </div>
+                    </div>
+                </div>
 
-        <main className="p-6 overflow-y-auto">
-            <h2 className="text-white font-bold mb-6 text-center text-lg">Panneau de gestion</h2>
-            <div className="grid grid-cols-2 gap-6">
-                <button onClick={() => setView('contacts')} className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-700 flex flex-col items-center gap-3 hover:bg-slate-700 transition-all transform hover:scale-105 group">
-                    <div className="bg-blue-500/20 p-4 rounded-full group-hover:bg-blue-500/30 transition-colors"><StorageIcon /></div>
-                    <span className="text-white text-sm font-semibold text-center leading-tight">Stockage des contacts</span>
-                </button>
+                <div className="bg-white/10 backdrop-blur-md my-4 p-6 border-y border-white/10 overflow-hidden">
+                    <div className="flex flex-col items-center">
+                        <h1 className="text-5xl sm:text-6xl font-black tracking-tighter flex items-center justify-center flex-nowrap whitespace-nowrap">
+                            <img 
+                                src="https://i.supaimg.com/5cd01a23-e101-4415-9e28-ff02a617cd11.png" 
+                                alt="Logo" 
+                                className="w-14 h-14 sm:w-20 sm:h-20 object-contain mr-3"
+                                referrerPolicy="no-referrer"
+                            />
+                            <div className="flex">
+                                {"FILANT".split("").map((letter, idx) => (
+                                    <span 
+                                        key={idx} 
+                                        className="text-green-500 drop-shadow-[0_2px_10px_rgba(34,197,94,0.4)] animate-logo-letter"
+                                        style={{ animationDelay: `${idx * 0.1}s` }}
+                                    >
+                                        {letter}
+                                    </span>
+                                ))}
+                            </div>
+                            <span className="text-white bg-orange-600 rounded-lg px-3 py-1 text-4xl sm:text-5xl ml-2 shadow-xl select-none animate-logo-225">225</span>
+                        </h1>
+                        <p className="font-black text-xs mt-3 text-center uppercase tracking-[0.3em] text-white opacity-80">Panneau de gestion</p>
+                    </div>
+                </div>
+            </header>
 
-                <button onClick={() => setView('active-contacts')} className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-700 flex flex-col items-center gap-3 hover:bg-slate-700 transition-all transform hover:scale-105 group">
-                     <div className="bg-green-500/20 p-4 rounded-full group-hover:bg-green-500/30 transition-colors"><CardIcon /></div>
-                    <span className="text-white text-sm font-semibold text-center leading-tight">Activation des contacts</span>
-                </button>
+            <main className="p-6 overflow-y-auto flex-1 scrollbar-hide">
+                <div className="grid grid-cols-2 gap-6 pb-12">
+                    <button onClick={() => setView('contacts')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                        <div className="bg-blue-500/20 p-4 rounded-full group-hover:bg-blue-500/30 transition-colors shadow-inner">
+                            <StorageIcon />
+                        </div>
+                        <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Stockage des contacts</span>
+                    </button>
 
-                <button onClick={() => setView('associations')} className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-700 flex flex-col items-center gap-3 hover:bg-slate-700 transition-all transform hover:scale-105 group">
-                     <div className="bg-purple-500/20 p-4 rounded-full group-hover:bg-purple-500/30 transition-colors"><ContactIcon /></div>
-                    <span className="text-white text-sm font-semibold text-center leading-tight">Association de contacts</span>
-                </button>
+                    <button onClick={() => setView('active-contacts')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                         <div className="bg-green-500/20 p-4 rounded-full group-hover:bg-green-500/30 transition-colors shadow-inner">
+                            <ActivationIcon />
+                         </div>
+                        <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Activation des contacts</span>
+                    </button>
 
-                <button onClick={() => setView('sms')} className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-700 flex flex-col items-center gap-3 hover:bg-slate-700 transition-all transform hover:scale-105 group">
-                     <div className="bg-orange-500/20 p-4 rounded-full group-hover:bg-orange-500/30 transition-colors"><SMSIcon /></div>
-                    <span className="text-white text-sm font-semibold text-center leading-tight">Gestion des SMS</span>
-                </button>
+                    <button onClick={() => setView('associations')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                         <div className="bg-purple-500/20 p-4 rounded-full group-hover:bg-purple-500/30 transition-colors shadow-inner">
+                            <AssociationIcon />
+                         </div>
+                        <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Association de contacts</span>
+                    </button>
 
-                <button onClick={() => setView('firestore-users')} className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-700 flex flex-col items-center gap-3 hover:bg-slate-700 transition-all transform hover:scale-105 group">
-                     <div className="bg-blue-500/20 p-4 rounded-full group-hover:bg-blue-500/30 transition-colors"><StorageIcon /></div>
-                    <span className="text-white text-sm font-semibold text-center leading-tight">Utilisateurs Cloud</span>
-                </button>
-            </div>
-        </main>
+                    <button onClick={() => setView('sms')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                         <div className="bg-orange-500/20 p-4 rounded-full group-hover:bg-orange-500/30 transition-colors shadow-inner">
+                            <SMSAdminIcon />
+                         </div>
+                        <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Gestion des SMS</span>
+                    </button>
+
+                    <button onClick={() => setView('firestore-users')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95 col-span-2">
+                         <div className="bg-blue-500/20 p-4 rounded-full group-hover:bg-blue-500/30 transition-colors shadow-inner">
+                            <CloudIcon />
+                         </div>
+                        <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Utilisateurs Cloud</span>
+                    </button>
+                </div>
+            </main>
+        </div>
 
         {deleteId && (
               <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
