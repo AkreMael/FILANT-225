@@ -26,8 +26,14 @@ const ProfessionalCardScreen: React.FC<ProfessionalCardScreenProps> = ({ user, o
 
   const COMPANY_PHONE = '07 05 05 26 32';
   const cardType = getCardType(user.role);
+  const aiRef = useRef<GoogleGenAI | null>(null);
 
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const getAI = () => {
+    if (!aiRef.current) {
+      aiRef.current = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+    }
+    return aiRef.current;
+  };
 
   useEffect(() => {
     const data = databaseService.getCardData(user.phone, cardType);
@@ -90,6 +96,7 @@ const ProfessionalCardScreen: React.FC<ProfessionalCardScreenProps> = ({ user, o
   const validateAndSavePhoto = async (base64Data: string, newCount: number) => {
     setIsAnalyzing(true);
     try {
+      const ai = getAI();
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: [{
@@ -179,7 +186,7 @@ const ProfessionalCardScreen: React.FC<ProfessionalCardScreenProps> = ({ user, o
   const qrValue = `Métier: ${profession}\nNom: ${user.name}\nVille: ${user.city}\nNuméro: ${COMPANY_PHONE}`;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-4 pb-24 animate-in fade-in duration-500">
+    <div className="min-h-screen bg-slate-900 text-white p-4 pb-24">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <button 
