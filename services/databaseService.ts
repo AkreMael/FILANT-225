@@ -265,8 +265,9 @@ export const databaseService = {
 
   syncUserToFirestore: async (user: User) => {
     if (!user.phone) return;
-    const sanitizedPhone = user.phone.replace(/\s/g, '');
-    const userPath = `users/${sanitizedPhone}`;
+    const sanitizedPhone = user.phone.replace(/\D/g, '');
+    const userId = `${user.name}_${sanitizedPhone}`;
+    const userPath = `users/${userId}`;
     
     try {
       // Ensure we are authenticated (anonymous or otherwise) before writing to Firestore
@@ -282,7 +283,7 @@ export const databaseService = {
         }
       }
 
-      const userRef = doc(db, 'users', sanitizedPhone);
+      const userRef = doc(db, 'users', userId);
       const userData = {
         name: user.name,
         phone: sanitizedPhone,
@@ -320,14 +321,14 @@ export const databaseService = {
 
   getUserByPhone: (phone: string): User | null => {
     const users = getUsers();
-    return users.find(u => u.phone === phone.replace(/\s/g, '')) || null;
+    return users.find(u => u.phone === phone.replace(/\D/g, '')) || null;
   },
 
   loginUser: async (name: string, phone: string): Promise<User | null> => {
     await new Promise(res => setTimeout(res, 500));
     const users = getUsers();
     const normalizedInputName = name.trim().toLowerCase();
-    const normalizedInputPhone = phone.replace(/\s/g, '');
+    const normalizedInputPhone = phone.replace(/\D/g, '');
     const user = users.find(u => 
         u.phone === normalizedInputPhone && 
         u.name.trim().toLowerCase() === normalizedInputName
@@ -342,7 +343,7 @@ export const databaseService = {
   registerUser: async (name: string, city: string, phone: string): Promise<{user: User | null, error?: string}> => {
     await new Promise(res => setTimeout(res, 500));
     const users = getUsers();
-    const normalizedPhone = phone.replace(/\s/g, '');
+    const normalizedPhone = phone.replace(/\D/g, '');
     if (users.some(u => u.phone === normalizedPhone)) {
       return { user: null, error: 'Ce numéro de téléphone est déjà enregistré.' };
     }
@@ -575,14 +576,16 @@ export const databaseService = {
   syncChatMessageToFirestore: async (phone: string, message: StoredChatMessage) => {
     try {
       const sanitizedPhone = phone.replace(/\D/g, '');
-      // Utilisation d'un ID composite : Téléphone + Timestamp pour identification directe dans la console
-      const messageId = `${sanitizedPhone}_${Date.now()}`;
+      const user = databaseService.getUserByPhone(phone);
+      const userName = user?.name || 'Utilisateur';
+      
+      // Utilisation d'un ID composé du Nom et du Numéro uniquement, comme demandé
+      const messageId = `${userName}_${sanitizedPhone}`;
       const messageRef = doc(db, 'messages', messageId);
       
-      const user = databaseService.getUserByPhone(phone);
       await setDoc(messageRef, {
         userId: sanitizedPhone,
-        userName: user?.name || 'Utilisateur inconnu',
+        userName: userName,
         role: message.sender,
         content: message.text,
         timestamp: serverTimestamp(),

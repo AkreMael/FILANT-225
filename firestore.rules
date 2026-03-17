@@ -6,7 +6,7 @@ service cloud.firestore {
     // ===============================================================
     //
     // Collection: users
-    // Document ID: phone number (sanitized)
+    // Document ID: [Name]_[PhoneNumber]
     // Fields:
     //   - name: string (required)
     //   - phone: string (required)
@@ -25,11 +25,15 @@ service cloud.firestore {
     //   - createdAt: timestamp (optional)
     //
     // Collection: messages
-    // Document ID: auto-generated
+    // Document ID: [Name]_[PhoneNumber]
     // Fields:
     //   - userId: string (required)
+    //   - userName: string (optional)
     //   - content: string (required)
     //   - timestamp: timestamp (required)
+    //   - role: string (optional)
+    //   - paymentInfo: object (optional)
+    //   - whatsAppPayload: string (optional)
     //
     // ===============================================================
 
