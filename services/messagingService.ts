@@ -14,8 +14,15 @@ export const messagingService = {
     try {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
+        // Ensure service worker is registered and ready
+        let registration;
+        if ('serviceWorker' in navigator) {
+          registration = await navigator.serviceWorker.ready;
+        }
+
         const token = await getToken(messaging, {
-          vapidKey: 'BD-9TCbxrgpuS2jfxxip1ahWtMLdPOXV9qQVi3MsoxfTO1XAqY9ZEqpDzQDm1GsaJ_pq2JlYyqdMBQacwgjFyVE' 
+          vapidKey: 'BD-9TCbxrgpuS2jfxxip1ahWtMLdPOXV9qQVi3MsoxfTO1XAqY9ZEqpDzQDm1GsaJ_pq2JlYyqdMBQacwgjFyVE',
+          serviceWorkerRegistration: registration
         });
         
         if (token) {

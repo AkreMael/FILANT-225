@@ -1,8 +1,6 @@
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-sw.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-sw.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-// This will be replaced by the build process or can be hardcoded if needed
-// For now, we'll try to fetch it or use a placeholder
 const firebaseConfig = {
   apiKey: "AIzaSyBYoX0tIbEeM2PlP44ToE_kDcpj6RheIIo",
   authDomain: "filant225-base.firebaseapp.com",
@@ -18,9 +16,9 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  const notificationTitle = payload.notification.title;
+  const notificationTitle = payload.notification.title || 'Notification';
   const notificationOptions = {
-    body: payload.notification.body,
+    body: payload.notification.body || '',
     icon: '/logo192.png' // Replace with your actual icon path
   };
 
