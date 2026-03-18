@@ -78,15 +78,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
     
     setIsLoading(true);
     setTimeout(async () => {
-        const user = await databaseService.loginUser(name, sanitizedPhone);
+        const { user, error: loginError } = await databaseService.loginUser(name, sanitizedPhone);
         if (user) {
           onLoginSuccess(user);
         } else {
-          if (isAdminRole) {
-              onShowPopup("Erreur de connexion. Veuillez redémarrer l'application.", 'alert');
-          } else {
-              onShowPopup("Ce numéro n’est pas encore inscrit. Veuillez vous inscrire ou vérifier votre numéro pour vous connecter.", 'alert');
-          }
+          onShowPopup(loginError || "Erreur de connexion.", 'alert');
         }
         setIsLoading(false);
     }, 2000);

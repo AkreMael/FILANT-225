@@ -267,8 +267,7 @@ export const databaseService = {
   syncUserToFirestore: async (user: User) => {
     if (!user.phone) return;
     const sanitizedPhone = user.phone.replace(/\D/g, '');
-    const userId = `${user.name}_${sanitizedPhone}`;
-    const path = `users/${userId}`;
+    const path = `users/${sanitizedPhone}`;
     
     try {
       if (!auth.currentUser) {
@@ -276,7 +275,10 @@ export const databaseService = {
         await signInAnonymously(auth);
       }
 
-      const userRef = doc(db, 'users', userId);
+      const cardDataPro = databaseService.getCardData(user.phone, 'pro');
+      const cardDataService = databaseService.getCardData(user.phone, 'service');
+
+      const userRef = doc(db, 'users', sanitizedPhone);
       const userData = {
         name: user.name,
         phone: sanitizedPhone,
@@ -285,7 +287,9 @@ export const databaseService = {
         lastSeen: serverTimestamp(),
         updatedAt: serverTimestamp(),
         lastConnection: new Date().toISOString(),
-        lastModeChange: serverTimestamp()
+        lastModeChange: serverTimestamp(),
+        cardDataPro: cardDataPro || null,
+        cardDataService: cardDataService || null
       };
 
       await setDoc(userRef, userData, { merge: true });
@@ -297,9 +301,37 @@ export const databaseService = {
 
   getUserFromFirestore: async (name: string, phone: string): Promise<User | null> => {
     const sanitizedPhone = phone.replace(/\D/g, '');
-    const userId = `${name}_${sanitizedPhone}`;
-    const path = `users/${userId}`;
-    const userRef = doc(db, 'users', userId);
+    const path = `users/${sanitizedPhone}`;
+    const userRef = doc(db, 'users', sanitizedPhone);
+    
+    try {
+      if (!auth.currentUser) {
+        const { signInAnonymously } = await import('firebase/auth');
+        await signInAnonymously(auth);
+      }
+      const docSnap = await getDocFromServer(userRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        // Strict verification: Name must match (case insensitive)
+        if (data.name.trim().toLowerCase() === name.trim().toLowerCase()) {
+            return {
+              name: data.name,
+              phone: data.phone,
+              city: data.city,
+              role: data.role
+            };
+        }
+      }
+    } catch (e) {
+      handleFirestoreError(e, OperationType.GET, path);
+    }
+    return null;
+  },
+
+  getUserByPhoneFromFirestore: async (phone: string): Promise<User | null> => {
+    const sanitizedPhone = phone.replace(/\D/g, '');
+    const path = `users/${sanitizedPhone}`;
+    const userRef = doc(db, 'users', sanitizedPhone);
     
     try {
       if (!auth.currentUser) {
@@ -326,9 +358,25 @@ export const databaseService = {
     if (!user.phone) return;
     const sanitizedPhone = user.phone.replace(/\D/g, '');
     
-    // Sync Favorites from Firestore (if we had them there, but currently they are in localStorage)
-    // Actually, let's just focus on what we HAVE in RTDB/Firestore.
-    // Scanned contacts are in RTDB.
+    // 1. Sync Card Data from Firestore
+    try {
+        const userRef = doc(db, 'users', sanitizedPhone);
+        const docSnap = await getDocFromServer(userRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.cardDataPro) {
+                databaseService.saveCardData(user.phone, data.cardDataPro, 'pro');
+            }
+            if (data.cardDataService) {
+                databaseService.saveCardData(user.phone, data.cardDataService, 'service');
+            }
+            console.log("Card data synced from Firestore");
+        }
+    } catch (e) {
+        console.error("Error syncing card data from Firestore:", e);
+    }
+
+    // 2. Sync Scanned Contacts from RTDB
     try {
         const { get, child } = await import('firebase/database');
         const sanitizedUserName = (user.name || 'Utilisateur').replace(/[.#$[\]/]/g, '_');
@@ -354,8 +402,7 @@ export const databaseService = {
     if (!user || !user.phone || !token) return;
     
     const sanitizedPhone = user.phone.replace(/\D/g, '');
-    const userId = `${user.name}_${sanitizedPhone}`;
-    const userRef = doc(db, 'users', userId);
+    const userRef = doc(db, 'users', sanitizedPhone);
     
     try {
       await setDoc(userRef, { fcmToken: token, updatedAt: serverTimestamp() }, { merge: true });
@@ -379,64 +426,83 @@ export const databaseService = {
     return users.find(u => u.phone === phone.replace(/\D/g, '')) || null;
   },
 
-  loginUser: async (name: string, phone: string): Promise<User | null> => {
+  loginUser: async (name: string, phone: string): Promise<{user: User | null, error?: string}> => {
     await new Promise(res => setTimeout(res, 500));
     const users = getUsers();
     const normalizedInputName = name.trim().toLowerCase();
     const normalizedInputPhone = phone.replace(/\D/g, '');
     
-    // Check localStorage first
-    let user = users.find(u => 
+    // 1. Check Firestore first (Source of truth)
+    console.log("Checking Firestore for user:", normalizedInputPhone);
+    const firestoreUser = await databaseService.getUserByPhoneFromFirestore(normalizedInputPhone);
+    
+    if (firestoreUser) {
+        // Strict Name Check
+        if (firestoreUser.name.trim().toLowerCase() !== normalizedInputName) {
+            return { user: null, error: "Le nom saisi ne correspond pas au numéro enregistré. Veuillez vérifier vos informations." };
+        }
+        
+        // Success - Sync to local
+        const user = firestoreUser;
+        if (!users.some(u => u.phone === normalizedInputPhone)) {
+            users.push(user);
+            saveUsers(users);
+        }
+        
+        // Persist role for App.tsx logic
+        if (user.role) {
+            localStorage.setItem('filant_user_role', user.role);
+        }
+        
+        // Sync their data (contacts, etc.)
+        await databaseService.syncUserDataFromCloud(user);
+        await databaseService.logConnection(user);
+        return { user };
+    }
+    
+    // 2. Fallback to localStorage (if offline or legacy)
+    let localUser = users.find(u => 
         u.phone === normalizedInputPhone && 
         u.name.trim().toLowerCase() === normalizedInputName
     );
     
-    // If not in localStorage, check Firestore (Cross-device persistence)
-    if (!user) {
-        console.log("User not found in localStorage, checking Firestore...");
-        const firestoreUser = await databaseService.getUserFromFirestore(name.trim(), normalizedInputPhone);
-        if (firestoreUser) {
-            user = firestoreUser;
-            // Save to localStorage for future use
-            users.push(user);
-            saveUsers(users);
-            // Persist role for App.tsx logic
-            if (user.role) {
-                localStorage.setItem('filant_user_role', user.role);
-            }
-            // Sync their data (contacts, etc.)
-            await databaseService.syncUserDataFromCloud(user);
-        }
-    }
-
-    if (user) {
-      // Ensure role is in localStorage even if found in local users list
-      if (user.role) {
-          localStorage.setItem('filant_user_role', user.role);
+    if (localUser) {
+      if (localUser.role) {
+          localStorage.setItem('filant_user_role', localUser.role);
       }
-      await databaseService.logConnection(user);
-      return user;
+      await databaseService.logConnection(localUser);
+      return { user: localUser };
     }
-    return null;
+    
+    return { user: null, error: "Utilisateur non trouvé. Veuillez vous inscrire." };
   },
 
   registerUser: async (name: string, city: string, phone: string): Promise<{user: User | null, error?: string}> => {
     await new Promise(res => setTimeout(res, 500));
     const users = getUsers();
     const normalizedPhone = phone.replace(/\D/g, '');
+    const normalizedName = name.trim().toLowerCase();
+    const normalizedCity = city.trim().toLowerCase();
     
-    // Check if user already exists in localStorage
-    if (users.some(u => u.phone === normalizedPhone)) {
-      return { user: null, error: 'Ce numéro de téléphone est déjà enregistré.' };
-    }
-
-    // Check if user already exists in Firestore (Cross-device persistence)
-    const existingFirestoreUser = await databaseService.getUserFromFirestore(name.trim(), normalizedPhone);
+    // 1. Check Firestore (Source of truth)
+    const existingFirestoreUser = await databaseService.getUserByPhoneFromFirestore(normalizedPhone);
+    
     if (existingFirestoreUser) {
-        // If they exist in Firestore but not localStorage, it's a "recovery"
+        // Strict Verification: Name + City must match
+        const dbName = existingFirestoreUser.name.trim().toLowerCase();
+        const dbCity = existingFirestoreUser.city.trim().toLowerCase();
+        
+        if (dbName !== normalizedName || dbCity !== normalizedCity) {
+            return { user: null, error: "Ce numéro est déjà enregistré avec un nom ou une ville différente. Veuillez utiliser vos informations d'origine." };
+        }
+        
+        // If they match, it's a recovery
         const user = existingFirestoreUser;
-        users.push(user);
-        saveUsers(users); 
+        if (!users.some(u => u.phone === normalizedPhone)) {
+            users.push(user);
+            saveUsers(users); 
+        }
+        
         if (user.role) {
             localStorage.setItem('filant_user_role', user.role);
         }
@@ -445,16 +511,26 @@ export const databaseService = {
         return { user };
     }
 
+    // 2. Check localStorage (Legacy/Offline)
+    const localUser = users.find(u => u.phone === normalizedPhone);
+    if (localUser) {
+        if (localUser.name.trim().toLowerCase() !== normalizedName || localUser.city.trim().toLowerCase() !== normalizedCity) {
+            return { user: null, error: "Ce numéro est déjà enregistré avec des informations différentes localement." };
+        }
+        return { user: localUser };
+    }
+
     const newUser: User = { 
         name: name.trim(), 
         city: city.trim(), 
         phone: normalizedPhone,
-        role: 'Client'
+        role: localStorage.getItem('filant_user_role') || 'Client'
     };
+    
     users.push(newUser);
     saveUsers(users);
     
-    // Explicitly sync to Firestore
+    // Sync to Firestore
     await databaseService.syncUserToFirestore(newUser);
     databaseService.logConnection(newUser);
     
