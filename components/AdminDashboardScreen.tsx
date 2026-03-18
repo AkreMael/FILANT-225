@@ -246,25 +246,28 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
       databaseService.saveActiveContacts(updated);
   };
 
-  const handleDelete = (id: string) => {
-      if (view === 'associations') {
-          const updated = associations.filter(a => a.id !== id);
-          setAssociations(updated);
-          databaseService.saveAssociations(updated);
-      } else if (view === 'active-contacts') {
-          const updated = activeContacts.filter(c => c.id !== id);
-          setActiveContacts(updated);
-          databaseService.saveActiveContacts(updated);
-      } else if (view === 'wave-payments' && itemToDelete) {
-          databaseService.deleteWavePayment(itemToDelete.userKey, itemToDelete.id).then(() => {
+  const handleDelete = async (id: string) => {
+      if (!id) return;
+      try {
+          if (view === 'associations') {
+              const updated = associations.filter(a => a.id !== id);
+              setAssociations(updated);
+              await databaseService.saveAssociations(updated);
+          } else if (view === 'active-contacts') {
+              const updated = activeContacts.filter(c => c.id !== id);
+              setActiveContacts(updated);
+              await databaseService.saveActiveContacts(updated);
+          } else if (view === 'wave-payments' && itemToDelete) {
+              await databaseService.deleteWavePayment(itemToDelete.userKey, itemToDelete.id);
               setWavePayments(prev => prev.filter(p => p.id !== itemToDelete.id));
-              setItemToDelete(null);
-          });
-      } else if (view === 'assistant-requests' && itemToDelete) {
-          databaseService.deleteAssistantRequest(itemToDelete.userKey, itemToDelete.id).then(() => {
+          } else if (view === 'assistant-requests' && itemToDelete) {
+              await databaseService.deleteAssistantRequest(itemToDelete.userKey, itemToDelete.id);
               setAssistantRequests(prev => prev.filter(r => r.id !== itemToDelete.id));
-              setItemToDelete(null);
-          });
+          }
+          setDeleteId(null);
+          setItemToDelete(null);
+      } catch (error) {
+          console.error("Erreur lors de la suppression:", error);
       }
   };
 
@@ -419,7 +422,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
                               </span>
                           </div>
                           <div className="bg-white rounded-[2rem] shadow-2xl relative border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                              <button onClick={() => setDeleteId(contact.id)} className="absolute top-3 right-3 z-10 p-2 bg-gray-100 rounded-full text-gray-400 hover:text-red-500 transition-colors">
+                              <button onClick={() => { setItemToDelete(contact); setDeleteId(contact.id); }} className="absolute top-3 right-3 z-30 p-3 bg-white rounded-full text-gray-400 hover:text-red-500 transition-all shadow-md active:scale-90">
                                 <TrashIcon />
                               </button>
                               
@@ -547,7 +550,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
                               </span>
                           </div>
                           <div className="bg-white rounded-[2rem] shadow-2xl relative border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                          <button onClick={() => setDeleteId(assoc.id)} className="absolute top-3 right-3 z-10 p-2 bg-gray-100 rounded-full text-gray-400 hover:text-red-500 transition-colors">
+                          <button onClick={() => { setItemToDelete(assoc); setDeleteId(assoc.id); }} className="absolute top-3 right-3 z-30 p-3 bg-white rounded-full text-gray-400 hover:text-red-500 transition-all shadow-md active:scale-90">
                             <TrashIcon />
                           </button>
                           
@@ -838,7 +841,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
                                       <button onClick={() => { setEditingContact(contact); setAdminContactInputs(contact); setIsFormOpen(true); }} className="p-2.5 bg-gray-100 rounded-full text-gray-400 hover:text-orange-500 transition-colors">
                                           <EditIcon className="w-4 h-4" />
                                       </button>
-                                      <button onClick={() => setDeleteId(contact.id)} className="p-2.5 bg-gray-100 rounded-full text-gray-400 hover:text-red-500 transition-colors">
+                                      <button onClick={() => { setItemToDelete(contact); setDeleteId(contact.id); }} className="p-2.5 bg-gray-100 rounded-full text-gray-400 hover:text-red-500 transition-colors">
                                           <TrashIcon />
                                       </button>
                                   </div>
@@ -959,35 +962,38 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {wavePayments.map((payment, idx) => (
-                        <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 shadow-sm relative">
-                            <button 
-                                onClick={() => { setItemToDelete(payment); setDeleteId(payment.id); }} 
-                                className="absolute top-3 right-3 p-2 bg-white rounded-full text-gray-400 hover:text-red-500 transition-colors shadow-sm"
-                            >
-                                <TrashIcon />
-                            </button>
-                            <div className="flex justify-between items-start mb-2 pr-8">
-                                <div>
-                                    <h4 className="font-black text-gray-900 uppercase text-sm">{payment.userName || 'Utilisateur'}</h4>
-                                    <p className="text-xs text-gray-500 font-bold">{payment.city || 'Ville inconnue'}</p>
+                    {wavePayments.map((payment, idx) => {
+                        const inferredPhone = payment.userKey?.split('_').pop() || '';
+                        return (
+                            <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 shadow-sm relative">
+                                <button 
+                                    onClick={() => { setItemToDelete(payment); setDeleteId(payment.id); }} 
+                                    className="absolute top-3 right-3 p-3 bg-white rounded-full text-gray-400 hover:text-red-500 transition-all shadow-md z-30 active:scale-90"
+                                >
+                                    <TrashIcon />
+                                </button>
+                                <div className="flex justify-between items-start mb-2 pr-12">
+                                    <div>
+                                        <h4 className="font-black text-gray-900 uppercase text-sm">{payment.userName || 'Utilisateur'}</h4>
+                                        <p className="text-xs text-gray-500 font-bold">{payment.city || 'Ville inconnue'}</p>
+                                    </div>
+                                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-blue-100 text-blue-600">
+                                        {payment.amount} FCFA
+                                    </span>
                                 </div>
-                                <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-blue-100 text-blue-600">
-                                    {payment.amount} FCFA
-                                </span>
+                                <div className="space-y-1 mt-3">
+                                    <p className="text-[10px] text-gray-400 font-black uppercase">Service: <span className="text-gray-700">{payment.serviceType || payment.title || 'Inconnu'}</span></p>
+                                    <p className="text-[10px] text-gray-400 font-black uppercase">Téléphone: <span className="text-gray-700">+225 {payment.phone || inferredPhone || payment.userId}</span></p>
+                                    <p className="text-[10px] text-gray-400 font-black uppercase">ID Transaction: <span className="text-gray-700 font-mono">{payment.transactionId || 'N/A'}</span></p>
+                                </div>
+                                <div className="flex items-center justify-end mt-4">
+                                    <span className="text-[9px] text-gray-400 font-bold uppercase">
+                                        {payment.timestamp ? new Date(payment.timestamp).toLocaleString() : 'Date inconnue'}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="space-y-1 mt-3">
-                                <p className="text-[10px] text-gray-400 font-black uppercase">Service: <span className="text-gray-700">{payment.serviceType}</span></p>
-                                <p className="text-[10px] text-gray-400 font-black uppercase">Téléphone: <span className="text-gray-700">+225 {payment.phone}</span></p>
-                                <p className="text-[10px] text-gray-400 font-black uppercase">ID Transaction: <span className="text-gray-700 font-mono">{payment.transactionId || 'N/A'}</span></p>
-                            </div>
-                            <div className="flex items-center justify-end mt-4">
-                                <span className="text-[9px] text-gray-400 font-bold uppercase">
-                                    {payment.timestamp ? new Date(payment.timestamp).toLocaleString() : 'Date inconnue'}
-                                </span>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>
@@ -1029,11 +1035,11 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
                         <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 shadow-sm relative">
                             <button 
                                 onClick={() => { setItemToDelete(req); setDeleteId(req.id); }} 
-                                className="absolute top-3 right-3 p-2 bg-white rounded-full text-gray-400 hover:text-red-500 transition-colors shadow-sm"
+                                className="absolute top-3 right-3 p-3 bg-white rounded-full text-gray-400 hover:text-red-500 transition-all shadow-md z-30 active:scale-90"
                             >
                                 <TrashIcon />
                             </button>
-                            <div className="flex justify-between items-start mb-2 pr-8">
+                            <div className="flex justify-between items-start mb-2 pr-12">
                                 <div>
                                     <h4 className="font-black text-gray-900 uppercase text-sm">{req.userName || 'Utilisateur'}</h4>
                                     <p className="text-xs text-gray-500 font-bold">{req.city || 'Ville inconnue'}</p>
@@ -1043,10 +1049,10 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
                                 </span>
                             </div>
                             <div className="mt-3 p-3 bg-white rounded-xl border border-gray-100 italic text-xs text-gray-600">
-                                "{req.request || req.message || 'Pas de message'}"
+                                "{req.request || req.requestText || req.message || 'Pas de message'}"
                             </div>
                             <div className="flex items-center justify-between mt-4">
-                                <a href={`tel:${req.phone}`} className="text-blue-600 font-mono text-[10px] font-bold">+225 {req.phone}</a>
+                                <a href={`tel:${req.phone || req.userId}`} className="text-blue-600 font-mono text-[10px] font-bold">+225 {req.phone || req.userId}</a>
                                 <span className="text-[9px] text-gray-400 font-bold uppercase">
                                     {req.timestamp ? new Date(req.timestamp).toLocaleString() : 'Date inconnue'}
                                 </span>
@@ -1059,129 +1065,142 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
     </div>
   );
 
-  if (view === 'contacts') return renderContactStorageView();
-  if (view === 'associations') return renderAssociationView();
-  if (view === 'active-contacts') return renderActiveContactsView();
-  if (view === 'sms') return renderSmsView();
-  if (view === 'firestore-users') return renderFirestoreUsersView();
-  if (view === 'wave-payments') return renderWavePaymentsView();
-  if (view === 'assistant-requests') return renderAssistantRequestsView();
+  const renderContent = () => {
+    if (view === 'contacts') return renderContactStorageView();
+    if (view === 'associations') return renderAssociationView();
+    if (view === 'active-contacts') return renderActiveContactsView();
+    if (view === 'sms') return renderSmsView();
+    if (view === 'firestore-users') return renderFirestoreUsersView();
+    if (view === 'wave-payments') return renderWavePaymentsView();
+    if (view === 'assistant-requests') return renderAssistantRequestsView();
+    
+    return (
+      <div className="flex-1 bg-slate-900 flex flex-col h-full text-left relative overflow-hidden">
+          <MenuBackground />
+          
+          <div className="relative z-10 flex flex-col h-full">
+              <header className="pt-5">
+                  <div className="flex justify-between items-center px-4 h-20">
+                      <div className="flex items-center gap-3">
+                          <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-white/10 text-white transition-colors active:scale-90">
+                              <BackIcon />
+                          </button>
+                          <div className="flex items-center gap-2">
+                               <img src="https://i.supaimg.com/5cd01a23-e101-4415-9e28-ff02a617cd11.png" alt="Logo" className="w-12 h-12 object-contain" referrerPolicy="no-referrer" />
+                               <h2 className="text-xl font-black text-white uppercase tracking-tighter">Administration</h2>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-md my-4 p-6 border-y border-white/10 overflow-hidden">
+                      <div className="flex flex-col items-center">
+                          <h1 className="text-5xl sm:text-6xl font-black tracking-tighter flex items-center justify-center flex-nowrap whitespace-nowrap">
+                              <img 
+                                  src="https://i.supaimg.com/5cd01a23-e101-4415-9e28-ff02a617cd11.png" 
+                                  alt="Logo" 
+                                  className="w-14 h-14 sm:w-20 sm:h-20 object-contain mr-3"
+                                  referrerPolicy="no-referrer"
+                              />
+                              <div className="flex">
+                                  {"FILANT".split("").map((letter, idx) => (
+                                      <span 
+                                          key={idx} 
+                                          className="text-green-500 drop-shadow-[0_2px_10px_rgba(34,197,94,0.4)] animate-logo-letter"
+                                          style={{ animationDelay: `${idx * 0.1}s` }}
+                                      >
+                                          {letter}
+                                      </span>
+                                  ))}
+                              </div>
+                              <span className="text-white bg-orange-600 rounded-lg px-3 py-1 text-4xl sm:text-5xl ml-2 shadow-xl select-none animate-logo-225">225</span>
+                          </h1>
+                          <p className="font-black text-xs mt-3 text-center uppercase tracking-[0.3em] text-white opacity-80">Panneau de gestion</p>
+                      </div>
+                  </div>
+              </header>
+
+              <main className="p-6 overflow-y-auto flex-1 scrollbar-hide">
+                  <div className="grid grid-cols-2 gap-6 pb-12">
+                      <button onClick={() => setView('contacts')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                          <div className="bg-blue-500/20 p-4 rounded-full group-hover:bg-blue-500/30 transition-colors shadow-inner">
+                              <StorageIcon />
+                          </div>
+                          <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Stockage des contacts</span>
+                      </button>
+
+                      <button onClick={() => setView('active-contacts')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                           <div className="bg-green-500/20 p-4 rounded-full group-hover:bg-green-500/30 transition-colors shadow-inner">
+                              <ActivationIcon />
+                           </div>
+                          <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Activation des contacts</span>
+                      </button>
+
+                      <button onClick={() => setView('associations')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                           <div className="bg-purple-500/20 p-4 rounded-full group-hover:bg-purple-500/30 transition-colors shadow-inner">
+                              <AssociationIcon />
+                           </div>
+                          <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Association de contacts</span>
+                      </button>
+
+                      <button onClick={() => setView('sms')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                           <div className="bg-orange-500/20 p-4 rounded-full group-hover:bg-orange-500/30 transition-colors shadow-inner">
+                              <SMSAdminIcon />
+                           </div>
+                          <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Gestion des SMS</span>
+                      </button>
+
+                      <button onClick={() => setView('firestore-users')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                           <div className="bg-blue-500/20 p-4 rounded-full group-hover:bg-blue-500/30 transition-colors shadow-inner">
+                              <CloudIcon />
+                           </div>
+                          <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Utilisateurs Cloud</span>
+                      </button>
+
+                      <button onClick={() => setView('wave-payments')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                           <div className="bg-blue-500/20 p-4 rounded-full group-hover:bg-blue-500/30 transition-colors shadow-inner">
+                              <WaveIcon />
+                           </div>
+                          <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Paiements Wave</span>
+                      </button>
+
+                      <button onClick={() => setView('assistant-requests')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95 col-span-2">
+                           <div className="bg-indigo-500/20 p-4 rounded-full group-hover:bg-indigo-500/30 transition-colors shadow-inner">
+                              <AssistantIcon />
+                           </div>
+                          <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Demandes Assistant</span>
+                      </button>
+                  </div>
+              </main>
+          </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="flex-1 bg-slate-900 flex flex-col h-full text-left relative overflow-hidden">
-        <MenuBackground />
-        
-        <div className="relative z-10 flex flex-col h-full">
-            <header className="pt-5">
-                <div className="flex justify-between items-center px-4 h-20">
-                    <div className="flex items-center gap-3">
-                        <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-white/10 text-white transition-colors active:scale-90">
-                            <BackIcon />
-                        </button>
-                        <div className="flex items-center gap-2">
-                             <img src="https://i.supaimg.com/5cd01a23-e101-4415-9e28-ff02a617cd11.png" alt="Logo" className="w-12 h-12 object-contain" referrerPolicy="no-referrer" />
-                             <h2 className="text-xl font-black text-white uppercase tracking-tighter">Administration</h2>
-                        </div>
-                    </div>
-                </div>
+      <div className="fixed inset-0 bg-gray-50 flex flex-col overflow-hidden">
+          {renderContent()}
 
-                <div className="bg-white/10 backdrop-blur-md my-4 p-6 border-y border-white/10 overflow-hidden">
-                    <div className="flex flex-col items-center">
-                        <h1 className="text-5xl sm:text-6xl font-black tracking-tighter flex items-center justify-center flex-nowrap whitespace-nowrap">
-                            <img 
-                                src="https://i.supaimg.com/5cd01a23-e101-4415-9e28-ff02a617cd11.png" 
-                                alt="Logo" 
-                                className="w-14 h-14 sm:w-20 sm:h-20 object-contain mr-3"
-                                referrerPolicy="no-referrer"
-                            />
-                            <div className="flex">
-                                {"FILANT".split("").map((letter, idx) => (
-                                    <span 
-                                        key={idx} 
-                                        className="text-green-500 drop-shadow-[0_2px_10px_rgba(34,197,94,0.4)] animate-logo-letter"
-                                        style={{ animationDelay: `${idx * 0.1}s` }}
-                                    >
-                                        {letter}
-                                    </span>
-                                ))}
-                            </div>
-                            <span className="text-white bg-orange-600 rounded-lg px-3 py-1 text-4xl sm:text-5xl ml-2 shadow-xl select-none animate-logo-225">225</span>
-                        </h1>
-                        <p className="font-black text-xs mt-3 text-center uppercase tracking-[0.3em] text-white opacity-80">Panneau de gestion</p>
-                    </div>
-                </div>
-            </header>
-
-            <main className="p-6 overflow-y-auto flex-1 scrollbar-hide">
-                <div className="grid grid-cols-2 gap-6 pb-12">
-                    <button onClick={() => setView('contacts')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
-                        <div className="bg-blue-500/20 p-4 rounded-full group-hover:bg-blue-500/30 transition-colors shadow-inner">
-                            <StorageIcon />
-                        </div>
-                        <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Stockage des contacts</span>
-                    </button>
-
-                    <button onClick={() => setView('active-contacts')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
-                         <div className="bg-green-500/20 p-4 rounded-full group-hover:bg-green-500/30 transition-colors shadow-inner">
-                            <ActivationIcon />
-                         </div>
-                        <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Activation des contacts</span>
-                    </button>
-
-                    <button onClick={() => setView('associations')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
-                         <div className="bg-purple-500/20 p-4 rounded-full group-hover:bg-purple-500/30 transition-colors shadow-inner">
-                            <AssociationIcon />
-                         </div>
-                        <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Association de contacts</span>
-                    </button>
-
-                    <button onClick={() => setView('sms')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
-                         <div className="bg-orange-500/20 p-4 rounded-full group-hover:bg-orange-500/30 transition-colors shadow-inner">
-                            <SMSAdminIcon />
-                         </div>
-                        <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Gestion des SMS</span>
-                    </button>
-
-                    <button onClick={() => setView('firestore-users')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
-                         <div className="bg-blue-500/20 p-4 rounded-full group-hover:bg-blue-500/30 transition-colors shadow-inner">
-                            <CloudIcon />
-                         </div>
-                        <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Utilisateurs Cloud</span>
-                    </button>
-
-                    <button onClick={() => setView('wave-payments')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
-                         <div className="bg-blue-500/20 p-4 rounded-full group-hover:bg-blue-500/30 transition-colors shadow-inner">
-                            <WaveIcon />
-                         </div>
-                        <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Paiements Wave</span>
-                    </button>
-
-                    <button onClick={() => setView('assistant-requests')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95 col-span-2">
-                         <div className="bg-indigo-500/20 p-4 rounded-full group-hover:bg-indigo-500/30 transition-colors shadow-inner">
-                            <AssistantIcon />
-                         </div>
-                        <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Demandes Assistant</span>
-                    </button>
-                </div>
-            </main>
-        </div>
-
-        {deleteId && (
+          {/* Modal de confirmation de suppression */}
+          {deleteId && (
               <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
                   <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
-                      <h3 className="text-xl font-black text-gray-900 text-center mb-6 uppercase tracking-tight">Supprimer ?</h3>
+                      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <TrashIcon />
+                      </div>
+                      <h3 className="text-xl font-black text-gray-900 text-center mb-2 uppercase tracking-tight">Confirmation</h3>
+                      <p className="text-sm text-gray-500 text-center mb-8 font-bold">Êtes-vous sûr de vouloir supprimer {itemToDelete?.name || itemToDelete?.client?.name || "cet élément"} ? Cette action est irréversible.</p>
                       <div className="flex gap-4">
-                           <button onClick={() => setDeleteId(null)} className="flex-1 py-3 px-4 bg-gray-200 text-gray-800 font-bold rounded-xl transition-colors">Non</button>
+                           <button onClick={() => { setDeleteId(null); setItemToDelete(null); }} className="flex-1 py-4 px-4 bg-gray-100 text-gray-600 font-black rounded-2xl transition-all active:scale-95 uppercase text-xs tracking-widest">Annuler</button>
                            <button onClick={() => { 
                                if (view === 'contacts') handleDeleteAdminContact(deleteId!);
                                else handleDelete(deleteId!);
                                setDeleteId(null); 
-                           }} className="flex-1 py-3 px-4 bg-red-600 text-white font-bold rounded-xl shadow-lg">Oui</button>
+                           }} className="flex-1 py-4 px-4 bg-red-600 text-white font-black rounded-2xl shadow-xl shadow-red-200 transition-all active:scale-95 uppercase text-xs tracking-widest">Supprimer</button>
                       </div>
                   </div>
               </div>
           )}
-    </div>
+      </div>
   );
 };
 

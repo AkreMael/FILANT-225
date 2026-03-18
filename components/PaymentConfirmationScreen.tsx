@@ -117,8 +117,11 @@ const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({ t
       databaseService.savePaymentToRTDB({
         userId: user.phone.replace(/\D/g, ''),
         userName: user.name,
+        phone: user.phone,
+        city: user.city,
         amount: currentAmount,
         title: title,
+        serviceType: title, // Adding serviceType for compatibility with admin dashboard
         paymentType: paymentType,
         timestamp: Date.now()
       });

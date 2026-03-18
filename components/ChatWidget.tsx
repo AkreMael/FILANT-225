@@ -253,7 +253,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, activeTab, currentMe
         databaseService.saveAssistantRequestToRTDB({
             userId: userPhone.replace(/\D/g, ''),
             userName: databaseService.getUserByPhone(userPhone)?.name || 'Utilisateur',
-            requestText: textToSend,
+            phone: userPhone.replace(/\D/g, ''),
+            request: textToSend,
+            requestText: textToSend, // Keep for backward compatibility if needed
             aiResponse: aiResponseText,
             amount: detected?.amount || null,
             paymentLink: detected?.link || null,
