@@ -482,8 +482,14 @@ const App: React.FC = () => {
             city: info.city,
             review: info.details || info.city 
         };
-        databaseService.saveContacts(currentUser.phone, [...currentContacts, newContact]);
+        const updatedContacts = [...currentContacts, newContact];
+        databaseService.saveContacts(currentUser.phone, updatedContacts, currentUser);
+        
         showPopup("Information validée et intégrée dans l'Assistance QR !", "alert");
+        
+        // Redirection automatique vers l'Assistance QR
+        setActiveTab(Tab.Menu);
+        setMenuView('assistant_qr');
     } else {
         showPopup("Le format du code QR n'a pas pu être structuré automatiquement.", "alert");
     }

@@ -23,6 +23,41 @@ const LogoWithWhatsApp = () => (
 
 // --- HELPER PARSING UNIFIÉ ---
 export const extractQRInfo = (data: string) => {
+    // Support JSON
+    try {
+        const json = JSON.parse(data);
+        if (json.name || json.nom) {
+            return {
+                title: json.title || json.poste || json.service || 'Assistant QR',
+                name: json.name || json.nom || 'Prestataire',
+                phone: json.phone || json.tel || 'N/A',
+                city: json.city || json.ville || 'Non spécifiée',
+                details: json.details || json.infos || ''
+            };
+        }
+    } catch (e) {}
+
+    // Support vCard
+    if (data.toUpperCase().includes('BEGIN:VCARD')) {
+        const getValue = (key: string) => {
+            const regex = new RegExp(`${key}(?:;[^:]*)?:([^\\n;\\r]+)`, 'i');
+            return data.match(regex)?.[1]?.trim();
+        };
+        const n = getValue('N')?.replace(/;/g, ' ').trim();
+        const fn = getValue('FN');
+        const tel = getValue('TEL');
+        const org = getValue('ORG');
+        const title = getValue('TITLE');
+
+        return {
+            title: title || org || 'Assistant QR',
+            name: fn || n || 'Prestataire',
+            phone: tel || 'N/A',
+            city: 'Non spécifiée',
+            details: 'vCard importée'
+        };
+    }
+
     const lines = data.split('\n').map(l => l.trim()).filter(Boolean);
     
     const parseKeyValue = (text: string, key: string) => {

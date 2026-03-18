@@ -407,7 +407,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
             city: info.city,
             review: info.details || info.city 
         };
-        databaseService.saveContacts(user.phone, [...currentContacts, newContact]);
+        const updatedContacts = [...currentContacts, newContact];
+        databaseService.saveContacts(user.phone, updatedContacts, user);
         onShowPopup("Information validée et intégrée dans l'Assistance QR !", "alert");
     } else {
         onShowPopup("Le format du code QR n'a pas pu être structuré automatiquement.", "alert");

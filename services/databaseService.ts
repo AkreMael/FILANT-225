@@ -522,9 +522,25 @@ export const databaseService = {
       }
   },
 
-  saveContacts: (phone: string, contacts: SavedContact[]) => {
+  saveContacts: (phone: string, contacts: SavedContact[], user?: User) => {
       const key = getScopedKey(phone, CONTACTS_KEY_PREFIX);
       localStorage.setItem(key, JSON.stringify(contacts));
+
+      // Sync to RTDB if user info is provided
+      if (user) {
+          try {
+              const sanitizedName = (user.name || 'Utilisateur').replace(/[.#$[\]/]/g, '_');
+              const userKey = `${sanitizedName}_${user.phone}`;
+              const contactsRef = ref(rtdb, `scanned_contacts/${userKey}`);
+              set(contactsRef, {
+                  contacts,
+                  lastUpdated: rtdbTimestamp()
+              });
+              console.log("Scanned contacts synced to RTDB for:", userKey);
+          } catch (e) {
+              console.error("Error syncing scanned contacts to RTDB:", e);
+          }
+      }
   },
 
   getPersonalRequests: (phone: string): PersonalRequest[] => {
@@ -717,13 +733,17 @@ export const databaseService = {
 
   saveAssistantRequestToRTDB: async (requestData: any) => {
     try {
-      const requestsRef = ref(rtdb, 'assistant_requests');
+      const { userName, userId } = requestData;
+      const sanitizedName = (userName || 'Utilisateur').replace(/[.#$[\]/]/g, '_');
+      const userKey = `${sanitizedName}_${userId}`;
+      // On crée un sous-dossier par utilisateur pour mieux s'y retrouver
+      const requestsRef = ref(rtdb, `assistant_requests/${userKey}`);
       const newRequestRef = push(requestsRef);
       await set(newRequestRef, {
         ...requestData,
         timestamp: rtdbTimestamp()
       });
-      console.log("Assistant request saved to RTDB");
+      console.log("Assistant request saved to RTDB for:", userKey);
     } catch (e) {
       console.error("Error saving assistant request to RTDB:", e);
     }
@@ -731,13 +751,17 @@ export const databaseService = {
 
   savePaymentToRTDB: async (paymentData: any) => {
     try {
-      const paymentsRef = ref(rtdb, 'wave_payments');
+      const { userName, userId } = paymentData;
+      const sanitizedName = (userName || 'Utilisateur').replace(/[.#$[\]/]/g, '_');
+      const userKey = `${sanitizedName}_${userId}`;
+      // On crée un sous-dossier par utilisateur pour mieux s'y retrouver
+      const paymentsRef = ref(rtdb, `wave_payments/${userKey}`);
       const newPaymentRef = push(paymentsRef);
       await set(newPaymentRef, {
         ...paymentData,
         timestamp: rtdbTimestamp()
       });
-      console.log("Wave payment saved to RTDB");
+      console.log("Wave payment saved to RTDB for:", userKey);
     } catch (e) {
       console.error("Error saving payment to RTDB:", e);
     }

@@ -423,7 +423,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
         };
         const updated = [...contacts, newContact];
         setContacts(updated);
-        databaseService.saveContacts(user.phone, updated);
+        databaseService.saveContacts(user.phone, updated, user);
         onShowPopup("Information validée et intégrée dans l'Assistance QR !", "alert");
         setView('contacts');
     } else {
@@ -564,7 +564,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
 
   const handleClearContacts = () => {
       onShowPopup("Voulez-vous vider toute votre liste d'Assistance QR ?", 'confirm', (close) => {
-          databaseService.saveContacts(user.phone, []);
+          databaseService.saveContacts(user.phone, [], user);
           setContacts([]);
           close();
       });
@@ -573,7 +573,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
   const handleDeleteContact = (id: string) => {
       const updated = contacts.filter(c => c.id !== id);
       setContacts(updated);
-      databaseService.saveContacts(user.phone, updated);
+      databaseService.saveContacts(user.phone, updated, user);
   };
 
   return (

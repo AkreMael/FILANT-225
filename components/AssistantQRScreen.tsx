@@ -27,14 +27,14 @@ const AssistantQRScreen: React.FC<AssistantQRScreenProps> = ({ onBack, user, onS
     onShowPopup("Supprimer ce contact de l'Assistance QR ?", 'confirm', (close) => {
         const updated = contacts.filter(c => c.id !== id);
         setContacts(updated);
-        databaseService.saveContacts(user.phone, updated);
+        databaseService.saveContacts(user.phone, updated, user);
         close(); // Ferme automatiquement la fenêtre
     });
   };
 
   const handleClearAll = () => {
     onShowPopup("Voulez-vous vider toute votre liste d'Assistance QR ?", 'confirm', (close) => {
-      databaseService.saveContacts(user.phone, []);
+      databaseService.saveContacts(user.phone, [], user);
       setContacts([]);
       close(); // Ferme automatiquement la fenêtre
     });
