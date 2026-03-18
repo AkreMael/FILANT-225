@@ -39,7 +39,7 @@ import { getAnalytics } from "firebase/analytics";
 
 import { auth, db } from './firebase';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { doc, getDocFromServer } from 'firebase/firestore';
+import { doc, getDocFromServer, onSnapshot } from 'firebase/firestore';
 
 // Initialisation Analytics si supporté
 if (typeof window !== 'undefined') {
@@ -179,6 +179,46 @@ const App: React.FC = () => {
       messagingService.onMessageListener(currentUser.phone);
     }
   }, [currentUser]);
+
+  // Real-time Role Synchronization
+  useEffect(() => {
+    if (!currentUser || !currentUser.phone) return;
+
+    const sanitizedPhone = currentUser.phone.replace(/\D/g, '');
+    const userId = `${currentUser.name}_${sanitizedPhone}`;
+    const userRef = doc(db, 'users', userId);
+
+    console.log("Setting up real-time role listener for:", userId);
+
+    const unsubscribe = onSnapshot(userRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        const cloudRole = data.role;
+        
+        if (cloudRole && cloudRole !== currentUser.role) {
+          console.log("Role updated from cloud in real-time:", cloudRole);
+          
+          // Update local state
+          setCurrentUser(prev => prev ? { ...prev, role: cloudRole } : null);
+          
+          // Update localStorage
+          localStorage.setItem('filant_user_role', cloudRole);
+          
+          // Update UI mode
+          if (cloudRole === 'Client') {
+            setIsClientModeActive(true);
+          } else {
+            setIsClientModeActive(false);
+            localStorage.setItem('filant_selected_pro_role', cloudRole);
+          }
+        }
+      }
+    }, (error) => {
+      console.error("Error in real-time role listener:", error);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser?.phone, currentUser?.name]);
 
   const [menuView, setMenuView] = useState<'hub' | 'worker_list' | 'registration_hub' | 'registration_info' | 'tally_form' | 'custom_registration' | 'my_worker' | 'location_hub' | 'schedule_service_form' | 'location_propose_form' | 'admin_sms' | 'location_hub' | 'location_map' | 'notifications' | 'emergency_form' | 'assistant_qr' | 'admin_connections' | 'admin_active_contacts' | 'admin_associations'>('hub');
   const [locationInitialTab, setLocationInitialTab] = useState<'appartement' | 'equipement'>('appartement');
@@ -356,7 +396,7 @@ const App: React.FC = () => {
             setMenuView('hub');
             setIsProfileOpen(false);
             
-            // Sync to Firestore
+            // Sync to Firestore immediately for real-time reflection on other devices
             if (currentUser) {
                 const updatedUser = { ...currentUser, role: selectedProMode };
                 setCurrentUser(updatedUser);
@@ -370,7 +410,7 @@ const App: React.FC = () => {
         const newRole = active ? 'Client' : (localStorage.getItem('filant_selected_pro_role') || 'Professionnel');
         localStorage.setItem('filant_user_role', newRole);
         
-        // Sync to Firestore
+        // Sync to Firestore immediately for real-time reflection on other devices
         if (currentUser) {
             const updatedUser = { ...currentUser, role: newRole };
             setCurrentUser(updatedUser);
@@ -422,6 +462,14 @@ const App: React.FC = () => {
       if (role && role !== 'Client') {
           setIsClientModeActive(false);
       }
+      
+      // If user is already logged in (e.g. returning user resetting profile), sync the new role
+      if (currentUser && role) {
+          const updatedUser = { ...currentUser, role };
+          setCurrentUser(updatedUser);
+          databaseService.syncUserToFirestore(updatedUser);
+      }
+      
       setHasCompletedFirstLaunch(true);
   };
 

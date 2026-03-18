@@ -284,7 +284,8 @@ export const databaseService = {
         role: user.role || localStorage.getItem('filant_user_role') || 'Client',
         lastSeen: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        lastConnection: new Date().toISOString()
+        lastConnection: new Date().toISOString(),
+        lastModeChange: serverTimestamp()
       };
 
       await setDoc(userRef, userData, { merge: true });
