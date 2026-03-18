@@ -1,6 +1,7 @@
 import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification } from '../types';
-import { db, auth } from '../firebase';
+import { db, auth, rtdb } from '../firebase';
 import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc } from 'firebase/firestore';
+import { ref, push, set, serverTimestamp as rtdbTimestamp } from 'firebase/database';
 
 // --- ENUMS & INTERFACES FOR ERROR HANDLING ---
 enum OperationType {
@@ -711,6 +712,34 @@ export const databaseService = {
         handleFirestoreError(e, OperationType.LIST, 'users');
       }
       return [];
+    }
+  },
+
+  saveAssistantRequestToRTDB: async (requestData: any) => {
+    try {
+      const requestsRef = ref(rtdb, 'assistant_requests');
+      const newRequestRef = push(requestsRef);
+      await set(newRequestRef, {
+        ...requestData,
+        timestamp: rtdbTimestamp()
+      });
+      console.log("Assistant request saved to RTDB");
+    } catch (e) {
+      console.error("Error saving assistant request to RTDB:", e);
+    }
+  },
+
+  savePaymentToRTDB: async (paymentData: any) => {
+    try {
+      const paymentsRef = ref(rtdb, 'wave_payments');
+      const newPaymentRef = push(paymentsRef);
+      await set(newPaymentRef, {
+        ...paymentData,
+        timestamp: rtdbTimestamp()
+      });
+      console.log("Wave payment saved to RTDB");
+    } catch (e) {
+      console.error("Error saving payment to RTDB:", e);
     }
   }
 };

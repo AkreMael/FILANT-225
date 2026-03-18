@@ -113,6 +113,16 @@ const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({ t
           }
       }
 
+      // Save to RTDB
+      databaseService.savePaymentToRTDB({
+        userId: user.phone.replace(/\D/g, ''),
+        userName: user.name,
+        amount: currentAmount,
+        title: title,
+        paymentType: paymentType,
+        timestamp: Date.now()
+      });
+
       // Redirection automatique après un court délai de traitement visuel
       setTimeout(() => {
           const finalLink = isManualMode ? `${waveLink}${currentAmount}` : waveLink;

@@ -248,6 +248,20 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, activeTab, currentMe
     setMessages(prev => [...prev, aiMsg]);
     databaseService.saveChatMessage(userPhone, aiMsg);
     
+    // Save to RTDB if it's a validated request (has payment info or is a form submission)
+    if (detected || isFormSubmission || isCardRecovery) {
+        databaseService.saveAssistantRequestToRTDB({
+            userId: userPhone.replace(/\D/g, ''),
+            userName: databaseService.getUserByPhone(userPhone)?.name || 'Utilisateur',
+            requestText: textToSend,
+            aiResponse: aiResponseText,
+            amount: detected?.amount || null,
+            paymentLink: detected?.link || null,
+            isFormSubmission,
+            isCardRecovery
+        });
+    }
+    
     // Save to PostgreSQL
     fetch('/api/chat/save', {
         method: 'POST',
