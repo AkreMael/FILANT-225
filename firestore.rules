@@ -53,7 +53,7 @@ service cloud.firestore {
 
     function isValidUser(data) {
       let requiredFields = ['name', 'phone', 'city'];
-      let allowedFields = ['name', 'phone', 'city', 'role', 'lastSeen', 'updatedAt', 'lastConnection'];
+      let allowedFields = ['name', 'phone', 'city', 'role', 'lastSeen', 'updatedAt', 'lastConnection', 'fcmToken'];
       
       return data.keys().hasAll(requiredFields) &&
              data.keys().hasOnly(allowedFields) &&
@@ -62,6 +62,7 @@ service cloud.firestore {
              data.city is string && data.city.size() > 0 && data.city.size() < 100 &&
              (!('role' in data) || (data.role is string && data.role.size() < 50)) &&
              (!('lastConnection' in data) || (data.lastConnection is string && data.lastConnection.size() < 100)) &&
+             (!('fcmToken' in data) || (data.fcmToken is string && data.fcmToken.size() < 500)) &&
              (!('lastSeen' in data) || data.lastSeen is timestamp) &&
              (!('updatedAt' in data) || data.updatedAt is timestamp);
     }

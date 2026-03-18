@@ -310,12 +310,10 @@ export const databaseService = {
     }
   },
 
-  saveFCMToken: async (phone: string, token: string) => {
-    if (!phone || !token) return;
-    const user = databaseService.getUserByPhone(phone);
-    if (!user) return;
+  saveFCMToken: async (user: User, token: string) => {
+    if (!user || !user.phone || !token) return;
     
-    const sanitizedPhone = phone.replace(/\D/g, '');
+    const sanitizedPhone = user.phone.replace(/\D/g, '');
     const userId = `${user.name}_${sanitizedPhone}`;
     const userRef = doc(db, 'users', userId);
     

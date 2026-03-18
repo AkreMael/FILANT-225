@@ -175,7 +175,7 @@ const App: React.FC = () => {
   // Firebase Messaging
   useEffect(() => {
     if (currentUser) {
-      messagingService.requestPermission(currentUser.phone);
+      messagingService.requestPermission(currentUser);
       messagingService.onMessageListener(currentUser.phone);
     }
   }, [currentUser]);

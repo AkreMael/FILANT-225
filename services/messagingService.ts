@@ -1,9 +1,14 @@
 import { messaging } from '../firebase';
 import { getToken, onMessage } from 'firebase/messaging';
 import { databaseService } from './databaseService';
+import { User } from '../types';
+
+let currentToken: string | null = null;
 
 export const messagingService = {
-  requestPermission: async (phone: string) => {
+  getCurrentToken: () => currentToken,
+
+  requestPermission: async (user: User) => {
     if (!messaging) return;
     
     try {
@@ -14,8 +19,9 @@ export const messagingService = {
         });
         
         if (token) {
+          currentToken = token;
           console.log('FCM Token:', token);
-          await databaseService.saveFCMToken(phone, token);
+          await databaseService.saveFCMToken(user, token);
           return token;
         } else {
           console.log('No registration token available. Request permission to generate one.');

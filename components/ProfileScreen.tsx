@@ -6,6 +6,7 @@ import SpeakerIcon from './common/SpeakerIcon';
 import { databaseService, SavedContact } from '../services/databaseService';
 import { getQuestionsForType, generateWhatsAppMessage } from './common/formDefinitions';
 import { audioService } from '../services/audioService';
+import { messagingService } from '../services/messagingService';
 
 // --- PROPS ---
 interface ProfileScreenProps {
@@ -525,6 +526,30 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
                 <button onClick={generateAndPlayAudio} disabled={isLoadingAudio} className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-xl active:scale-90 transition-all ${isPlaying ? 'bg-orange-500' : 'bg-blue-600'}`}>{isLoadingAudio ? <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : (isPlaying ? <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> : <svg className="w-7 h-7 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>)}</button>
                 <p className="text-[10px] font-black text-gray-400 mt-4 uppercase tracking-[0.2em]">Guide Vocal Interactif</p>
             </div>
+
+            {messagingService.getCurrentToken() && (
+                <div className="mx-4 p-5 bg-slate-900 rounded-3xl shadow-lg border border-slate-800">
+                    <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Token FCM (Debug)</h4>
+                        <button 
+                            onClick={() => {
+                                const token = messagingService.getCurrentToken();
+                                if (token) {
+                                    navigator.clipboard.writeText(token);
+                                    onShowPopup("Token copié !", "alert");
+                                }
+                            }}
+                            className="text-[10px] font-black text-white bg-white/10 px-3 py-1 rounded-full active:scale-95 transition-transform"
+                        >
+                            COPIER
+                        </button>
+                    </div>
+                    <p className="text-[10px] font-mono text-slate-400 break-all leading-relaxed bg-black/30 p-3 rounded-xl border border-white/5">
+                        {messagingService.getCurrentToken()}
+                    </p>
+                </div>
+            )}
+
             <div className="px-4 pt-6 grid grid-cols-2 gap-4">
                 <button onClick={handleModeToggleClick} className={`w-full py-4 font-black uppercase tracking-widest text-[10px] rounded-2xl shadow-sm border transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${isClientModeActive ? 'bg-orange-500 text-white border-orange-400 shadow-[0_4px_15px_rgba(249,115,22,0.4)] ring-4 ring-orange-500/20' : 'bg-white text-orange-600 border-orange-100'}`}><UsersIcon className={`w-4 h-4 ${isClientModeActive ? 'animate-pulse' : ''}`} />MODE CLIENT</button>
                 <button onClick={handleLogoutClick} className="w-full py-4 text-red-600 font-black uppercase tracking-widest text-[10px] bg-white rounded-2xl shadow-sm border border-red-50 transition-all active:scale-[0.98] active:bg-red-50 flex items-center justify-center gap-2"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>Déconnexion</button>
