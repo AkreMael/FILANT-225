@@ -32,6 +32,7 @@ import PaymentConfirmationScreen from './components/PaymentConfirmationScreen';
 import ProfessionalCardScreen from './components/ProfessionalCardScreen';
 import { motion, AnimatePresence } from 'motion/react';
 import { databaseService, SavedContact, ConnectionLog } from './services/databaseService';
+import { messagingService } from './services/messagingService';
 import { isAdmin, getCardType } from './utils/authUtils';
 import app from './firebase';
 import { getAnalytics } from "firebase/analytics";
@@ -171,7 +172,15 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
   
-  const [menuView, setMenuView] = useState<'hub' | 'worker_list' | 'registration_hub' | 'registration_info' | 'tally_form' | 'custom_registration' | 'my_worker' | 'location_hub' | 'schedule_service_form' | 'location_propose_form' | 'admin_sms' | 'location_map' | 'notifications' | 'emergency_form' | 'assistant_qr' | 'admin_connections' | 'admin_active_contacts' | 'admin_associations'>('hub');
+  // Firebase Messaging
+  useEffect(() => {
+    if (currentUser) {
+      messagingService.requestPermission(currentUser.phone);
+      messagingService.onMessageListener(currentUser.phone);
+    }
+  }, [currentUser]);
+
+  const [menuView, setMenuView] = useState<'hub' | 'worker_list' | 'registration_hub' | 'registration_info' | 'tally_form' | 'custom_registration' | 'my_worker' | 'location_hub' | 'schedule_service_form' | 'location_propose_form' | 'admin_sms' | 'location_hub' | 'location_map' | 'notifications' | 'emergency_form' | 'assistant_qr' | 'admin_connections' | 'admin_active_contacts' | 'admin_associations'>('hub');
   const [locationInitialTab, setLocationInitialTab] = useState<'appartement' | 'equipement'>('appartement');
   const [registrationType, setRegistrationType] = useState<string>('Travailleur');
   const [tallyFormUrl, setTallyFormUrl] = useState<string | null>(null);

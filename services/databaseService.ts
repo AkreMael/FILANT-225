@@ -310,6 +310,23 @@ export const databaseService = {
     }
   },
 
+  saveFCMToken: async (phone: string, token: string) => {
+    if (!phone || !token) return;
+    const user = databaseService.getUserByPhone(phone);
+    if (!user) return;
+    
+    const sanitizedPhone = phone.replace(/\D/g, '');
+    const userId = `${user.name}_${sanitizedPhone}`;
+    const userRef = doc(db, 'users', userId);
+    
+    try {
+      await setDoc(userRef, { fcmToken: token, updatedAt: serverTimestamp() }, { merge: true });
+      console.log("FCM Token saved to Firestore for:", user.name);
+    } catch (e) {
+      console.error("Error saving FCM token to Firestore:", e);
+    }
+  },
+
   getConnectionLogs: (): ConnectionLog[] => {
       try {
           const logs = localStorage.getItem(CONNECTION_LOGS_KEY);

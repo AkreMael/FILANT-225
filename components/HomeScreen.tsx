@@ -221,14 +221,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
   }, []);
 
   useEffect(() => {
-      const notifs = databaseService.getNotifications(user.phone);
-      setUnreadCount(notifs.filter(n => !n.isRead).length);
-      
-      const notifTimer = setInterval(() => {
+      const updateUnread = () => {
           const currentNotifs = databaseService.getNotifications(user.phone);
           setUnreadCount(currentNotifs.filter(n => !n.isRead).length);
-      }, 5000);
-      return () => clearInterval(notifTimer);
+      };
+      
+      updateUnread();
+      
+      window.addEventListener('new-notification', updateUnread);
+      
+      const notifTimer = setInterval(updateUnread, 5000);
+      return () => {
+          window.removeEventListener('new-notification', updateUnread);
+          clearInterval(notifTimer);
+      };
   }, [user.phone]);
 
   const CARD_LIFESPAN_MS = 30 * 24 * 60 * 60 * 1000; 

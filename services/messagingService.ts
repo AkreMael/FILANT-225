@@ -1,0 +1,51 @@
+import { messaging } from '../firebase';
+import { getToken, onMessage } from 'firebase/messaging';
+import { databaseService } from './databaseService';
+
+export const messagingService = {
+  requestPermission: async (phone: string) => {
+    if (!messaging) return;
+    
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        const token = await getToken(messaging, {
+          vapidKey: 'BD-9TCbxrgpuS2jfxxip1ahWtMLdPOXV9qQVi3MsoxfTO1XAqY9ZEqpDzQDm1GsaJ_pq2JlYyqdMBQacwgjFyVE' 
+        });
+        
+        if (token) {
+          console.log('FCM Token:', token);
+          await databaseService.saveFCMToken(phone, token);
+          return token;
+        } else {
+          console.log('No registration token available. Request permission to generate one.');
+        }
+      } else {
+        console.log('Unable to get permission to notify.');
+      }
+    } catch (error) {
+      console.error('An error occurred while retrieving token:', error);
+    }
+  },
+
+  onMessageListener: (phone: string) =>
+    new Promise((resolve) => {
+      if (!messaging) return;
+      onMessage(messaging, (payload) => {
+        console.log('Message received in foreground:', payload);
+        
+        // Save to local notifications
+        if (payload.notification) {
+          databaseService.addNotification(phone, {
+            title: payload.notification.title || 'Notification',
+            message: payload.notification.body || ''
+          });
+          
+          // Trigger a custom event to notify UI components
+          window.dispatchEvent(new CustomEvent('new-notification'));
+        }
+        
+        resolve(payload);
+      });
+    }),
+};
