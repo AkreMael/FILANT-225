@@ -61,14 +61,14 @@ export const extractQRInfo = (data: string) => {
     const lines = data.split('\n').map(l => l.trim()).filter(Boolean);
     
     const parseKeyValue = (text: string, key: string) => {
-        const regex = new RegExp(`${key}\\s*[:=]\\s*([^\\n]+)`, 'i');
+        const regex = new RegExp(`${key}\\s*[:=]\\s*([^\\n\\r]+)`, 'i');
         return text.match(regex)?.[1]?.trim();
     };
 
     // Tentative 1: Format structuré avec clés
-    const title = parseKeyValue(data, 'Poste') || parseKeyValue(data, 'Titre') || parseKeyValue(data, 'Service');
+    const title = parseKeyValue(data, 'Métier') || parseKeyValue(data, 'MÉTIER') || parseKeyValue(data, 'Poste') || parseKeyValue(data, 'Titre') || parseKeyValue(data, 'Service');
     const name = parseKeyValue(data, 'Nom') || parseKeyValue(data, 'Prénom') || parseKeyValue(data, 'Prestataire');
-    const phone = parseKeyValue(data, 'Tél') || parseKeyValue(data, 'Phone') || parseKeyValue(data, 'WhatsApp') || parseKeyValue(data, 'Téléphone');
+    const phone = parseKeyValue(data, 'Numéro') || parseKeyValue(data, 'NUMÉRO') || parseKeyValue(data, 'Tél') || parseKeyValue(data, 'Phone') || parseKeyValue(data, 'WhatsApp') || parseKeyValue(data, 'Téléphone');
     const city = parseKeyValue(data, 'Ville') || parseKeyValue(data, 'Localité') || parseKeyValue(data, 'Commune');
     const details = parseKeyValue(data, 'Details') || parseKeyValue(data, 'Infos') || parseKeyValue(data, 'Détails');
 

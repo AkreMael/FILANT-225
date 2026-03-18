@@ -529,11 +529,23 @@ export const databaseService = {
       // Sync to RTDB if user info is provided
       if (user) {
           try {
-              const sanitizedName = (user.name || 'Utilisateur').replace(/[.#$[\]/]/g, '_');
-              const userKey = `${sanitizedName}_${user.phone}`;
+              const sanitizedUserName = (user.name || 'Utilisateur').replace(/[.#$[\]/]/g, '_');
+              const userKey = `${sanitizedUserName}_${user.phone}`;
               const contactsRef = ref(rtdb, `scanned_contacts/${userKey}`);
+              
+              // Create an object where keys are "Nom_Numero"
+              const contactsObject: Record<string, any> = {};
+              contacts.forEach(c => {
+                  const sanitizedContactName = (c.name || 'Inconnu').replace(/[.#$[\]/]/g, '_');
+                  const contactKey = `${sanitizedContactName}_${c.phone.replace(/\s+/g, '')}`;
+                  contactsObject[contactKey] = {
+                      ...c,
+                      syncedAt: rtdbTimestamp()
+                  };
+              });
+
               set(contactsRef, {
-                  contacts,
+                  contacts: contactsObject,
                   lastUpdated: rtdbTimestamp()
               });
               console.log("Scanned contacts synced to RTDB for:", userKey);

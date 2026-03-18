@@ -183,7 +183,7 @@ const ProfessionalCardScreen: React.FC<ProfessionalCardScreenProps> = ({ user, o
     }
   };
 
-  const qrValue = `Métier: ${profession}\nNom: ${user.name}\nVille: ${user.city}\nNuméro: ${COMPANY_PHONE}`;
+  const qrValue = `Métier: ${profession || 'Non spécifié'}\nNom: ${user.name}\nVille: ${user.city}\nNuméro: ${COMPANY_PHONE}`;
 
   return (
     <div className="min-h-screen bg-slate-900 text-white p-4 pb-24">
