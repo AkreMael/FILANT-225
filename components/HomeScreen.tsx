@@ -36,6 +36,7 @@ const EmergencyIcon: React.FC = () => <svg xmlns="http://www.w3.org/2000/svg" cl
 const HelpIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>;
 const AssistantIcon = () => <svg className="w-6 h-6 text-white" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M42 12H16C13.7909 12 12 13.7909 12 16V48C12 50.2091 13.7909 52 16 52H42C44.2091 52 46 50.2091 46 48V16C46 13.7909 44.2091 12 42 12Z" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M29 25C31.2091 25 33 23.2091 33 21C33 18.7909 31.2091 17 29 17C26.7909 17 25 18.7909 25 21C25 23.2091 26.7909 25 29 25Z" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M38 42C38 37.0294 33.9706 33 29 33C24.0294 33 20 37.0294 20 42" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M46 20H50" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M46 28H50" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M46 36H50" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 const SearchBarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
+const ChatBubbleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>;
 
 const ServiceRapideIcon: React.FC = () => <IconWrapper className="w-12 h-12 bg-white/20"><svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-current" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg></IconWrapper>;
 const ServiceDeNuitIcon: React.FC = () => <IconWrapper className="w-12 h-12 bg-white/20"><svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /><path d="M16 10.5c-.5 0-1 .5-1 1s.5 1 1 1 .5-1 1-1" /><path d="M18 13c0 .5-.5 1-1 1s-1-.5-1-1" /></svg></IconWrapper>;
@@ -198,6 +199,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showNoOffer, setShowNoOffer] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [showScanner, setShowScanner] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -236,6 +238,25 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
           clearInterval(notifTimer);
       };
   }, [user.phone]);
+
+  useEffect(() => {
+    if (!user.phone || isAdmin(user)) return;
+    
+    const chatUserId = `${user.name}_${user.phone.replace(/\D/g, '')}`;
+    let unsubscribe: any;
+    
+    const setupUnreadListener = async () => {
+      unsubscribe = await databaseService.onUnreadAdminChatCount(chatUserId, 'admin', (count) => {
+        setUnreadChatCount(count);
+      });
+    };
+    
+    setupUnreadListener();
+    
+    return () => {
+      if (unsubscribe && typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [user.phone, user.name]);
 
   const CARD_LIFESPAN_MS = 30 * 24 * 60 * 60 * 1000; 
   const cardType = getCardType(user.role);
@@ -569,6 +590,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
                     <button onClick={onOpenFavorites} className="focus:outline-none">
                         <HeartIcon className={`h-6 w-6 ${isClient ? 'text-slate-900' : 'text-white'} animate-flash-red-white`} />
                     </button>
+
+                    {!isAdmin(user) && (
+                        <button 
+                            onClick={() => setActiveTab(Tab.UserChat)}
+                            className="relative p-2 rounded-full bg-blue-600 hover:bg-blue-700 transition-colors active:scale-90 shadow-md"
+                        >
+                            <ChatBubbleIcon />
+                            {unreadChatCount > 0 && (
+                                <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full border-2 border-slate-900 flex items-center justify-center px-1 animate-pulse">
+                                    <span className="text-[9px] font-black text-white leading-none">{unreadChatCount}</span>
+                                </div>
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
 

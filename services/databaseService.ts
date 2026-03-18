@@ -1011,5 +1011,83 @@ export const databaseService = {
     } catch (e) {
       console.error("Error deleting wave payment:", e);
     }
+  },
+
+  // --- ADMIN CHAT (PRIVATE) ---
+  async getAdminChatHistory(userId: string): Promise<any[]> {
+    const { get } = await import('firebase/database');
+    const chatRef = ref(rtdb, `Chats/${userId}/messages`);
+    const snapshot = await get(chatRef);
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      return Object.values(data).sort((a: any, b: any) => a.timestamp - b.timestamp);
+    }
+    return [];
+  },
+
+  async saveAdminChatMessage(userId: string, message: any) {
+    const { push, set } = await import('firebase/database');
+    const chatRef = ref(rtdb, `Chats/${userId}/messages`);
+    const newMessageRef = push(chatRef);
+    const msgData = {
+      ...message,
+      id: newMessageRef.key,
+      timestamp: Date.now(),
+      read: false
+    };
+    await set(newMessageRef, msgData);
+    
+    // Also sync to Firestore for persistence
+    const firestoreRef = doc(db, 'Chats', userId, 'messages', newMessageRef.key!);
+    await setDoc(firestoreRef, {
+      ...msgData,
+      timestamp: serverTimestamp()
+    });
+  },
+
+  async markAdminMessagesAsRead(userId: string, senderToMark: 'admin' | 'user') {
+    const { get, ref, update } = await import('firebase/database');
+    const chatRef = ref(rtdb, `Chats/${userId}/messages`);
+    const snapshot = await get(chatRef);
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      const updates: any = {};
+      Object.keys(data).forEach(key => {
+        if (data[key].sender === senderToMark && !data[key].read) {
+          updates[`${key}/read`] = true;
+        }
+      });
+      if (Object.keys(updates).length > 0) {
+        await update(chatRef, updates);
+      }
+    }
+  },
+
+  async onAdminChatUpdate(userId: string, callback: (messages: any[]) => void) {
+    const { onValue } = await import('firebase/database');
+    const chatRef = ref(rtdb, `Chats/${userId}/messages`);
+    return onValue(chatRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const messages = Object.values(data).sort((a: any, b: any) => a.timestamp - b.timestamp);
+        callback(messages);
+      } else {
+        callback([]);
+      }
+    });
+  },
+
+  async onUnreadAdminChatCount(userId: string, senderToWatch: 'admin' | 'user', callback: (count: number) => void) {
+    const { onValue } = await import('firebase/database');
+    const chatRef = ref(rtdb, `Chats/${userId}/messages`);
+    return onValue(chatRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const unreadCount = Object.values(data).filter((msg: any) => msg.sender === senderToWatch && !msg.read).length;
+        callback(unreadCount);
+      } else {
+        callback(0);
+      }
+    });
   }
 };

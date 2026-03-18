@@ -21,6 +21,7 @@ const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w
 const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
 const MicIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>;
 const SMSIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>;
+const ChatIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>;
 const WaveIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
 const AssistantIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
 const WhatsAppIcon = ({ className }: { className?: string }) => (
@@ -51,10 +52,68 @@ const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 interface AdminDashboardScreenProps {
   onBack: () => void;
   onSelectUser?: (log: ConnectionLog) => void;
+  onOpenChat?: (user: User) => void;
   initialView?: 'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms' | 'wave-payments' | 'assistant-requests';
 }
 
-const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onSelectUser, initialView = 'grid' }) => {
+const UserListItem: React.FC<{ user: User; onOpenChat?: (user: User) => void }> = ({ user, onOpenChat }) => {
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        const chatUserId = `${user.name}_${user.phone.replace(/\D/g, '')}`;
+        let unsubscribe: any;
+        
+        const setupListener = async () => {
+            unsubscribe = await databaseService.onUnreadAdminChatCount(chatUserId, 'user', (count) => {
+                setUnreadCount(count);
+            });
+        };
+        
+        setupListener();
+        
+        return () => {
+            if (unsubscribe && typeof unsubscribe === 'function') unsubscribe();
+        };
+    }, [user.phone, user.name]);
+
+    return (
+        <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 shadow-sm">
+            <div className="flex justify-between items-start mb-2">
+                <div>
+                    <h4 className="font-black text-gray-900 uppercase text-sm">{user.name}</h4>
+                    <p className="text-xs text-gray-500 font-bold">{user.city}</p>
+                </div>
+                <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${
+                    user.role === 'Admin 225' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
+                }`}>
+                    {user.role || 'Client'}
+                </span>
+            </div>
+            <div className="flex items-center justify-between mt-4">
+                <a href={`tel:${user.phone}`} className="text-blue-600 font-mono text-xs font-bold">+225 {user.phone}</a>
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={() => onOpenChat && onOpenChat(user)}
+                        className="relative p-2 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 transition-colors active:scale-90"
+                        title="Message Privé"
+                    >
+                        <ChatIcon />
+                        {unreadCount > 0 && (
+                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border border-white flex items-center justify-center">
+                                <span className="text-[8px] font-black text-white">{unreadCount}</span>
+                            </div>
+                        )}
+                    </button>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase">
+                        {user.lastSeen ? (typeof user.lastSeen === 'object' && 'toDate' in user.lastSeen ? (user.lastSeen as any).toDate().toLocaleDateString() : 'Actif') : 'Inscrit'}
+                    </span>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onSelectUser, onOpenChat, initialView = 'grid' }) => {
   const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms' | 'firestore-users' | 'wave-payments' | 'assistant-requests'>(initialView);
   const [firestoreUsers, setFirestoreUsers] = useState<User[]>([]);
   const [wavePayments, setWavePayments] = useState<any[]>([]);
@@ -905,25 +964,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
             ) : (
                 <div className="space-y-4">
                     {firestoreUsers.map((user, idx) => (
-                        <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 shadow-sm">
-                            <div className="flex justify-between items-start mb-2">
-                                <div>
-                                    <h4 className="font-black text-gray-900 uppercase text-sm">{user.name}</h4>
-                                    <p className="text-xs text-gray-500 font-bold">{user.city}</p>
-                                </div>
-                                <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${
-                                    user.role === 'Admin 225' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
-                                }`}>
-                                    {user.role || 'Client'}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between mt-4">
-                                <a href={`tel:${user.phone}`} className="text-blue-600 font-mono text-xs font-bold">+225 {user.phone}</a>
-                                <span className="text-[9px] text-gray-400 font-bold uppercase">
-                                    {user.lastSeen ? (typeof user.lastSeen === 'object' && 'toDate' in user.lastSeen ? (user.lastSeen as any).toDate().toLocaleDateString() : 'Actif') : 'Inscrit'}
-                                </span>
-                            </div>
-                        </div>
+                        <UserListItem key={idx} user={user} onOpenChat={onOpenChat} />
                     ))}
                 </div>
             )}

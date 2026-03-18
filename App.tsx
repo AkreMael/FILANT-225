@@ -30,6 +30,7 @@ import ScannerOverlay, { extractQRInfo } from './components/ScannerOverlay';
 import AssistantQRScreen from './components/AssistantQRScreen';
 import PaymentConfirmationScreen from './components/PaymentConfirmationScreen';
 import ProfessionalCardScreen from './components/ProfessionalCardScreen';
+import ChatScreen from './components/ChatScreen';
 import { motion, AnimatePresence } from 'motion/react';
 import { databaseService, SavedContact, ConnectionLog } from './services/databaseService';
 import { messagingService } from './services/messagingService';
@@ -128,6 +129,7 @@ const App: React.FC = () => {
   });
 
   const [activeTab, setActiveTab] = useState<Tab>(Tab.Menu);
+  const [chatTargetUser, setChatTargetUser] = useState<User | undefined>(undefined);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showScannerGlobal, setShowScannerGlobal] = useState(false);
   const [paymentConfirmationContext, setPaymentConfirmationContext] = useState<PaymentConfirmationContext | null>(null);
@@ -793,7 +795,33 @@ const App: React.FC = () => {
       />;
       break;
     case Tab.AdminDashboard:
-      activeScreen = <AdminDashboardScreen onBack={() => setActiveTab(Tab.Menu)} onSelectUser={handleAdminSelectUser} />;
+      activeScreen = <AdminDashboardScreen 
+        onBack={() => setActiveTab(Tab.Menu)} 
+        onSelectUser={handleAdminSelectUser} 
+        onOpenChat={(user) => {
+          setChatTargetUser(user);
+          setActiveTab(Tab.AdminChat);
+        }}
+      />;
+      break;
+    case Tab.AdminChat:
+      activeScreen = chatTargetUser && (
+        <ChatScreen 
+          currentUser={currentUser || maelUser} 
+          targetUser={chatTargetUser}
+          isAdmin={true}
+          onBack={() => setActiveTab(Tab.AdminDashboard)}
+        />
+      );
+      break;
+    case Tab.UserChat:
+      activeScreen = (
+        <ChatScreen 
+          currentUser={currentUser || maelUser} 
+          isAdmin={false}
+          onBack={() => setActiveTab(Tab.Menu)}
+        />
+      );
       break;
     default:
       activeScreen = <HomeScreen 

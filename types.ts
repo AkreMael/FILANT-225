@@ -11,7 +11,9 @@ export enum Tab {
   AdminLogin = 'AdminLogin',
   AdminDashboard = 'AdminDashboard',
   Notifications = 'Notifications',
-  Scanner = 'Scanner'
+  Scanner = 'Scanner',
+  AdminChat = 'AdminChat',
+  UserChat = 'UserChat'
 }
 
 export interface User {
