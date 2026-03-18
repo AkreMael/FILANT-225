@@ -935,5 +935,81 @@ export const databaseService = {
     } catch (e) {
       console.error("Error saving payment to RTDB:", e);
     }
+  },
+
+  getAssistantRequestsFromRTDB: async (): Promise<any[]> => {
+    try {
+      const { get } = await import('firebase/database');
+      const requestsRef = ref(rtdb, 'assistant_requests');
+      const snapshot = await get(requestsRef);
+      if (snapshot.exists()) {
+        const allRequests: any[] = [];
+        const data = snapshot.val();
+        Object.keys(data).forEach(userKey => {
+          const userRequests = data[userKey];
+          Object.keys(userRequests).forEach(reqId => {
+            allRequests.push({
+              id: reqId,
+              userKey,
+              ...userRequests[reqId]
+            });
+          });
+        });
+        return allRequests.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      }
+      return [];
+    } catch (e) {
+      console.error("Error getting assistant requests from RTDB:", e);
+      return [];
+    }
+  },
+
+  getWavePaymentsFromRTDB: async (): Promise<any[]> => {
+    try {
+      const { get } = await import('firebase/database');
+      const paymentsRef = ref(rtdb, 'wave_payments');
+      const snapshot = await get(paymentsRef);
+      if (snapshot.exists()) {
+        const allPayments: any[] = [];
+        const data = snapshot.val();
+        Object.keys(data).forEach(userKey => {
+          const userPayments = data[userKey];
+          Object.keys(userPayments).forEach(payId => {
+            allPayments.push({
+              id: payId,
+              userKey,
+              ...userPayments[payId]
+            });
+          });
+        });
+        return allPayments.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      }
+      return [];
+    } catch (e) {
+      console.error("Error getting wave payments from RTDB:", e);
+      return [];
+    }
+  },
+
+  deleteAssistantRequest: async (userKey: string, reqId: string) => {
+    try {
+      const { remove } = await import('firebase/database');
+      const reqRef = ref(rtdb, `assistant_requests/${userKey}/${reqId}`);
+      await remove(reqRef);
+      console.log("Assistant request deleted:", reqId);
+    } catch (e) {
+      console.error("Error deleting assistant request:", e);
+    }
+  },
+
+  deleteWavePayment: async (userKey: string, payId: string) => {
+    try {
+      const { remove } = await import('firebase/database');
+      const payRef = ref(rtdb, `wave_payments/${userKey}/${payId}`);
+      await remove(payRef);
+      console.log("Wave payment deleted:", payId);
+    } catch (e) {
+      console.error("Error deleting wave payment:", e);
+    }
   }
 };

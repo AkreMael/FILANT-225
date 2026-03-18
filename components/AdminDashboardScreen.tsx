@@ -21,6 +21,8 @@ const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w
 const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
 const MicIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>;
 const SMSIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>;
+const WaveIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
+const AssistantIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
 const WhatsAppIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor">
         <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.886-.001 2.269.655 4.288 1.902 5.941l-1.442 5.253 5.354-1.405z" />
@@ -49,12 +51,14 @@ const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 interface AdminDashboardScreenProps {
   onBack: () => void;
   onSelectUser?: (log: ConnectionLog) => void;
-  initialView?: 'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms';
+  initialView?: 'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms' | 'wave-payments' | 'assistant-requests';
 }
 
 const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onSelectUser, initialView = 'grid' }) => {
-  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms' | 'firestore-users'>(initialView);
+  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms' | 'firestore-users' | 'wave-payments' | 'assistant-requests'>(initialView);
   const [firestoreUsers, setFirestoreUsers] = useState<User[]>([]);
+  const [wavePayments, setWavePayments] = useState<any[]>([]);
+  const [assistantRequests, setAssistantRequests] = useState<any[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [logs, setLogs] = useState<ConnectionLog[]>([]);
   const [associations, setAssociations] = useState<Association[]>([]);
@@ -69,6 +73,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<any | null>(null);
   const [editingContact, setEditingContact] = useState<AdminContact | null>(null);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [shareMode, setShareMode] = useState<'none' | 'client' | 'outil'>('none');
@@ -104,6 +109,20 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
           setIsSyncing(true);
           databaseService.getUsersFromFirestore().then(users => {
               setFirestoreUsers(users);
+              setIsSyncing(false);
+          });
+      }
+      if (view === 'wave-payments') {
+          setIsSyncing(true);
+          databaseService.getWavePaymentsFromRTDB().then(payments => {
+              setWavePayments(payments);
+              setIsSyncing(false);
+          });
+      }
+      if (view === 'assistant-requests') {
+          setIsSyncing(true);
+          databaseService.getAssistantRequestsFromRTDB().then(requests => {
+              setAssistantRequests(requests);
               setIsSyncing(false);
           });
       }
@@ -236,6 +255,16 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
           const updated = activeContacts.filter(c => c.id !== id);
           setActiveContacts(updated);
           databaseService.saveActiveContacts(updated);
+      } else if (view === 'wave-payments' && itemToDelete) {
+          databaseService.deleteWavePayment(itemToDelete.userKey, itemToDelete.id).then(() => {
+              setWavePayments(prev => prev.filter(p => p.id !== itemToDelete.id));
+              setItemToDelete(null);
+          });
+      } else if (view === 'assistant-requests' && itemToDelete) {
+          databaseService.deleteAssistantRequest(itemToDelete.userKey, itemToDelete.id).then(() => {
+              setAssistantRequests(prev => prev.filter(r => r.id !== itemToDelete.id));
+              setItemToDelete(null);
+          });
       }
   };
 
@@ -899,11 +928,144 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
     </div>
   );
 
+  const renderWavePaymentsView = () => (
+    <div className="flex-1 flex flex-col h-full bg-white font-sans animate-unfold-in text-left">
+        <header className="p-4 flex items-center justify-between border-b border-gray-100 bg-white sticky top-0 z-20">
+            <button onClick={() => setView('grid')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-400 transition-transform active:scale-90">
+                <BackIcon />
+            </button>
+            <h2 className="text-sm font-black text-gray-800 uppercase tracking-widest flex-1 text-center">Paiements Wave (RTDB)</h2>
+            <button 
+                onClick={() => {
+                    setIsSyncing(true);
+                    databaseService.getWavePaymentsFromRTDB().then(payments => {
+                        setWavePayments(payments);
+                        setIsSyncing(false);
+                    });
+                }}
+                disabled={isSyncing}
+                className={`p-2 rounded-full hover:bg-gray-100 text-blue-600 transition-all ${isSyncing ? 'animate-spin' : ''}`}
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            </button>
+        </header>
+        <div className="p-4 space-y-4 flex-1 overflow-y-auto scrollbar-hide">
+            {wavePayments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                    <WaveIcon />
+                    <p className="mt-4 font-bold uppercase text-xs tracking-widest">
+                        {isSyncing ? 'Chargement...' : 'Aucun paiement enregistré'}
+                    </p>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {wavePayments.map((payment, idx) => (
+                        <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 shadow-sm relative">
+                            <button 
+                                onClick={() => { setItemToDelete(payment); setDeleteId(payment.id); }} 
+                                className="absolute top-3 right-3 p-2 bg-white rounded-full text-gray-400 hover:text-red-500 transition-colors shadow-sm"
+                            >
+                                <TrashIcon />
+                            </button>
+                            <div className="flex justify-between items-start mb-2 pr-8">
+                                <div>
+                                    <h4 className="font-black text-gray-900 uppercase text-sm">{payment.userName || 'Utilisateur'}</h4>
+                                    <p className="text-xs text-gray-500 font-bold">{payment.city || 'Ville inconnue'}</p>
+                                </div>
+                                <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-blue-100 text-blue-600">
+                                    {payment.amount} FCFA
+                                </span>
+                            </div>
+                            <div className="space-y-1 mt-3">
+                                <p className="text-[10px] text-gray-400 font-black uppercase">Service: <span className="text-gray-700">{payment.serviceType}</span></p>
+                                <p className="text-[10px] text-gray-400 font-black uppercase">Téléphone: <span className="text-gray-700">+225 {payment.phone}</span></p>
+                                <p className="text-[10px] text-gray-400 font-black uppercase">ID Transaction: <span className="text-gray-700 font-mono">{payment.transactionId || 'N/A'}</span></p>
+                            </div>
+                            <div className="flex items-center justify-end mt-4">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">
+                                    {payment.timestamp ? new Date(payment.timestamp).toLocaleString() : 'Date inconnue'}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    </div>
+  );
+
+  const renderAssistantRequestsView = () => (
+    <div className="flex-1 flex flex-col h-full bg-white font-sans animate-unfold-in text-left">
+        <header className="p-4 flex items-center justify-between border-b border-gray-100 bg-white sticky top-0 z-20">
+            <button onClick={() => setView('grid')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-400 transition-transform active:scale-90">
+                <BackIcon />
+            </button>
+            <h2 className="text-sm font-black text-gray-800 uppercase tracking-widest flex-1 text-center">Demandes Assistant (RTDB)</h2>
+            <button 
+                onClick={() => {
+                    setIsSyncing(true);
+                    databaseService.getAssistantRequestsFromRTDB().then(requests => {
+                        setAssistantRequests(requests);
+                        setIsSyncing(false);
+                    });
+                }}
+                disabled={isSyncing}
+                className={`p-2 rounded-full hover:bg-gray-100 text-blue-600 transition-all ${isSyncing ? 'animate-spin' : ''}`}
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            </button>
+        </header>
+        <div className="p-4 space-y-4 flex-1 overflow-y-auto scrollbar-hide">
+            {assistantRequests.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                    <AssistantIcon />
+                    <p className="mt-4 font-bold uppercase text-xs tracking-widest">
+                        {isSyncing ? 'Chargement...' : 'Aucune demande enregistrée'}
+                    </p>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {assistantRequests.map((req, idx) => (
+                        <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 shadow-sm relative">
+                            <button 
+                                onClick={() => { setItemToDelete(req); setDeleteId(req.id); }} 
+                                className="absolute top-3 right-3 p-2 bg-white rounded-full text-gray-400 hover:text-red-500 transition-colors shadow-sm"
+                            >
+                                <TrashIcon />
+                            </button>
+                            <div className="flex justify-between items-start mb-2 pr-8">
+                                <div>
+                                    <h4 className="font-black text-gray-900 uppercase text-sm">{req.userName || 'Utilisateur'}</h4>
+                                    <p className="text-xs text-gray-500 font-bold">{req.city || 'Ville inconnue'}</p>
+                                </div>
+                                <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter bg-indigo-100 text-indigo-600">
+                                    Assistant
+                                </span>
+                            </div>
+                            <div className="mt-3 p-3 bg-white rounded-xl border border-gray-100 italic text-xs text-gray-600">
+                                "{req.request || req.message || 'Pas de message'}"
+                            </div>
+                            <div className="flex items-center justify-between mt-4">
+                                <a href={`tel:${req.phone}`} className="text-blue-600 font-mono text-[10px] font-bold">+225 {req.phone}</a>
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">
+                                    {req.timestamp ? new Date(req.timestamp).toLocaleString() : 'Date inconnue'}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    </div>
+  );
+
   if (view === 'contacts') return renderContactStorageView();
   if (view === 'associations') return renderAssociationView();
   if (view === 'active-contacts') return renderActiveContactsView();
   if (view === 'sms') return renderSmsView();
   if (view === 'firestore-users') return renderFirestoreUsersView();
+  if (view === 'wave-payments') return renderWavePaymentsView();
+  if (view === 'assistant-requests') return renderAssistantRequestsView();
 
   return (
     <div className="flex-1 bg-slate-900 flex flex-col h-full text-left relative overflow-hidden">
@@ -980,11 +1142,25 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
                         <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Gestion des SMS</span>
                     </button>
 
-                    <button onClick={() => setView('firestore-users')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95 col-span-2">
+                    <button onClick={() => setView('firestore-users')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
                          <div className="bg-blue-500/20 p-4 rounded-full group-hover:bg-blue-500/30 transition-colors shadow-inner">
                             <CloudIcon />
                          </div>
                         <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Utilisateurs Cloud</span>
+                    </button>
+
+                    <button onClick={() => setView('wave-payments')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                         <div className="bg-blue-500/20 p-4 rounded-full group-hover:bg-blue-500/30 transition-colors shadow-inner">
+                            <WaveIcon />
+                         </div>
+                        <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Paiements Wave</span>
+                    </button>
+
+                    <button onClick={() => setView('assistant-requests')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95 col-span-2">
+                         <div className="bg-indigo-500/20 p-4 rounded-full group-hover:bg-indigo-500/30 transition-colors shadow-inner">
+                            <AssistantIcon />
+                         </div>
+                        <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Demandes Assistant</span>
                     </button>
                 </div>
             </main>
