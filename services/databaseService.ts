@@ -1,6 +1,6 @@
 import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification } from '../types';
 import { db, auth, rtdb } from '../firebase';
-import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc, getDocFromServer } from 'firebase/firestore';
 import { ref, push, set, serverTimestamp as rtdbTimestamp } from 'firebase/database';
 
 // --- ENUMS & INTERFACES FOR ERROR HANDLING ---
@@ -268,20 +268,12 @@ export const databaseService = {
     if (!user.phone) return;
     const sanitizedPhone = user.phone.replace(/\D/g, '');
     const userId = `${user.name}_${sanitizedPhone}`;
-    const userPath = `users/${userId}`;
+    const path = `users/${userId}`;
     
     try {
-      // Ensure we are authenticated (anonymous or otherwise) before writing to Firestore
       if (!auth.currentUser) {
-        console.log("Waiting for authentication before syncing user...");
-        // If not authenticated, we try to sign in anonymously
-        try {
-          const { signInAnonymously } = await import('firebase/auth');
-          await signInAnonymously(auth);
-        } catch (authErr) {
-          console.error("Failed to sign in anonymously for sync:", authErr);
-          // We continue anyway, setDoc might fail with permission error which we handle
-        }
+        const { signInAnonymously } = await import('firebase/auth');
+        await signInAnonymously(auth);
       }
 
       const userRef = doc(db, 'users', userId);
@@ -298,16 +290,62 @@ export const databaseService = {
       await setDoc(userRef, userData, { merge: true });
       console.log("User synced to Firestore successfully:", user.name);
     } catch (e) {
-      console.error("Error syncing user to Firestore:", e);
-      // If it's a permission error, we use our structured handler
-      if (e instanceof Error && (e.message.includes('permission') || e.message.includes('Missing or insufficient permissions'))) {
-        try {
-          handleFirestoreError(e, OperationType.WRITE, userPath);
-        } catch (handlerErr) {
-          // Re-throw or handle as needed. For now we just log it.
-          console.error("Firestore permission error details logged.");
-        }
+      handleFirestoreError(e, OperationType.WRITE, path);
+    }
+  },
+
+  getUserFromFirestore: async (name: string, phone: string): Promise<User | null> => {
+    const sanitizedPhone = phone.replace(/\D/g, '');
+    const userId = `${name}_${sanitizedPhone}`;
+    const path = `users/${userId}`;
+    const userRef = doc(db, 'users', userId);
+    
+    try {
+      if (!auth.currentUser) {
+        const { signInAnonymously } = await import('firebase/auth');
+        await signInAnonymously(auth);
       }
+      const docSnap = await getDocFromServer(userRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        return {
+          name: data.name,
+          phone: data.phone,
+          city: data.city,
+          role: data.role
+        };
+      }
+    } catch (e) {
+      handleFirestoreError(e, OperationType.GET, path);
+    }
+    return null;
+  },
+
+  syncUserDataFromCloud: async (user: User) => {
+    if (!user.phone) return;
+    const sanitizedPhone = user.phone.replace(/\D/g, '');
+    
+    // Sync Favorites from Firestore (if we had them there, but currently they are in localStorage)
+    // Actually, let's just focus on what we HAVE in RTDB/Firestore.
+    // Scanned contacts are in RTDB.
+    try {
+        const { get, child } = await import('firebase/database');
+        const sanitizedUserName = (user.name || 'Utilisateur').replace(/[.#$[\]/]/g, '_');
+        const userKey = `${sanitizedUserName}_${user.phone}`;
+        const dbRef = ref(rtdb);
+        const snapshot = await get(child(dbRef, `scanned_contacts/${userKey}`));
+        
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            if (data.contacts) {
+                const contactsArray: SavedContact[] = Object.values(data.contacts);
+                const key = getScopedKey(user.phone, CONTACTS_KEY_PREFIX);
+                localStorage.setItem(key, JSON.stringify(contactsArray));
+                console.log("Contacts synced from RTDB for:", userKey);
+            }
+        }
+    } catch (e) {
+        console.error("Error syncing data from cloud:", e);
     }
   },
 
@@ -345,11 +383,36 @@ export const databaseService = {
     const users = getUsers();
     const normalizedInputName = name.trim().toLowerCase();
     const normalizedInputPhone = phone.replace(/\D/g, '');
-    const user = users.find(u => 
+    
+    // Check localStorage first
+    let user = users.find(u => 
         u.phone === normalizedInputPhone && 
         u.name.trim().toLowerCase() === normalizedInputName
     );
+    
+    // If not in localStorage, check Firestore (Cross-device persistence)
+    if (!user) {
+        console.log("User not found in localStorage, checking Firestore...");
+        const firestoreUser = await databaseService.getUserFromFirestore(name.trim(), normalizedInputPhone);
+        if (firestoreUser) {
+            user = firestoreUser;
+            // Save to localStorage for future use
+            users.push(user);
+            saveUsers(users);
+            // Persist role for App.tsx logic
+            if (user.role) {
+                localStorage.setItem('filant_user_role', user.role);
+            }
+            // Sync their data (contacts, etc.)
+            await databaseService.syncUserDataFromCloud(user);
+        }
+    }
+
     if (user) {
+      // Ensure role is in localStorage even if found in local users list
+      if (user.role) {
+          localStorage.setItem('filant_user_role', user.role);
+      }
       await databaseService.logConnection(user);
       return user;
     }
@@ -360,9 +423,27 @@ export const databaseService = {
     await new Promise(res => setTimeout(res, 500));
     const users = getUsers();
     const normalizedPhone = phone.replace(/\D/g, '');
+    
+    // Check if user already exists in localStorage
     if (users.some(u => u.phone === normalizedPhone)) {
       return { user: null, error: 'Ce numéro de téléphone est déjà enregistré.' };
     }
+
+    // Check if user already exists in Firestore (Cross-device persistence)
+    const existingFirestoreUser = await databaseService.getUserFromFirestore(name.trim(), normalizedPhone);
+    if (existingFirestoreUser) {
+        // If they exist in Firestore but not localStorage, it's a "recovery"
+        const user = existingFirestoreUser;
+        users.push(user);
+        saveUsers(users); 
+        if (user.role) {
+            localStorage.setItem('filant_user_role', user.role);
+        }
+        await databaseService.syncUserDataFromCloud(user);
+        databaseService.logConnection(user);
+        return { user };
+    }
+
     const newUser: User = { 
         name: name.trim(), 
         city: city.trim(), 
