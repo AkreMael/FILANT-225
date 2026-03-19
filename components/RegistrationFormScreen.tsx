@@ -154,10 +154,12 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
 
         setIsSubmitting(true);
         setError(null);
+        console.log("Form submission started for:", registrationType);
         
         try {
+            console.log("Preparing data for submission...");
             // Save to Firestore and Storage using the centralized service
-            await databaseService.saveRegistration(registrationType, {
+            const result = await databaseService.saveRegistration(registrationType, {
                 ...formData,
                 jobTitle: formData.titre,
                 fullName: formData.nomPrenom,
@@ -170,25 +172,36 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
                 price: config.price
             });
 
-            // Trigger payment view
-            const paymentEvent = new CustomEvent('trigger-payment-view', {
-                detail: {
-                    amount: config.price.toString(),
-                    title: `Inscription ${registrationType}`,
-                    paymentType: 'Inscription',
-                    waveLink: `https://pay.wave.com/m/M_ci_jwxwatdcoKS8/c/ci/?amount=${config.price}`,
-                    onSuccess: () => {
-                        setIsSuccess(true);
-                    }
-                }
-            });
-            window.dispatchEvent(paymentEvent);
+            if (result.success) {
+                console.log("Registration successful!");
+                // Success! Show confirmation page
+                setIsSuccess(true);
+            } else {
+                console.error("Registration failed:", result.error);
+                setError("L'enregistrement a échoué. Veuillez vérifier votre connexion et réessayer.");
+            }
         } catch (err) {
-            console.error("Erreur d'envoi:", err);
-            setError("Une erreur est survenue lors de l'enregistrement de vos données.");
+            console.error("Erreur d'envoi (catch):", err);
+            setError("Une erreur inattendue est survenue. Veuillez réessayer plus tard.");
         } finally {
+            console.log("Form submission process finished.");
             setIsSubmitting(false);
         }
+    };
+
+    const handlePaymentTrigger = () => {
+        const paymentEvent = new CustomEvent('trigger-payment-view', {
+            detail: {
+                amount: config.price.toString(),
+                title: `Inscription ${registrationType}`,
+                paymentType: 'Inscription',
+                waveLink: `https://pay.wave.com/m/M_ci_jwxwatdcoKS8/c/ci/?amount=${config.price}`,
+                onSuccess: () => {
+                    console.log("Paiement réussi");
+                }
+            }
+        });
+        window.dispatchEvent(paymentEvent);
     };
 
     const handleAssistantRedirect = () => {
@@ -222,8 +235,14 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
                     <p className="text-gray-700 leading-relaxed mb-6 text-sm">
                         Votre inscription est prise en charge. Vous êtes enregistré avec succès. <br/><br/>
                         Pour valider votre mise en ligne, un paiement de <span className="font-bold text-red-600">{config.price} FCFA</span> est requis. <br/><br/>
-                        Cliquez sur le bouton ci-dessous pour retourner sur l'application et effectuer votre paiement.
+                        Cliquez sur le bouton ci-dessous pour effectuer votre paiement.
                     </p>
+                    <button 
+                        onClick={handlePaymentTrigger} 
+                        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-4 rounded-xl shadow-lg transition-transform transform active:scale-95 flex items-center justify-center gap-2 text-xs uppercase mb-3"
+                    >
+                        🚀 Effectuer le paiement ({config.price} FCFA)
+                    </button>
                     <button 
                         onClick={handleAssistantRedirect} 
                         className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-4 rounded-xl shadow-lg transition-transform transform active:scale-95 flex items-center justify-center gap-2 text-xs uppercase"
@@ -277,11 +296,31 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
 
                                 <div className="space-y-5">
                                     <div className="flex flex-col items-center">
-                                        <div onClick={() => fileInputRef.current?.click()} className="w-full h-44 bg-white rounded-3xl border-2 border-dashed border-orange-200 flex flex-col items-center justify-center cursor-pointer overflow-hidden relative group hover:border-white transition-colors shadow-inner">
-                                            {formData.photo ? <img src={formData.photo} className="w-full h-full object-cover" alt="Aperçu photo" referrerPolicy="no-referrer" /> : (
+                                        <div 
+                                            onClick={() => fileInputRef.current?.click()} 
+                                            className="w-full h-44 bg-white rounded-3xl border-2 border-dashed border-orange-200 flex flex-col items-center justify-center cursor-pointer overflow-hidden relative group hover:border-orange-500 hover:bg-orange-50 transition-all duration-300 shadow-inner"
+                                        >
+                                            {formData.photo ? (
+                                                <div className="relative w-full h-full">
+                                                    <img src={formData.photo} className="w-full h-full object-cover" alt="Aperçu photo" referrerPolicy="no-referrer" />
+                                                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                        <div className="bg-white/20 backdrop-blur-md p-2 rounded-full mb-2">
+                                                            <CameraIcon />
+                                                        </div>
+                                                        <span className="text-white text-[10px] font-black uppercase tracking-widest">Changer la photo</span>
+                                                    </div>
+                                                </div>
+                                            ) : (
                                                 <>
-                                                    <div className="bg-orange-500 p-3 rounded-full mb-3 shadow-lg transform group-hover:scale-110 transition-transform"><CameraIcon /></div>
-                                                    <span className="text-[11px] text-gray-400 font-black uppercase tracking-widest text-center px-4">{config.photoLabel}</span>
+                                                    <div className="bg-orange-500 p-3 rounded-full mb-3 shadow-lg transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                                                        <CameraIcon />
+                                                    </div>
+                                                    <span className="text-[11px] text-gray-400 font-black uppercase tracking-widest text-center px-4 group-hover:text-orange-600 transition-colors">
+                                                        {config.photoLabel}
+                                                    </span>
+                                                    <div className="absolute bottom-3 right-3 opacity-20 group-hover:opacity-100 transition-opacity">
+                                                        <div className="w-6 h-6 border-r-2 border-b-2 border-orange-500 rounded-br-lg"></div>
+                                                    </div>
                                                 </>
                                             )}
                                         </div>

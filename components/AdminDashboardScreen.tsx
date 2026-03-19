@@ -24,6 +24,7 @@ const SMSIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8
 const ChatIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>;
 const WaveIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
 const AssistantIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
+const QRIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7V5a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m0 10v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2m7-10h4m-4 4h4m-4 4h4M7 7h.01M7 11h.01M7 15h.01" /></svg>;
 const WhatsAppIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor">
         <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.886-.001 2.269.655 4.288 1.902 5.941l-1.442 5.253 5.354-1.405z" />
@@ -115,10 +116,11 @@ const UserListItem: React.FC<{ user: User; onOpenChat?: (user: User) => void }> 
 };
 
 const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onLogout, onSelectUser, onOpenChat, initialView = 'grid' }) => {
-  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms' | 'firestore-users' | 'wave-payments' | 'assistant-requests'>(initialView);
+  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms' | 'firestore-users' | 'wave-payments' | 'assistant-requests' | 'scanned-qr'>(initialView);
   const [firestoreUsers, setFirestoreUsers] = useState<User[]>([]);
   const [wavePayments, setWavePayments] = useState<any[]>([]);
   const [assistantRequests, setAssistantRequests] = useState<any[]>([]);
+  const [scannedContacts, setScannedContacts] = useState<any[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [logs, setLogs] = useState<ConnectionLog[]>([]);
   const [associations, setAssociations] = useState<Association[]>([]);
@@ -183,6 +185,13 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
           setIsSyncing(true);
           databaseService.getAssistantRequestsFromRTDB().then(requests => {
               setAssistantRequests(requests);
+              setIsSyncing(false);
+          });
+      }
+      if (view === 'scanned-qr') {
+          setIsSyncing(true);
+          databaseService.getAllScannedContacts().then(contacts => {
+              setScannedContacts(contacts);
               setIsSyncing(false);
           });
       }
@@ -1107,6 +1116,84 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
     </div>
   );
 
+  const renderScannedQRView = () => (
+    <div className="flex-1 bg-gray-50 flex flex-col h-full text-left relative overflow-hidden">
+        <header className="bg-white px-6 py-4 border-b border-gray-100 flex items-center justify-between shadow-sm sticky top-0 z-20">
+            <div className="flex items-center gap-4">
+                <button onClick={() => setView('grid')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-400 transition-transform active:scale-90">
+                    <BackIcon />
+                </button>
+                <div>
+                    <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Codes QR Scannés</h2>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Historique des scans utilisateurs</p>
+                </div>
+            </div>
+            {isSyncing && (
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-emerald-500 border-t-transparent" />
+            )}
+        </header>
+
+        <main className="p-6 overflow-y-auto flex-1 scrollbar-hide">
+            {scannedContacts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 opacity-40">
+                    <div className="bg-emerald-50 p-6 rounded-full mb-4">
+                        <QRIcon />
+                    </div>
+                    <p className="font-black text-xs uppercase tracking-widest text-gray-400">Aucun scan enregistré</p>
+                </div>
+            ) : (
+                <div className="space-y-4 pb-12">
+                    {scannedContacts.map((contact, idx) => (
+                        <div key={contact.id || idx} className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 animate-in slide-in-from-bottom-4 duration-300" style={{ animationDelay: `${idx * 0.05}s` }}>
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-emerald-50 p-3 rounded-2xl">
+                                        <QRIcon />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-black text-gray-900 uppercase text-sm leading-none mb-1">{contact.name}</h4>
+                                        <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">{contact.title || 'Contact Scanné'}</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[9px] font-black text-gray-300 uppercase tracking-tighter mb-1">Scanné le</p>
+                                    <p className="text-[10px] font-bold text-gray-500">
+                                        {contact.scannedAt?.toDate ? contact.scannedAt.toDate().toLocaleString() : 
+                                         (contact.scannedAt && contact.scannedAt.seconds ? new Date(contact.scannedAt.seconds * 1000).toLocaleString() : 
+                                         new Date(contact.scannedAt).toLocaleString())}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 mb-4">
+                                <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Téléphone</p>
+                                    <p className="text-xs font-mono font-bold text-gray-700">+225 {contact.phone}</p>
+                                </div>
+                                <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Ville</p>
+                                    <p className="text-xs font-bold text-gray-700">{contact.city || 'N/A'}</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100/50">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse" />
+                                    <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Scanné par</p>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <p className="text-xs font-black text-gray-900 uppercase">{contact.scannerName || 'Utilisateur inconnu'}</p>
+                                    <p className="text-[10px] font-mono font-bold text-indigo-500 tracking-tighter">{contact.scannerUserId}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </main>
+    </div>
+  );
+
   const renderContent = () => {
     if (view === 'contacts') return renderContactStorageView();
     if (view === 'associations') return renderAssociationView();
@@ -1115,6 +1202,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
     if (view === 'firestore-users') return renderFirestoreUsersView();
     if (view === 'wave-payments') return renderWavePaymentsView();
     if (view === 'assistant-requests') return renderAssistantRequestsView();
+    if (view === 'scanned-qr') return renderScannedQRView();
     
     return (
       <div className="flex-1 bg-slate-900 flex flex-col h-full text-left relative overflow-hidden">
@@ -1215,11 +1303,18 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                           <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Paiements Wave</span>
                       </button>
 
-                      <button onClick={() => setView('assistant-requests')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95 col-span-2">
+                      <button onClick={() => setView('assistant-requests')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
                            <div className="bg-indigo-500/20 p-4 rounded-full group-hover:bg-indigo-500/30 transition-colors shadow-inner">
                               <AssistantIcon />
                            </div>
                           <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Demandes Assistant</span>
+                      </button>
+
+                      <button onClick={() => setView('scanned-qr')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                           <div className="bg-pink-500/20 p-4 rounded-full group-hover:bg-pink-500/30 transition-colors shadow-inner">
+                              <QRIcon />
+                           </div>
+                          <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">QR Codes Scannés</span>
                       </button>
                   </div>
               </main>

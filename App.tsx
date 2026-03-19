@@ -546,6 +546,17 @@ const App: React.FC = () => {
         const updatedContacts = [...currentContacts, newContact];
         databaseService.saveContacts(currentUser.phone, updatedContacts, currentUser);
         
+        // Envoi vers Firestore pour la vue Admin
+        databaseService.saveScannedContact({
+            scannerUserId: currentUser.phone,
+            scannerName: currentUser.name,
+            name: info.name,
+            phone: sanitizePhone(info.phone),
+            title: info.title,
+            city: info.city,
+            details: info.details || info.city
+        });
+        
         showPopup("Information validée et intégrée dans l'Assistance QR !", "alert");
         
         // Redirection automatique vers l'Assistance QR

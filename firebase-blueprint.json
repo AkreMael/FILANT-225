@@ -89,6 +89,23 @@
         "read": { "type": "boolean" }
       },
       "required": ["id", "sender", "text", "timestamp", "read"]
+    },
+    "ScannedContact": {
+      "title": "ScannedContact",
+      "description": "Représente un contact scanné via QR code.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "scannerUserId": { "type": "string", "description": "UID de l'utilisateur qui a scanné" },
+        "scannerName": { "type": "string", "description": "Nom de l'utilisateur qui a scanné" },
+        "name": { "type": "string", "description": "Nom du contact scanné" },
+        "phone": { "type": "string", "description": "Téléphone du contact scanné" },
+        "title": { "type": "string", "description": "Titre/Profession du contact scanné" },
+        "city": { "type": "string", "description": "Ville du contact scanné" },
+        "details": { "type": "string", "description": "Détails supplémentaires" },
+        "scannedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["scannerUserId", "name", "phone", "scannedAt"]
     }
   },
   "firestore": {
@@ -111,6 +128,10 @@
     "/Chats/{userId}/messages/{messageId}": {
       "schema": "ChatMessage",
       "description": "Collection des messages de chat privé entre admin et utilisateur."
+    },
+    "/scanned_contacts/{id}": {
+      "schema": "ScannedContact",
+      "description": "Collection des contacts scannés par les utilisateurs."
     }
   }
 }

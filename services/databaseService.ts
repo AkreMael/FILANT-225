@@ -2,7 +2,7 @@ import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification } f
 import { db, auth, rtdb, storage } from '../firebase';
 import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc, getDocFromServer } from 'firebase/firestore';
 import { ref as rtdbRef, push, set, serverTimestamp as rtdbTimestamp } from 'firebase/database';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
 
 // --- ENUMS & INTERFACES FOR ERROR HANDLING ---
 enum OperationType {
@@ -639,70 +639,161 @@ export const databaseService = {
   },
 
   uploadFile: async (file: File | Blob | string, path: string): Promise<string> => {
+    console.time(`Upload to ${path}`);
     try {
-      let blob: Blob;
+      const fileRef = storageRef(storage, path);
+      
       if (typeof file === 'string') {
-        // Handle base64 string
-        const response = await fetch(file);
-        blob = await response.blob();
+        console.log(`Uploading base64 string to ${path}...`);
+        await uploadString(fileRef, file, 'data_url');
       } else {
-        blob = file;
+        console.log(`Uploading blob/file to ${path}...`);
+        await uploadBytes(fileRef, file);
       }
 
-      const fileRef = storageRef(storage, path);
-      await uploadBytes(fileRef, blob);
+      console.log(`Upload complete, getting download URL for ${path}...`);
       const downloadURL = await getDownloadURL(fileRef);
+      console.timeEnd(`Upload to ${path}`);
       return downloadURL;
     } catch (e) {
-      console.error("Error uploading file:", e);
+      console.error(`Error uploading file to ${path}:`, e);
+      console.timeEnd(`Upload to ${path}`);
       throw e;
     }
   },
 
   saveRegistration: async (type: string, data: any) => {
+    console.log(`Starting ${type} registration save...`, { type, dataKeys: Object.keys(data) });
+    const collectionMap: Record<string, string> = {
+      'Travailleur': 'worker_registrations',
+      'Propriétaire d’équipement': 'equipment_registrations',
+      'Agence immobilière': 'agency_registrations',
+      'Entreprise': 'company_registrations'
+    };
+
     try {
-      if (!auth.currentUser) {
-        const { signInAnonymously } = await import('firebase/auth');
-        await signInAnonymously(auth);
+      // Test Firestore connection first
+      console.log("Testing Firestore connection...");
+      try {
+        const testDocRef = doc(db, 'test', 'connection');
+        await getDocFromServer(testDocRef);
+        console.log("Firestore connection test finished.");
+      } catch (connError) {
+        console.log("Firestore connection test (might be offline or no doc):", connError);
+        // We continue anyway, as it might just be a missing doc or permission issue on the test doc
       }
 
-      const collectionMap: Record<string, string> = {
-        'Travailleur': 'worker_registrations',
-        'Propriétaire d’équipement': 'equipment_registrations',
-        'Agence immobilière': 'agency_registrations',
-        'Entreprise': 'company_registrations'
-      };
+      if (!auth.currentUser) {
+        console.log("No user logged in, signing in anonymously...");
+        const { signInAnonymously } = await import('firebase/auth');
+        
+        // Add a timeout for sign-in
+        const signInPromise = signInAnonymously(auth);
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Sign-in timeout")), 10000));
+        
+        await Promise.race([signInPromise, timeoutPromise]);
+        console.log("Anonymous sign-in successful:", auth.currentUser?.uid);
+      }
 
       const collectionName = collectionMap[type] || 'other_registrations';
+      console.log(`Target collection: ${collectionName}`);
       
       // Handle photo uploads if they are base64
       const processedData = { ...data };
       const timestamp = Date.now();
       const userId = auth.currentUser?.uid || 'anonymous';
 
+      console.log("Processing photos...");
       if (data.photo && typeof data.photo === 'string' && data.photo.startsWith('data:')) {
+        console.log("Uploading photo 1...");
         processedData.photo = await databaseService.uploadFile(data.photo, `registrations/${collectionName}/${userId}_${timestamp}_1.jpg`);
       }
       if (data.photo2 && typeof data.photo2 === 'string' && data.photo2.startsWith('data:')) {
+        console.log("Uploading photo 2...");
         processedData.photo2 = await databaseService.uploadFile(data.photo2, `registrations/${collectionName}/${userId}_${timestamp}_2.jpg`);
       }
       if (data.photo3 && typeof data.photo3 === 'string' && data.photo3.startsWith('data:')) {
+        console.log("Uploading photo 3...");
         processedData.photo3 = await databaseService.uploadFile(data.photo3, `registrations/${collectionName}/${userId}_${timestamp}_3.jpg`);
       }
 
       const registrationRef = collection(db, collectionName);
-      const docRef = await addDoc(registrationRef, {
-        ...processedData,
+      let finalData: any = {
         userId,
+        createdAt: serverTimestamp(),
         status: 'pending',
-        createdAt: serverTimestamp()
-      });
+        typeInscription: type,
+        price: data.price || 310
+      };
+
+      // Map fields according to firestore.rules
+      if (type === 'Travailleur') {
+        finalData = {
+          ...finalData,
+          jobTitle: data.titre || '',
+          fullName: data.nomPrenom || '',
+          city: data.ville || '',
+          phone: data.telephone || '',
+          whatsapp: data.whatsapp || '',
+          acquisitionMethod: data.formation === 'Sur le tas' ? 'tas' : 'formation',
+          workMode: data.local === 'OUI' ? 'local' : 'ambulant',
+          birthDate: data.naissance || '',
+          email: data.gmail || '',
+          domain: data.domaine || '',
+          documentsUrl: processedData.photo || ''
+        };
+      } else if (type === 'Propriétaire d’équipement') {
+        finalData = {
+          ...finalData,
+          ownerName: data.nomPrenom || '',
+          city: data.ville || '',
+          phone: data.telephone || '',
+          whatsapp: data.whatsapp || '',
+          equipmentType: data.titre || '',
+          pricePerDay: parseFloat(data.prix) || 0,
+          description: data.description || '',
+          photos: [processedData.photo, processedData.photo2, processedData.photo3].filter(Boolean)
+        };
+      } else if (type === 'Agence immobilière') {
+        finalData = {
+          ...finalData,
+          agencyName: data.nomPrenom || '',
+          city: data.ville || '',
+          phone: data.telephone || '',
+          whatsapp: data.whatsapp || '',
+          serviceType: data.titre || '',
+          commissionRate: data.prix || '',
+          description: data.description || '',
+          photos: [processedData.photo, processedData.photo2, processedData.photo3].filter(Boolean)
+        };
+      } else if (type === 'Entreprise') {
+        finalData = {
+          ...finalData,
+          companyName: data.nomPrenom || '',
+          city: data.ville || '',
+          phone: data.telephone || '',
+          whatsapp: data.whatsapp || '',
+          industry: data.titre || '',
+          description: data.description || '',
+          photos: [processedData.photo, processedData.photo2, processedData.photo3].filter(Boolean)
+        };
+      } else {
+        finalData = { ...finalData, ...processedData };
+      }
+
+      console.log("Saving to Firestore...", finalData);
+      
+      // Add a timeout for Firestore write
+      const writePromise = addDoc(registrationRef, finalData);
+      const writeTimeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Firestore write timeout")), 20000));
+      
+      const docRef = await Promise.race([writePromise, writeTimeoutPromise]) as any;
       
       console.log(`${type} registration saved to Firestore with ID:`, docRef.id);
       return { success: true, id: docRef.id };
     } catch (e) {
-      console.error(`Failed to save ${type} registration`, e);
-      handleFirestoreError(e, OperationType.WRITE, 'registrations');
+      console.error(`Failed to save ${type} registration:`, e);
+      handleFirestoreError(e, OperationType.WRITE, collectionMap[type] || 'registrations');
       return { success: false, error: e };
     }
   },
@@ -1164,5 +1255,29 @@ export const databaseService = {
         callback(0);
       }
     });
+  },
+
+  async saveScannedContact(contact: any) {
+    try {
+      const docRef = await addDoc(collection(db, 'scanned_contacts'), {
+        ...contact,
+        scannedAt: serverTimestamp()
+      });
+      return { success: true, id: docRef.id };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'scanned_contacts');
+      return { success: false, error };
+    }
+  },
+
+  async getAllScannedContacts() {
+    try {
+      const q = query(collection(db, 'scanned_contacts'), orderBy('scannedAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, 'scanned_contacts');
+      return [];
+    }
   }
 };

@@ -121,6 +121,18 @@ service cloud.firestore {
     //   - timestamp: timestamp (required)
     //   - read: bool (required)
     //
+    // Collection: scanned_contacts
+    // Document ID: auto-generated
+    // Fields:
+    //   - scannerUserId: string (required)
+    //   - scannerName: string (optional)
+    //   - name: string (required)
+    //   - phone: string (required)
+    //   - title: string (optional)
+    //   - city: string (optional)
+    //   - details: string (optional)
+    //   - scannedAt: timestamp (required)
+    //
     // ===============================================================
 
     // ===============================================================
@@ -340,6 +352,22 @@ service cloud.firestore {
              data.read is bool;
     }
 
+    function isValidScannedContact(data) {
+      let requiredFields = ['scannerUserId', 'name', 'phone', 'scannedAt'];
+      let allowedFields = ['id', 'scannerUserId', 'scannerName', 'name', 'phone', 'title', 'city', 'details', 'scannedAt'];
+      
+      return hasRequiredFields(requiredFields) &&
+             hasOnlyAllowedFields(allowedFields) &&
+             data.scannerUserId is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.phone is string && data.phone.size() >= 8 && data.phone.size() < 20 &&
+             data.scannedAt is timestamp &&
+             (!('scannerName' in data) || (data.scannerName is string && data.scannerName.size() < 100)) &&
+             (!('title' in data) || (data.title is string && data.title.size() < 100)) &&
+             (!('city' in data) || (data.city is string && data.city.size() < 100)) &&
+             (!('details' in data) || (data.details is string && data.details.size() < 1000));
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -404,6 +432,12 @@ service cloud.firestore {
         allow update: if isAdmin() && isValidChatMessage(request.resource.data);
         allow delete: if isAdmin();
       }
+    }
+
+    match /scanned_contacts/{id} {
+      allow create: if isAuthenticated() && isValidScannedContact(request.resource.data) && request.resource.data.scannerUserId == request.auth.uid;
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.scannerUserId == request.auth.uid);
+      allow update, delete: if isAdmin();
     }
 
     // Default deny
