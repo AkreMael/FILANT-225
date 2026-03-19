@@ -280,6 +280,7 @@ export const databaseService = {
 
       const userRef = doc(db, 'users', sanitizedPhone);
       const userData = {
+        userId: auth.currentUser?.uid,
         name: user.name,
         phone: sanitizedPhone,
         city: user.city,
@@ -632,6 +633,30 @@ export const databaseService = {
       return await response.json();
     } catch (e) {
       console.error("Failed to save placement", e);
+      return { success: false, error: e };
+    }
+  },
+
+  saveWorkerRegistration: async (data: any) => {
+    try {
+      if (!auth.currentUser) {
+        const { signInAnonymously } = await import('firebase/auth');
+        await signInAnonymously(auth);
+      }
+
+      const registrationRef = collection(db, 'worker_registrations');
+      const docRef = await addDoc(registrationRef, {
+        ...data,
+        userId: auth.currentUser?.uid || 'anonymous',
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+      
+      console.log("Worker registration saved to Firestore with ID:", docRef.id);
+      return { success: true, id: docRef.id };
+    } catch (e) {
+      console.error("Failed to save worker registration", e);
+      handleFirestoreError(e, OperationType.WRITE, 'worker_registrations');
       return { success: false, error: e };
     }
   },

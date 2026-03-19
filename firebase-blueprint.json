@@ -5,32 +5,17 @@
       "description": "Représente un utilisateur de l'application FILANT 225.",
       "type": "object",
       "properties": {
-        "name": {
-          "type": "string",
-          "description": "Nom de l'utilisateur"
-        },
-        "phone": {
-          "type": "string",
-          "description": "Numéro de téléphone (identifiant unique)"
-        },
-        "city": {
-          "type": "string",
-          "description": "Ville de résidence"
-        },
-        "role": {
-          "type": "string",
-          "description": "Rôle de l'utilisateur (Client, Travailleur, etc.)"
-        },
-        "lastSeen": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Dernière connexion"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Date de mise à jour"
-        }
+        "name": { "type": "string", "description": "Nom de l'utilisateur" },
+        "phone": { "type": "string", "description": "Numéro de téléphone (identifiant unique)" },
+        "city": { "type": "string", "description": "Ville de résidence" },
+        "role": { "type": "string", "description": "Rôle de l'utilisateur (Client, Travailleur, etc.)" },
+        "lastSeen": { "type": "string", "format": "date-time", "description": "Dernière connexion" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Date de mise à jour" },
+        "lastConnection": { "type": "string", "description": "Dernière connexion (ISO string)" },
+        "lastModeChange": { "type": "string", "format": "date-time", "description": "Dernier changement de mode" },
+        "cardDataPro": { "type": "object", "description": "Données de la carte Pro" },
+        "cardDataService": { "type": "object", "description": "Données de la carte Service" },
+        "fcmToken": { "type": "string", "description": "Token Firebase Cloud Messaging" }
       },
       "required": ["name", "phone", "city"]
     },
@@ -39,18 +24,19 @@
       "description": "Demande d'inscription professionnelle (Travailleur, Agence, etc.)",
       "type": "object",
       "properties": {
-        "titre": { "type": "string" },
         "nomPrenom": { "type": "string" },
-        "ville": { "type": "string" },
         "telephone": { "type": "string" },
+        "typeInscription": { "type": "string" },
+        "titre": { "type": "string" },
+        "ville": { "type": "string" },
         "whatsapp": { "type": "string" },
         "formation": { "type": "string" },
         "naissance": { "type": "string" },
         "gmail": { "type": "string" },
-        "typeInscription": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "price": { "type": "number" }
       },
-      "required": ["nomPrenom", "telephone", "typeInscription"]
+      "required": ["nomPrenom", "telephone", "typeInscription", "createdAt"]
     },
     "Message": {
       "title": "Message",
@@ -59,11 +45,50 @@
       "properties": {
         "userId": { "type": "string" },
         "userName": { "type": "string" },
-        "role": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "ai"] },
         "content": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "timestamp": { "type": "string", "format": "date-time" },
+        "paymentInfo": { "type": "object" },
+        "whatsAppPayload": { "type": "string" }
       },
-      "required": ["userId", "content", "timestamp"]
+      "required": ["userId", "userName", "role", "content", "timestamp"]
+    },
+    "WorkerRegistration": {
+      "title": "WorkerRegistration",
+      "description": "Inscription détaillée d'un travailleur.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "fullName": { "type": "string" },
+        "city": { "type": "string" },
+        "phone": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "documentsUrl": { "type": "string" },
+        "domain": { "type": "string" },
+        "acquisitionMethod": { "type": "string", "enum": ["tas", "formation"] },
+        "workMode": { "type": "string", "enum": ["local", "ambulant"] },
+        "birthDate": { "type": "string" },
+        "email": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "paid", "validated"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "price": { "type": "number" },
+        "typeInscription": { "type": "string" }
+      },
+      "required": ["userId", "jobTitle", "fullName", "city", "phone", "whatsapp", "acquisitionMethod", "workMode", "birthDate", "createdAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Message dans une conversation privée entre l'admin et un utilisateur.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sender": { "type": "string", "enum": ["user", "admin"] },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "read": { "type": "boolean" }
+      },
+      "required": ["id", "sender", "text", "timestamp", "read"]
     }
   },
   "firestore": {
@@ -78,6 +103,14 @@
     "/messages/{id}": {
       "schema": "Message",
       "description": "Collection des messages de chat."
+    },
+    "/worker_registrations/{id}": {
+      "schema": "WorkerRegistration",
+      "description": "Collection des inscriptions détaillées des travailleurs."
+    },
+    "/Chats/{userId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Collection des messages de chat privé entre admin et utilisateur."
     }
   }
 }

@@ -6,15 +6,19 @@ service cloud.firestore {
     // ===============================================================
     //
     // Collection: users
-    // Document ID: [Name]_[PhoneNumber]
+    // Document ID: [PhoneNumber] (sanitized)
     // Fields:
     //   - name: string (required)
     //   - phone: string (required)
     //   - city: string (required)
-    //   - role: string (optional)
+    //   - role: string (optional, default 'Client')
     //   - lastSeen: timestamp (optional)
     //   - updatedAt: timestamp (optional)
     //   - lastConnection: string (optional)
+    //   - lastModeChange: timestamp (optional)
+    //   - cardDataPro: map (optional)
+    //   - cardDataService: map (optional)
+    //   - fcmToken: string (optional)
     //
     // Collection: recruitments
     // Document ID: auto-generated
@@ -22,22 +26,60 @@ service cloud.firestore {
     //   - nomPrenom: string (required)
     //   - telephone: string (required)
     //   - typeInscription: string (required)
-    //   - createdAt: timestamp (optional)
+    //   - titre: string (optional)
+    //   - ville: string (optional)
+    //   - whatsapp: string (optional)
+    //   - formation: string (optional)
+    //   - naissance: string (optional)
+    //   - gmail: string (optional)
+    //   - createdAt: timestamp (required)
+    //   - price: number (optional)
     //
-    // Collection: messages
-    // Document ID: [Name]_[PhoneNumber]
+    // Collection: worker_registrations
+    // Document ID: auto-generated
     // Fields:
     //   - userId: string (required)
-    //   - userName: string (optional)
+    //   - jobTitle: string (required)
+    //   - fullName: string (required)
+    //   - city: string (required)
+    //   - phone: string (required)
+    //   - whatsapp: string (required)
+    //   - acquisitionMethod: string (required, 'tas'|'formation')
+    //   - workMode: string (required, 'local'|'ambulant')
+    //   - birthDate: string (required)
+    //   - createdAt: timestamp (required)
+    //   - status: string (optional, 'pending'|'paid'|'validated')
+    //   - documentsUrl: string (optional)
+    //   - domain: string (optional)
+    //   - email: string (optional)
+    //   - price: number (optional)
+    //
+    // Collection: messages
+    // Document ID: [UserName]_[PhoneNumber]
+    // Fields:
+    //   - userId: string (required)
+    //   - userName: string (required)
+    //   - role: string (required, 'user'|'ai')
     //   - content: string (required)
     //   - timestamp: timestamp (required)
-    //   - role: string (optional)
-    //   - paymentInfo: object (optional)
+    //   - paymentInfo: map (optional)
     //   - whatsAppPayload: string (optional)
+    //
+    // Collection: Chats/{userId}/messages
+    // Document ID: auto-generated
+    // Fields:
+    //   - id: string (required)
+    //   - sender: string (required, 'user'|'admin')
+    //   - text: string (required)
+    //   - timestamp: timestamp (required)
+    //   - read: bool (required)
     //
     // ===============================================================
 
+    // ===============================================================
     // Helper Functions
+    // ===============================================================
+    
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -51,12 +93,50 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function uidUnchanged() {
+      return !('userId' in request.resource.data) || 
+             request.resource.data.userId == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('userId' in request.resource.data) || 
+             request.resource.data.userId == resource.data.userId;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
     function isValidUser(data) {
-      let requiredFields = ['name', 'phone', 'city'];
-      let allowedFields = ['name', 'phone', 'city', 'role', 'lastSeen', 'updatedAt', 'lastConnection', 'fcmToken'];
+      let requiredFields = ['userId', 'name', 'phone', 'city'];
+      let allowedFields = [
+        'userId', 'name', 'phone', 'city', 'role', 'lastSeen', 'updatedAt', 
+        'lastConnection', 'lastModeChange', 'cardDataPro', 'cardDataService', 'fcmToken'
+      ];
       
-      return data.keys().hasAll(requiredFields) &&
-             data.keys().hasOnly(allowedFields) &&
+      return hasRequiredFields(requiredFields) &&
+             hasOnlyAllowedFields(allowedFields) &&
+             data.userId is string &&
              data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
              data.phone is string && data.phone.size() >= 8 && data.phone.size() < 20 &&
              data.city is string && data.city.size() > 0 && data.city.size() < 100 &&
@@ -64,60 +144,138 @@ service cloud.firestore {
              (!('lastConnection' in data) || (data.lastConnection is string && data.lastConnection.size() < 100)) &&
              (!('fcmToken' in data) || (data.fcmToken is string && data.fcmToken.size() < 500)) &&
              (!('lastSeen' in data) || data.lastSeen is timestamp) &&
-             (!('updatedAt' in data) || data.updatedAt is timestamp);
+             (!('updatedAt' in data) || data.updatedAt is timestamp) &&
+             (!('lastModeChange' in data) || data.lastModeChange is timestamp) &&
+             (!('cardDataPro' in data) || data.cardDataPro is map) &&
+             (!('cardDataService' in data) || data.cardDataService is map);
     }
 
     function isValidRecruitment(data) {
-      let requiredFields = ['nomPrenom', 'telephone', 'typeInscription'];
-      let allowedFields = ['nomPrenom', 'telephone', 'typeInscription', 'titre', 'ville', 'whatsapp', 'formation', 'naissance', 'gmail', 'createdAt'];
+      let requiredFields = ['nomPrenom', 'telephone', 'typeInscription', 'createdAt'];
+      let allowedFields = [
+        'nomPrenom', 'telephone', 'typeInscription', 'titre', 'ville', 
+        'whatsapp', 'formation', 'naissance', 'gmail', 'createdAt', 'price'
+      ];
       
-      return data.keys().hasAll(requiredFields) &&
-             data.keys().hasOnly(allowedFields) &&
-             data.nomPrenom is string && data.nomPrenom.size() > 0 &&
-             data.telephone is string && data.telephone.size() >= 8 &&
-             (!('whatsapp' in data) || data.whatsapp is string) &&
-             (!('gmail' in data) || data.gmail is string) &&
-             (!('createdAt' in data) || data.createdAt is timestamp);
+      return hasRequiredFields(requiredFields) &&
+             hasOnlyAllowedFields(allowedFields) &&
+             data.nomPrenom is string && data.nomPrenom.size() > 0 && data.nomPrenom.size() < 100 &&
+             data.telephone is string && data.telephone.size() >= 8 && data.telephone.size() < 20 &&
+             data.typeInscription is string && data.typeInscription.size() > 0 &&
+             data.createdAt is timestamp &&
+             (!('titre' in data) || (data.titre is string && data.titre.size() < 100)) &&
+             (!('ville' in data) || (data.ville is string && data.ville.size() < 100)) &&
+             (!('whatsapp' in data) || (data.whatsapp is string && data.whatsapp.size() < 20)) &&
+             (!('formation' in data) || (data.formation is string && data.formation.size() < 200)) &&
+             (!('naissance' in data) || (data.naissance is string && data.naissance.size() < 50)) &&
+             (!('gmail' in data) || isValidEmail(data.gmail)) &&
+             (!('price' in data) || data.price is number);
+    }
+
+    function isValidWorkerRegistration(data) {
+      let requiredFields = [
+        'userId', 'jobTitle', 'fullName', 'city', 'phone', 
+        'whatsapp', 'acquisitionMethod', 'workMode', 'birthDate', 'createdAt'
+      ];
+      let allowedFields = [
+        'userId', 'jobTitle', 'fullName', 'city', 'phone', 'whatsapp', 
+        'documentsUrl', 'domain', 'acquisitionMethod', 'workMode', 
+        'birthDate', 'email', 'status', 'createdAt', 'price', 'typeInscription'
+      ];
+      
+      return hasRequiredFields(requiredFields) &&
+             hasOnlyAllowedFields(allowedFields) &&
+             data.userId is string &&
+             data.jobTitle is string && data.jobTitle.size() > 0 && data.jobTitle.size() < 100 &&
+             data.fullName is string && data.fullName.size() > 0 && data.fullName.size() < 100 &&
+             data.city is string && data.city.size() > 0 && data.city.size() < 100 &&
+             data.phone is string && data.phone.size() >= 8 && data.phone.size() < 20 &&
+             data.whatsapp is string && data.whatsapp.size() >= 8 && data.whatsapp.size() < 20 &&
+             data.acquisitionMethod in ['tas', 'formation'] &&
+             data.workMode in ['local', 'ambulant'] &&
+             data.birthDate is string && data.birthDate.size() < 50 &&
+             data.createdAt is timestamp &&
+             (!('documentsUrl' in data) || isValidUrl(data.documentsUrl)) &&
+             (!('domain' in data) || (data.domain is string && data.domain.size() < 100)) &&
+             (!('email' in data) || isValidEmail(data.email)) &&
+             (!('status' in data) || data.status in ['pending', 'paid', 'validated']) &&
+             (!('price' in data) || data.price is number) &&
+             (!('typeInscription' in data) || data.typeInscription is string);
     }
 
     function isValidMessage(data) {
-      let requiredFields = ['userId', 'content', 'timestamp'];
-      let allowedFields = ['userId', 'content', 'timestamp', 'userName', 'role', 'paymentInfo', 'whatsAppPayload'];
+      let requiredFields = ['userId', 'userName', 'role', 'content', 'timestamp'];
+      let allowedFields = ['userId', 'userName', 'role', 'content', 'timestamp', 'paymentInfo', 'whatsAppPayload'];
       
-      return data.keys().hasAll(requiredFields) &&
-             data.keys().hasOnly(allowedFields) &&
+      return hasRequiredFields(requiredFields) &&
+             hasOnlyAllowedFields(allowedFields) &&
              data.userId is string && 
-             data.content is string && data.content.size() > 0 &&
+             data.userName is string && data.userName.size() > 0 &&
+             data.role in ['user', 'ai'] &&
+             data.content is string && data.content.size() > 0 && data.content.size() < 5000 &&
              data.timestamp is timestamp &&
-             (!('userName' in data) || data.userName is string) &&
-             (!('role' in data) || data.role is string) &&
+             (!('paymentInfo' in data) || data.paymentInfo is map) &&
              (!('whatsAppPayload' in data) || data.whatsAppPayload is string);
     }
 
+    function isValidChatMessage(data) {
+      let requiredFields = ['id', 'sender', 'text', 'timestamp', 'read'];
+      let allowedFields = ['id', 'sender', 'text', 'timestamp', 'read'];
+      
+      return hasRequiredFields(requiredFields) &&
+             hasOnlyAllowedFields(allowedFields) &&
+             data.id is string &&
+             data.sender in ['user', 'admin'] &&
+             data.text is string && data.text.size() > 0 && data.text.size() < 5000 &&
+             data.timestamp is timestamp &&
+             data.read is bool;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{phone} {
+      // Allow users to read their own profile, or admin to read all
+      allow read: if isAdmin() || isDocOwner(); 
+      
+      // Allow creation/update if data is valid and role is not being escalated to admin
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
+                     uidUnchanged() && (request.resource.data.role != 'Admin' || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
+                     uidNotModified() && (request.resource.data.role == resource.data.role || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /worker_registrations/{id} {
+      allow create: if isAuthenticated() && isValidWorkerRegistration(request.resource.data) && uidUnchanged();
+      allow read: if isAdmin() || isDocOwner();
+      allow update: if isAdmin() || (isDocOwner() && isValidWorkerRegistration(request.resource.data) && uidNotModified());
+      allow delete: if isAdmin();
+    }
+
     match /messages/{id} {
-      // Allow creation for any authenticated user (including anonymous)
       allow create: if isAuthenticated() && isValidMessage(request.resource.data);
-      // Allow users to read their own messages, or admin to read all
-      allow read: if isAdmin() || (isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid || resource.data.userId == request.resource.data.userId));
+      allow read: if isAdmin() || (isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid));
       allow update, delete: if isAdmin();
     }
 
     match /recruitments/{id} {
-      // Allow anyone to submit a recruitment form
       allow create: if isValidRecruitment(request.resource.data);
       allow read, update, delete: if isAdmin();
     }
 
-    match /users/{phone} {
-      // Allow public read for profiles (needed for verification/search)
-      allow read: if true;
-      // Allow creation/update if data is valid. 
-      // We don't strictly require isAuthenticated() here to allow initial registration, 
-      // but it's better to have it if anonymous auth is active.
-      allow create, update: if isValidUser(request.resource.data);
-      allow delete: if isAdmin();
+    match /Chats/{userId} {
+      allow read, write: if isAdmin() || isOwner(userId);
+      
+      match /messages/{messageId} {
+        allow read: if isAdmin() || isOwner(userId);
+        allow create: if (isAdmin() || isOwner(userId)) && isValidChatMessage(request.resource.data);
+        allow update: if isAdmin() && isValidChatMessage(request.resource.data);
+        allow delete: if isAdmin();
+      }
     }
-    
+
     // Default deny
     match /{document=**} {
       allow read, write: if isAdmin();

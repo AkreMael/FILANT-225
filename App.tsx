@@ -84,12 +84,7 @@ interface PopupState {
     isConfirmLoading?: boolean;
 }
 
-const REGISTRATION_URLS: Record<string, string> = {
-  'Travailleur': 'https://tally.so/r/wQY5aA',
-  'Propriétaire d’équipement': 'https://tally.so/r/rjyBLo',
-  'Agence immobilière': 'https://tally.so/r/RGKdJK',
-  'Entreprise': 'https://tally.so/r/GxxjXp'
-};
+const REGISTRATION_URLS: Record<string, string> = {};
 
 const RestrictedNotification = ({ show, message }: { show: boolean, message: string }) => (
   <div className={`absolute top-4 left-4 right-4 z-[400] transition-all duration-500 ease-out transform ${show ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
@@ -321,6 +316,11 @@ const App: React.FC = () => {
         if (role && role !== 'Client') {
             setIsClientModeActive(false);
         }
+
+        // Redirection automatique si admin
+        if (isAdmin(userData)) {
+          setActiveTab(Tab.AdminDashboard);
+        }
       } else {
         localStorage.removeItem('filant_currentUserPhone');
         setCurrentUser(null);
@@ -367,6 +367,11 @@ const App: React.FC = () => {
     if (role && role !== 'Client') {
         setIsClientModeActive(false);
     }
+
+    // Redirection automatique si admin
+    if (isAdmin(user)) {
+      setActiveTab(Tab.AdminDashboard);
+    }
   };
 
   const handleLogout = useCallback(() => {
@@ -374,6 +379,11 @@ const App: React.FC = () => {
     setCurrentUser(null);
     setShowSplash(false);
     localStorage.removeItem('filant_currentUserPhone');
+    localStorage.removeItem('filant_user_role');
+    localStorage.removeItem('filant_selected_pro_role');
+    localStorage.removeItem('filant_has_selected_profile');
+    setActiveTab(Tab.Menu);
+    setMenuView('hub');
   }, []);
 
   const handleReset = useCallback(() => {
@@ -572,6 +582,8 @@ const App: React.FC = () => {
       );
   }
 
+  const isUserAdmin = isAdmin(currentUser);
+
   if (!currentUser) {
     return (
         <GlobalRippleEffect>
@@ -606,6 +618,52 @@ const App: React.FC = () => {
             </div>
           </div>
       );
+  }
+
+  // --- ADMIN LOCKED MODE ---
+  if (isUserAdmin) {
+    return (
+      <GlobalRippleEffect>
+        <div className="flex justify-center bg-slate-950 w-full min-h-[100dvh]">
+          <div className="w-full max-w-[480px] h-[100dvh] relative flex flex-col bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-200 shadow-2xl overflow-hidden">
+            <main className="flex-1 flex flex-col overflow-hidden relative">
+              <div className="absolute inset-0 scroll-container scrollbar-hide">
+                {activeTab === Tab.AdminChat && chatTargetUser ? (
+                  <ChatScreen 
+                    currentUser={currentUser || maelUser} 
+                    targetUser={chatTargetUser}
+                    isAdmin={true}
+                    onBack={() => setActiveTab(Tab.AdminDashboard)}
+                  />
+                ) : (
+                  <AdminDashboardScreen 
+                    onBack={() => {}} // Disabled in locked mode
+                    onSelectUser={handleAdminSelectUser} 
+                    onOpenChat={(user) => {
+                      setChatTargetUser(user);
+                      setActiveTab(Tab.AdminChat);
+                    }}
+                    onLogout={handleLogout} // We'll add this prop to AdminDashboardScreen
+                  />
+                )}
+              </div>
+            </main>
+
+            {popup.show && (
+                <GlobalPopup 
+                  message={popup.message} 
+                  type={popup.type} 
+                  onConfirm={popup.onConfirm} 
+                  onCancel={popup.onCancel}
+                  confirmLabel={popup.confirmLabel}
+                  cancelLabel={popup.cancelLabel}
+                  isConfirmLoading={popup.isConfirmLoading}
+                />
+            )}
+          </div>
+        </div>
+      </GlobalRippleEffect>
+    );
   }
 
   let activeScreen: React.ReactNode;

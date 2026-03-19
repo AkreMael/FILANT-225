@@ -29,14 +29,12 @@ const SendIconSmall = () => (
 );
 
 const InscriptionIcon: React.FC<{className?: string}> = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536" /></svg>;
-const HeartIcon: React.FC<{className?: string}> = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-6 w-6 text-white"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 016.364 6.364L12 20.364l-7.682-7.682a4.5 4.5 0 010-6.364z" /></svg>;
-const WhatsAppIcon: React.FC = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.886-.001 2.269.655 4.288 1.902 5.941l-1.442 5.253 5.354-1.405z" /></svg>;
 const MapPinIcon: React.FC = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
 const EmergencyIcon: React.FC = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>;
-const HelpIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>;
 const AssistantIcon = () => <svg className="w-6 h-6 text-white" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M42 12H16C13.7909 12 12 13.7909 12 16V48C12 50.2091 13.7909 52 16 52H42C44.2091 52 46 50.2091 46 48V16C46 13.7909 44.2091 12 42 12Z" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M29 25C31.2091 25 33 23.2091 33 21C33 18.7909 31.2091 17 29 17C26.7909 17 25 18.7909 25 21C25 23.2091 26.7909 25 29 25Z" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M38 42C38 37.0294 33.9706 33 29 33C24.0294 33 20 37.0294 20 42" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M46 20H50" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M46 28H50" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M46 36H50" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 const SearchBarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
 const ChatBubbleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>;
+const NotificationIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>;
 
 const ServiceRapideIcon: React.FC = () => <IconWrapper className="w-12 h-12 bg-white/20"><svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-current" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg></IconWrapper>;
 const ServiceDeNuitIcon: React.FC = () => <IconWrapper className="w-12 h-12 bg-white/20"><svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /><path d="M16 10.5c-.5 0-1 .5-1 1s.5 1 1 1 .5-1 1-1" /><path d="M18 13c0 .5-.5 1-1 1s-1-.5-1-1" /></svg></IconWrapper>;
@@ -201,7 +199,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [showScanner, setShowScanner] = useState(false);
-  const [showHelpModal, setShowHelpModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
   // --- CONVERSATIONAL ASSISTANT STATES ---
@@ -516,7 +513,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
       
         <header className="pt-5">
             <div className="flex justify-between items-center px-4 h-20">
-                <div className="flex items-center gap-3 relative flex-1">
+                <div className="flex items-center gap-1.5 relative flex-1">
                     {user.role === 'Client' ? (
                         <div className="flex items-center gap-2">
                             <button 
@@ -524,13 +521,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
                                 className="bg-white text-orange-600 px-4 rounded-xl shadow-md transform active:scale-95 transition-all flex items-center justify-center h-10 border-2 border-blue-600 relative overflow-hidden"
                             >
                                 <span className="text-[11px] font-black uppercase whitespace-nowrap">Inscription des entreprises</span>
-                            </button>
-                            <button 
-                                onClick={() => setShowHelpModal(true)}
-                                className="bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg active:scale-90 transition-transform border-2 border-green-500"
-                                title="Aide"
-                            >
-                                <HelpIcon />
                             </button>
                         </div>
                     ) : (
@@ -571,10 +561,24 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
                     )}
                 </div>
 
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-1.5">
                     <div className={`text-lg font-bold ${isClient ? 'text-slate-900' : 'text-white'} font-mono tracking-wider select-none`}>
                         {formattedTime}
                     </div>
+                    {!isAdmin(user) && (
+                        <button 
+                            onClick={() => handleMainServiceClick('notifications')}
+                            className="relative active:scale-90 transition-transform focus:outline-none"
+                            aria-label="Notifications"
+                        >
+                            <NotificationIcon />
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold px-1 rounded-full border border-white shadow-sm">
+                                    {unreadCount}
+                                </span>
+                            )}
+                        </button>
+                    )}
                     {isAdmin(user) ? (
                         <button 
                             onClick={() => onNavigate('admin_sms')}
@@ -585,24 +589,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
                         </button>
                     ) : (
                         <IvoryCoastFlagIcon className="h-6 w-9 rounded-sm shadow-sm" />
-                    )}
-                    
-                    <button onClick={onOpenFavorites} className="focus:outline-none">
-                        <HeartIcon className={`h-6 w-6 ${isClient ? 'text-slate-900' : 'text-white'} animate-flash-red-white`} />
-                    </button>
-
-                    {!isAdmin(user) && (
-                        <button 
-                            onClick={() => setActiveTab(Tab.UserChat)}
-                            className="relative p-2 rounded-full bg-blue-600 hover:bg-blue-700 transition-colors active:scale-90 shadow-md"
-                        >
-                            <ChatBubbleIcon />
-                            {unreadChatCount > 0 && (
-                                <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full border-2 border-slate-900 flex items-center justify-center px-1 animate-pulse">
-                                    <span className="text-[9px] font-black text-white leading-none">{unreadChatCount}</span>
-                                </div>
-                            )}
-                        </button>
                     )}
                 </div>
             </div>
@@ -642,12 +628,22 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
                 <p className="text-sm font-medium">{user.city} <span className="text-green-400 font-bold animate-pulse ml-2">• EN LIGNE</span></p>
             </div>
             <div className="flex items-start space-x-3">
-                <a href="https://wa.me/2250705052632" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center space-y-1 group">
-                    <div className="bg-green-500 p-3 rounded-full shadow-lg transform group-hover:scale-110 transition-transform">
-                        <WhatsAppIcon />
-                    </div>
-                    <span className={`text-[8px] font-black uppercase ${isClient ? 'text-slate-600' : 'text-white'}`}>WhatsApp</span>
-                </a>
+                {!isAdmin(user) && (
+                    <button 
+                        onClick={() => setActiveTab(Tab.UserChat)} 
+                        className="flex flex-col items-center space-y-1 group"
+                    >
+                        <div className="bg-blue-600 p-3 rounded-full shadow-lg transform group-hover:scale-110 transition-transform relative">
+                            <ChatBubbleIcon />
+                            {unreadChatCount > 0 && (
+                                <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full border-2 border-slate-900 flex items-center justify-center px-1 animate-pulse">
+                                    <span className="text-[9px] font-black text-white leading-none">{unreadChatCount}</span>
+                                </div>
+                            )}
+                        </div>
+                        <span className={`text-[8px] font-black uppercase ${isClient ? 'text-slate-600' : 'text-white'}`}>Messages</span>
+                    </button>
+                )}
 
                 {isClient && (
                     <a href="https://www.tiktok.com/@filant225" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center space-y-1 group">
@@ -682,19 +678,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
                     </button>
                 )}
 
-                {isProRole && !isAdmin(user) && (
-                    <button 
-                        onClick={() => handleMainServiceClick('notifications')}
-                        className="bg-white text-orange-600 px-4 rounded-2xl shadow-lg transform active:scale-95 transition-all flex items-center justify-between h-[45px] border border-orange-100 min-w-[160px] relative overflow-hidden"
-                    >
-                        <span className="text-[10px] font-black uppercase whitespace-nowrap">Notification des services</span>
-                        <div className="ml-3 flex items-center justify-center bg-orange-500 text-white w-6 h-6 rounded-full text-[10px] font-black shadow-inner border border-white/20">
-                            {unreadCount}
-                        </div>
-                    </button>
-                )}
-
-                {isGroupA && !isClient && !isAdmin(user) && (
+                {!isClient && !isAdmin(user) && (
                     <button onClick={() => onNavigate('location_map')} className="flex flex-col items-center space-y-1 group">
                         <div className="bg-indigo-600 p-3 rounded-full shadow-lg transform group-hover:scale-110 transition-transform">
                             <MapPinIcon />
@@ -981,34 +965,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
       </div>
 
       {showScanner && <ScannerOverlay onScan={handleScanResult} onClose={() => setShowScanner(false)} />}
-
-      {showHelpModal && (
-          <div className="fixed inset-0 z-[1000] bg-black/80 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
-              <div className="bg-white text-black rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl relative animate-in zoom-in-95 duration-300">
-                  <button onClick={() => setShowHelpModal(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-black">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <HelpIcon />
-                    </div>
-                    <h3 className="text-xl font-black uppercase tracking-widest mb-6 border-b border-orange-500/20 pb-2">À PROPOS DE FILANT°225</h3>
-                    <div className="space-y-4 text-sm font-bold text-gray-600 leading-relaxed">
-                        <p>
-                            Recherche rapide de solutions fiables et sécurisées en Côte d'Ivoire.
-                        </p>
-                        <p>
-                            Réseau étendu de travailleurs, propriétaires et agences partenaires.
-                        </p>
-                        <p className="pt-4 border-t border-gray-100 text-[10px] uppercase font-black tracking-widest opacity-60">
-                            © 2024 FILANT MAËL GROUP
-                        </p>
-                    </div>
-                  </div>
-                  <button onClick={() => setShowHelpModal(false)} className="w-full mt-8 bg-black text-white font-black py-4 rounded-2xl uppercase tracking-widest text-xs active:scale-95 transition-transform shadow-lg">Fermer</button>
-              </div>
-          </div>
-      )}
 
       <style>{`
         .text-outline-white {

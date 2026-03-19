@@ -51,6 +51,7 @@ const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
 interface AdminDashboardScreenProps {
   onBack: () => void;
+  onLogout?: () => void;
   onSelectUser?: (log: ConnectionLog) => void;
   onOpenChat?: (user: User) => void;
   initialView?: 'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms' | 'wave-payments' | 'assistant-requests';
@@ -113,7 +114,7 @@ const UserListItem: React.FC<{ user: User; onOpenChat?: (user: User) => void }> 
     );
 };
 
-const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onSelectUser, onOpenChat, initialView = 'grid' }) => {
+const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onLogout, onSelectUser, onOpenChat, initialView = 'grid' }) => {
   const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms' | 'firestore-users' | 'wave-payments' | 'assistant-requests'>(initialView);
   const [firestoreUsers, setFirestoreUsers] = useState<User[]>([]);
   const [wavePayments, setWavePayments] = useState<any[]>([]);
@@ -1123,9 +1124,19 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onS
               <header className="pt-5">
                   <div className="flex justify-between items-center px-4 h-20">
                       <div className="flex items-center gap-3">
-                          <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-white/10 text-white transition-colors active:scale-90">
-                              <BackIcon />
-                          </button>
+                          {view === 'grid' ? (
+                              onLogout && (
+                                  <button onClick={onLogout} className="p-2 -ml-2 rounded-full hover:bg-red-500/10 text-red-500 transition-colors active:scale-90" title="Déconnexion">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                      </svg>
+                                  </button>
+                              )
+                          ) : (
+                              <button onClick={() => setView('grid')} className="p-2 -ml-2 rounded-full hover:bg-white/10 text-white transition-colors active:scale-90">
+                                  <BackIcon />
+                              </button>
+                          )}
                           <div className="flex items-center gap-2">
                                <img src="https://i.supaimg.com/5cd01a23-e101-4415-9e28-ff02a617cd11.png" alt="Logo" className="w-12 h-12 object-contain" referrerPolicy="no-referrer" />
                                <h2 className="text-xl font-black text-white uppercase tracking-tighter">Administration</h2>

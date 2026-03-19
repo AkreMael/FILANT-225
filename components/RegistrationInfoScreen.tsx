@@ -70,62 +70,48 @@ const RegistrationInfoScreen: React.FC<RegistrationInfoScreenProps> = ({ type, o
     const isCompany = type === 'Entreprise';
 
     return (
-        <div className="min-h-full w-full bg-white flex flex-col font-sans animate-in slide-in-from-bottom-full duration-1000 ease-out">
-            {/* Header Image - Only shown for Companies */}
-            {isCompany ? (
-                <div className="relative w-full h-[35vh] flex-shrink-0">
-                    <img 
-                        src={content.image} 
-                        alt={type} 
-                        className="w-full h-full object-cover" 
-                        referrerPolicy="no-referrer"
-                    />
-                    <button 
-                        onClick={onBack} 
-                        className="absolute top-4 left-4 p-2 bg-white/40 backdrop-blur-md rounded-full text-black shadow-lg"
-                    >
-                        <BackIcon />
-                    </button>
-                </div>
-            ) : (
-                /* Simple navigation header when image is removed */
-                <header className="p-4 flex items-center bg-white border-b border-gray-100 flex-shrink-0">
-                    <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-black transition-colors">
-                        <BackIcon />
-                    </button>
-                    <span className="ml-2 text-xs font-bold text-gray-400 uppercase tracking-widest">Retour</span>
-                </header>
-            )}
-
-            {/* Content Area */}
-            <main className={`flex-1 ${isCompany ? '-mt-6' : 'mt-2'} bg-white rounded-t-[2.5rem] p-6 shadow-2xl relative z-10 flex flex-col overflow-y-auto scrollbar-hide`}>
+        <div className="min-h-full w-full bg-orange-500 flex flex-col font-sans animate-in slide-in-from-bottom-full duration-1000 ease-out overflow-hidden">
+            {/* Header Branding */}
+            <header className="p-6 flex flex-col items-center flex-shrink-0">
+                <button onClick={onBack} className="self-start p-2 bg-white/20 backdrop-blur-md rounded-full text-white active:scale-90 mb-4">
+                    <BackIcon />
+                </button>
                 
-                {/* Title with Logo next to it */}
-                <div className="flex items-center justify-center gap-3 mb-8">
+                <div className="flex flex-col items-center gap-2 mb-4">
                     <img 
                         src={LOGO_URL} 
-                        alt="Logo FILANT" 
-                        className="w-10 h-10 object-contain flex-shrink-0"
+                        alt="Logo" 
+                        className="w-20 h-20 object-contain drop-shadow-xl"
                         referrerPolicy="no-referrer"
                     />
-                    <h1 className="text-orange-500 font-black text-xl sm:text-2xl uppercase tracking-tight text-center leading-tight">
+                    <span className="text-white font-black text-2xl tracking-tighter uppercase drop-shadow-lg">FILANT°225</span>
+                </div>
+            </header>
+
+            {/* Content Area */}
+            <main className="flex-1 bg-white rounded-t-[3rem] p-8 shadow-2xl relative z-10 flex flex-col overflow-y-auto scrollbar-hide">
+                
+                {/* Title */}
+                <div className="flex flex-col items-center mb-8">
+                    <h1 className="text-orange-500 font-black text-2xl uppercase tracking-tight text-center leading-tight">
                         {content.title}
                     </h1>
+                    <div className="h-1.5 w-20 bg-orange-500 mt-2 rounded-full"></div>
                 </div>
 
                 <div className="space-y-6 flex-1">
-                    <p className="text-gray-800 font-bold leading-relaxed">
+                    <p className="text-gray-800 font-bold leading-relaxed text-center">
                         {content.text}
                     </p>
 
                     <div className="space-y-4">
-                        <p className="font-black text-xs uppercase tracking-widest text-gray-400">
+                        <p className="font-black text-[11px] uppercase tracking-widest text-gray-400 text-center">
                             En vous inscrivant, vous bénéficiez :
                         </p>
-                        <div className="space-y-3">
+                        <div className="space-y-3 bg-gray-50 p-6 rounded-3xl border border-gray-100">
                             {content.points.map((point, i) => (
                                 <div key={i} className="flex items-start gap-3">
-                                    <span className="text-blue-600 font-bold mt-0.5">✔️</span>
+                                    <span className="text-green-500 font-bold mt-0.5">✓</span>
                                     <span className="text-gray-700 font-bold text-sm leading-tight">{point}</span>
                                 </div>
                             ))}
@@ -134,37 +120,39 @@ const RegistrationInfoScreen: React.FC<RegistrationInfoScreenProps> = ({ type, o
 
                     {/* Bloc Carte Professionnelle Optionnel */}
                     {content.showCartePro && (
-                        <div className="bg-blue-50 rounded-2xl p-5 border border-blue-100 shadow-sm space-y-2">
-                            <h3 className="text-blue-800 font-black text-sm uppercase flex items-center gap-2">
+                        <div className="bg-orange-50 rounded-3xl p-6 border border-orange-100 shadow-sm space-y-3">
+                            <h3 className="text-orange-800 font-black text-sm uppercase flex items-center gap-2">
                                 🔐 Carte professionnelle FILANT°225
                             </h3>
                             <p className="text-gray-700 text-xs font-bold leading-relaxed">
                                 Après l’inscription, chaque utilisateur doit récupérer la carte professionnelle FILANT°225, indispensable pour valider et sécuriser son compte.
                             </p>
-                            <p className="text-orange-600 font-black text-sm">
-                                👉 Coût de la carte : 7 100 F CFA
-                            </p>
+                            <div className="bg-white/50 p-3 rounded-xl inline-block">
+                                <p className="text-orange-600 font-black text-sm">
+                                    👉 Coût de la carte : 7 100 F CFA
+                                </p>
+                            </div>
                             <p className="text-gray-500 text-[10px] italic leading-tight">
                                 Cette carte renforce la confiance des clients et confirme le statut professionnel sur la plateforme.
                             </p>
                         </div>
                     )}
 
-                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                        <p className="text-xs text-gray-500 italic leading-relaxed">
+                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 text-center">
+                        <p className="text-[11px] text-gray-500 italic leading-relaxed">
                             Nous restons disponibles pour vous accompagner dans votre démarche de succès sur FILANT°225.
                         </p>
                     </div>
                 </div>
 
                 {/* Final Button */}
-                <div className="pt-6 pb-4 flex justify-center">
+                <div className="pt-8 pb-4 flex justify-center">
                     <button 
                         onClick={onNext}
-                        className="w-full max-w-xs bg-[#E31A32] hover:bg-red-700 text-white font-black py-3 rounded-xl shadow-lg transition-all transform active:scale-95 flex flex-col items-center justify-center gap-0"
+                        className="w-full max-w-xs bg-black hover:bg-slate-900 text-white font-black py-5 rounded-3xl shadow-2xl transition-all transform active:scale-95 flex flex-col items-center justify-center gap-0 uppercase tracking-widest"
                     >
-                        <span className="text-base uppercase leading-tight">Inscrivez-vous</span>
-                        <span className="text-[11px] opacity-90 leading-tight">310 F CFA</span>
+                        <span className="text-sm leading-tight">Inscrivez-vous</span>
+                        <span className="text-[10px] opacity-70 leading-tight">310 F CFA</span>
                     </button>
                 </div>
             </main>
