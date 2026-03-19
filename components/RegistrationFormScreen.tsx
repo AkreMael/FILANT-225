@@ -61,7 +61,7 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
                     radioOpts: ["Vente de terrains", "Location d'appartements", "Gestion immobilière", "Autres"],
                     photoLabel: "Logo ou image de l'agence *",
                     showDescription: true,
-                    price: 510
+                    price: 310
                 };
             case 'Entreprise':
                 return {
@@ -74,7 +74,7 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
                     radioOpts: ["Services", "Commerce", "Industrie", "Autres"],
                     photoLabel: "Logo ou image de l'entreprise *",
                     showDescription: true,
-                    price: 1010
+                    price: 310
                 };
             default: 
                 return {
@@ -87,7 +87,7 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
                     placeholderVille: "🏕️",
                     photoLabel: "Photo de profil professionnelle *",
                     showDescription: true,
-                    price: 210
+                    price: 310
                 };
         }
     }, [registrationType]);
@@ -156,53 +156,27 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
         setError(null);
         
         try {
-            if (isWorker) {
-                // Save to worker_registrations collection
-                await databaseService.saveWorkerRegistration({
-                    ...formData,
-                    jobTitle: formData.titre,
-                    fullName: formData.nomPrenom,
-                    city: formData.ville,
-                    phone: formData.telephone,
-                    whatsapp: formData.whatsapp,
-                    email: formData.gmail,
-                    description: formData.description,
-                    photo: formData.photo,
-                    typeInscription: registrationType,
-                    price: config.price
-                });
-            } else {
-                // Save to recruitments collection
-                await databaseService.saveRecruitment({
-                    ...formData,
-                    typeInscription: registrationType,
-                    price: config.price,
-                    createdAt: new Date().toISOString()
-                });
-            }
-
-            // Keep the old script call as backup
-            try {
-                const queryParams = new URLSearchParams();
-                Object.entries(formData).forEach(([key, value]) => {
-                    queryParams.append(key, value as string);
-                });
-                queryParams.append('typeInscription', registrationType);
-                await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: queryParams.toString()
-                });
-            } catch (e) {
-                console.warn("Google Apps Script backup failed", e);
-            }
+            // Save to Firestore and Storage using the centralized service
+            await databaseService.saveRegistration(registrationType, {
+                ...formData,
+                jobTitle: formData.titre,
+                fullName: formData.nomPrenom,
+                city: formData.ville,
+                phone: formData.telephone,
+                whatsapp: formData.whatsapp,
+                email: formData.gmail,
+                description: formData.description,
+                typeInscription: registrationType,
+                price: config.price
+            });
 
             // Trigger payment view
             const paymentEvent = new CustomEvent('trigger-payment-view', {
                 detail: {
-                    amount: config.price,
-                    description: `Inscription ${registrationType} - ${formData.nomPrenom || formData.titre}`,
+                    amount: config.price.toString(),
+                    title: `Inscription ${registrationType}`,
+                    paymentType: 'Inscription',
+                    waveLink: `https://pay.wave.com/m/M_ci_jwxwatdcoKS8/c/ci/?amount=${config.price}`,
                     onSuccess: () => {
                         setIsSuccess(true);
                     }
@@ -245,12 +219,10 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
                         <CheckIcon />
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900 mb-4">Demande Transmise !</h2>
-                    <p className="text-gray-700 leading-relaxed mb-4 text-sm">
-                        L'inscription de <span className="font-bold text-slate-900">{formData.nomPrenom || formData.titre}</span> a bien été enregistrée.<br/>
-                        Cliquez ci-dessous pour finaliser la procédure avec notre assistant.
-                    </p>
-                    <p className="text-gray-700 leading-relaxed mb-8 text-sm">
-                        Pour valider votre mise en ligne, un paiement de <span className="font-bold text-red-600">{config.price} FCFA</span> est requis.
+                    <p className="text-gray-700 leading-relaxed mb-6 text-sm">
+                        Votre inscription est prise en charge. Vous êtes enregistré avec succès. <br/><br/>
+                        Pour valider votre mise en ligne, un paiement de <span className="font-bold text-red-600">{config.price} FCFA</span> est requis. <br/><br/>
+                        Cliquez sur le bouton ci-dessous pour retourner sur l'application et effectuer votre paiement.
                     </p>
                     <button 
                         onClick={handleAssistantRedirect} 
@@ -438,8 +410,7 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
                                     <button type="submit" disabled={isSubmitting} className="w-full bg-black hover:bg-slate-900 text-white font-black py-5 rounded-3xl shadow-2xl transition-all transform active:scale-95 disabled:opacity-80 uppercase tracking-widest text-sm min-h-[60px] flex items-center justify-center gap-3">
                                         {isSubmitting ? <Spinner /> : (
                                             <>
-                                                <span>Confirmer l'inscription</span>
-                                                <span className="bg-white/20 px-2 py-1 rounded-lg text-[10px]">{config.price} FCFA</span>
+                                                <span>Confirmer l'inscription-{config.price}.CFA🚀</span>
                                             </>
                                         )}
                                     </button>

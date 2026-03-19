@@ -1,7 +1,8 @@
 import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification } from '../types';
-import { db, auth, rtdb } from '../firebase';
+import { db, auth, rtdb, storage } from '../firebase';
 import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc, getDocFromServer } from 'firebase/firestore';
-import { ref, push, set, serverTimestamp as rtdbTimestamp } from 'firebase/database';
+import { ref as rtdbRef, push, set, serverTimestamp as rtdbTimestamp } from 'firebase/database';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // --- ENUMS & INTERFACES FOR ERROR HANDLING ---
 enum OperationType {
@@ -382,7 +383,7 @@ export const databaseService = {
         const { get, child } = await import('firebase/database');
         const sanitizedUserName = (user.name || 'Utilisateur').replace(/[.#$[\]/]/g, '_');
         const userKey = `${sanitizedUserName}_${user.phone}`;
-        const dbRef = ref(rtdb);
+        const dbRef = rtdbRef(rtdb);
         const snapshot = await get(child(dbRef, `scanned_contacts/${userKey}`));
         
         if (snapshot.exists()) {
@@ -637,28 +638,77 @@ export const databaseService = {
     }
   },
 
-  saveWorkerRegistration: async (data: any) => {
+  uploadFile: async (file: File | Blob | string, path: string): Promise<string> => {
+    try {
+      let blob: Blob;
+      if (typeof file === 'string') {
+        // Handle base64 string
+        const response = await fetch(file);
+        blob = await response.blob();
+      } else {
+        blob = file;
+      }
+
+      const fileRef = storageRef(storage, path);
+      await uploadBytes(fileRef, blob);
+      const downloadURL = await getDownloadURL(fileRef);
+      return downloadURL;
+    } catch (e) {
+      console.error("Error uploading file:", e);
+      throw e;
+    }
+  },
+
+  saveRegistration: async (type: string, data: any) => {
     try {
       if (!auth.currentUser) {
         const { signInAnonymously } = await import('firebase/auth');
         await signInAnonymously(auth);
       }
 
-      const registrationRef = collection(db, 'worker_registrations');
+      const collectionMap: Record<string, string> = {
+        'Travailleur': 'worker_registrations',
+        'Propriétaire d’équipement': 'equipment_registrations',
+        'Agence immobilière': 'agency_registrations',
+        'Entreprise': 'company_registrations'
+      };
+
+      const collectionName = collectionMap[type] || 'other_registrations';
+      
+      // Handle photo uploads if they are base64
+      const processedData = { ...data };
+      const timestamp = Date.now();
+      const userId = auth.currentUser?.uid || 'anonymous';
+
+      if (data.photo && typeof data.photo === 'string' && data.photo.startsWith('data:')) {
+        processedData.photo = await databaseService.uploadFile(data.photo, `registrations/${collectionName}/${userId}_${timestamp}_1.jpg`);
+      }
+      if (data.photo2 && typeof data.photo2 === 'string' && data.photo2.startsWith('data:')) {
+        processedData.photo2 = await databaseService.uploadFile(data.photo2, `registrations/${collectionName}/${userId}_${timestamp}_2.jpg`);
+      }
+      if (data.photo3 && typeof data.photo3 === 'string' && data.photo3.startsWith('data:')) {
+        processedData.photo3 = await databaseService.uploadFile(data.photo3, `registrations/${collectionName}/${userId}_${timestamp}_3.jpg`);
+      }
+
+      const registrationRef = collection(db, collectionName);
       const docRef = await addDoc(registrationRef, {
-        ...data,
-        userId: auth.currentUser?.uid || 'anonymous',
+        ...processedData,
+        userId,
         status: 'pending',
         createdAt: serverTimestamp()
       });
       
-      console.log("Worker registration saved to Firestore with ID:", docRef.id);
+      console.log(`${type} registration saved to Firestore with ID:`, docRef.id);
       return { success: true, id: docRef.id };
     } catch (e) {
-      console.error("Failed to save worker registration", e);
-      handleFirestoreError(e, OperationType.WRITE, 'worker_registrations');
+      console.error(`Failed to save ${type} registration`, e);
+      handleFirestoreError(e, OperationType.WRITE, 'registrations');
       return { success: false, error: e };
     }
+  },
+
+  saveWorkerRegistration: async (data: any) => {
+    return databaseService.saveRegistration('Travailleur', data);
   },
 
   getFavorites: (phone: string): FavoriteRequest[] => {
@@ -714,7 +764,7 @@ export const databaseService = {
           try {
               const sanitizedUserName = (user.name || 'Utilisateur').replace(/[.#$[\]/]/g, '_');
               const userKey = `${sanitizedUserName}_${user.phone}`;
-              const contactsRef = ref(rtdb, `scanned_contacts/${userKey}`);
+              const contactsRef = rtdbRef(rtdb, `scanned_contacts/${userKey}`);
               
               // Create an object where keys are "Nom_Numero"
               const contactsObject: Record<string, any> = {};
@@ -932,7 +982,7 @@ export const databaseService = {
       const sanitizedName = (userName || 'Utilisateur').replace(/[.#$[\]/]/g, '_');
       const userKey = `${sanitizedName}_${userId}`;
       // On crée un sous-dossier par utilisateur pour mieux s'y retrouver
-      const requestsRef = ref(rtdb, `assistant_requests/${userKey}`);
+      const requestsRef = rtdbRef(rtdb, `assistant_requests/${userKey}`);
       const newRequestRef = push(requestsRef);
       await set(newRequestRef, {
         ...requestData,
@@ -950,7 +1000,7 @@ export const databaseService = {
       const sanitizedName = (userName || 'Utilisateur').replace(/[.#$[\]/]/g, '_');
       const userKey = `${sanitizedName}_${userId}`;
       // On crée un sous-dossier par utilisateur pour mieux s'y retrouver
-      const paymentsRef = ref(rtdb, `wave_payments/${userKey}`);
+      const paymentsRef = rtdbRef(rtdb, `wave_payments/${userKey}`);
       const newPaymentRef = push(paymentsRef);
       await set(newPaymentRef, {
         ...paymentData,
@@ -965,7 +1015,7 @@ export const databaseService = {
   getAssistantRequestsFromRTDB: async (): Promise<any[]> => {
     try {
       const { get } = await import('firebase/database');
-      const requestsRef = ref(rtdb, 'assistant_requests');
+      const requestsRef = rtdbRef(rtdb, 'assistant_requests');
       const snapshot = await get(requestsRef);
       if (snapshot.exists()) {
         const allRequests: any[] = [];
@@ -992,7 +1042,7 @@ export const databaseService = {
   getWavePaymentsFromRTDB: async (): Promise<any[]> => {
     try {
       const { get } = await import('firebase/database');
-      const paymentsRef = ref(rtdb, 'wave_payments');
+      const paymentsRef = rtdbRef(rtdb, 'wave_payments');
       const snapshot = await get(paymentsRef);
       if (snapshot.exists()) {
         const allPayments: any[] = [];
@@ -1019,7 +1069,7 @@ export const databaseService = {
   deleteAssistantRequest: async (userKey: string, reqId: string) => {
     try {
       const { remove } = await import('firebase/database');
-      const reqRef = ref(rtdb, `assistant_requests/${userKey}/${reqId}`);
+      const reqRef = rtdbRef(rtdb, `assistant_requests/${userKey}/${reqId}`);
       await remove(reqRef);
       console.log("Assistant request deleted:", reqId);
     } catch (e) {
@@ -1030,7 +1080,7 @@ export const databaseService = {
   deleteWavePayment: async (userKey: string, payId: string) => {
     try {
       const { remove } = await import('firebase/database');
-      const payRef = ref(rtdb, `wave_payments/${userKey}/${payId}`);
+      const payRef = rtdbRef(rtdb, `wave_payments/${userKey}/${payId}`);
       await remove(payRef);
       console.log("Wave payment deleted:", payId);
     } catch (e) {
@@ -1041,7 +1091,7 @@ export const databaseService = {
   // --- ADMIN CHAT (PRIVATE) ---
   async getAdminChatHistory(userId: string): Promise<any[]> {
     const { get } = await import('firebase/database');
-    const chatRef = ref(rtdb, `Chats/${userId}/messages`);
+    const chatRef = rtdbRef(rtdb, `Chats/${userId}/messages`);
     const snapshot = await get(chatRef);
     if (snapshot.exists()) {
       const data = snapshot.val();
@@ -1052,7 +1102,7 @@ export const databaseService = {
 
   async saveAdminChatMessage(userId: string, message: any) {
     const { push, set } = await import('firebase/database');
-    const chatRef = ref(rtdb, `Chats/${userId}/messages`);
+    const chatRef = rtdbRef(rtdb, `Chats/${userId}/messages`);
     const newMessageRef = push(chatRef);
     const msgData = {
       ...message,
@@ -1071,8 +1121,8 @@ export const databaseService = {
   },
 
   async markAdminMessagesAsRead(userId: string, senderToMark: 'admin' | 'user') {
-    const { get, ref, update } = await import('firebase/database');
-    const chatRef = ref(rtdb, `Chats/${userId}/messages`);
+    const { get, update } = await import('firebase/database');
+    const chatRef = rtdbRef(rtdb, `Chats/${userId}/messages`);
     const snapshot = await get(chatRef);
     if (snapshot.exists()) {
       const data = snapshot.val();
@@ -1090,7 +1140,7 @@ export const databaseService = {
 
   async onAdminChatUpdate(userId: string, callback: (messages: any[]) => void) {
     const { onValue } = await import('firebase/database');
-    const chatRef = ref(rtdb, `Chats/${userId}/messages`);
+    const chatRef = rtdbRef(rtdb, `Chats/${userId}/messages`);
     return onValue(chatRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
@@ -1104,7 +1154,7 @@ export const databaseService = {
 
   async onUnreadAdminChatCount(userId: string, senderToWatch: 'admin' | 'user', callback: (count: number) => void) {
     const { onValue } = await import('firebase/database');
-    const chatRef = ref(rtdb, `Chats/${userId}/messages`);
+    const chatRef = rtdbRef(rtdb, `Chats/${userId}/messages`);
     return onValue(chatRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();

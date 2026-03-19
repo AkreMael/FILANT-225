@@ -71,6 +71,7 @@ interface PaymentConfirmationContext {
   amount: string;
   waveLink: string;
   paymentType: string;
+  onSuccess?: () => void;
 }
 
 interface PopupState {

@@ -11,6 +11,7 @@ interface PaymentConfirmationScreenProps {
   user: User;
   waveLink: string;
   onBack: () => void;
+  onSuccess?: () => void;
 }
 
 const Spinner = () => (
@@ -82,7 +83,7 @@ const CardIconArea = ({ amount, isManual, onValueChange, onValidate, isValidated
     </div>
 );
 
-const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({ title, amount: initialAmount, paymentType, user, waveLink, onBack }) => {
+const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({ title, amount: initialAmount, paymentType, user, waveLink, onBack, onSuccess }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentAmount, setCurrentAmount] = useState(initialAmount);
   const [isManualMode] = useState(initialAmount === "custom");
@@ -132,6 +133,10 @@ const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({ t
           window.open(finalLink, '_blank');
           setIsProcessing(false);
           
+          if (onSuccess) {
+              onSuccess();
+          }
+
           if (title.includes("Mise en Relation") || title.includes("Carte FILANT")) {
               // On recharge pour refléter le changement de statut
               window.location.reload();
