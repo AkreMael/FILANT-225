@@ -1,7 +1,7 @@
 import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification, PrivateRegistration } from '../types';
 import { db, auth, rtdb, storage } from '../firebase';
 import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc, getDocFromServer, onSnapshot } from 'firebase/firestore';
-import { ref as rtdbRef, push, set, serverTimestamp as rtdbTimestamp } from 'firebase/database';
+import { ref as rtdbRef, push, set, serverTimestamp as rtdbTimestamp, get, update, onValue } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
 
 // --- ENUMS & INTERFACES FOR ERROR HANDLING ---
@@ -1079,7 +1079,8 @@ export const databaseService = {
       const querySnapshot = await getDocs(q);
       const users: User[] = [];
       querySnapshot.forEach((doc) => {
-        users.push(doc.data() as User);
+        const data = doc.data() as User;
+        users.push({ ...data, id: doc.id });
       });
       return users;
     } catch (e) {
@@ -1217,20 +1218,32 @@ export const databaseService = {
 
   async saveAdminChatMessage(userId: string, message: any) {
     try {
-      const chatRef = rtdbRef(rtdb, `messages/${userId}/messages`);
+      const sanitizedUserId = userId.replace(/[.#$[\]/]/g, '_');
+      const chatRef = rtdbRef(rtdb, `messages/${sanitizedUserId}`);
       const newMessageRef = push(chatRef);
-      const msgData = {
-        ...message,
-        id: newMessageRef.key,
-        timestamp: Date.now(),
-        read: false,
-        userId: userId
-      };
+      const messageId = newMessageRef.key;
+      
+      const msgData = typeof message === 'string' 
+        ? {
+            id: messageId,
+            text: message,
+            sender: 'user', // Default to user if only string provided
+            timestamp: Date.now(),
+            read: false,
+            userId: sanitizedUserId
+          }
+        : {
+            ...message,
+            id: messageId,
+            timestamp: Date.now(),
+            read: false,
+            userId: sanitizedUserId
+          };
       
       // Use Promise.all to run both writes in parallel and handle errors
       await Promise.all([
         set(newMessageRef, msgData),
-        setDoc(doc(db, 'messages', userId, 'messages', newMessageRef.key!), {
+        setDoc(doc(db, 'messages', sanitizedUserId, 'history', messageId!), {
           ...msgData,
           timestamp: serverTimestamp()
         })
@@ -1240,32 +1253,36 @@ export const databaseService = {
       return true;
     } catch (error) {
       console.error("Error saving admin chat message:", error);
-      handleFirestoreError(error, OperationType.WRITE, `messages/${userId}/messages`);
+      handleFirestoreError(error, OperationType.WRITE, `messages/${userId}`);
       return false;
     }
   },
 
   async markAdminMessagesAsRead(userId: string, senderToMark: 'admin' | 'user') {
-    const { get, update } = await import('firebase/database');
-    const chatRef = rtdbRef(rtdb, `messages/${userId}/messages`);
-    const snapshot = await get(chatRef);
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const updates: any = {};
-      Object.keys(data).forEach(key => {
-        if (data[key].sender === senderToMark && !data[key].read) {
-          updates[`${key}/read`] = true;
+    try {
+      const sanitizedUserId = userId.replace(/[.#$[\]/]/g, '_');
+      const chatRef = rtdbRef(rtdb, `messages/${sanitizedUserId}`);
+      const snapshot = await get(chatRef);
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const updates: any = {};
+        Object.keys(data).forEach(key => {
+          if (data[key].sender === senderToMark && !data[key].read) {
+            updates[`${key}/read`] = true;
+          }
+        });
+        if (Object.keys(updates).length > 0) {
+          await update(chatRef, updates);
         }
-      });
-      if (Object.keys(updates).length > 0) {
-        await update(chatRef, updates);
       }
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
     }
   },
 
-  async onAdminChatUpdate(userId: string, callback: (messages: any[]) => void) {
-    const { onValue } = await import('firebase/database');
-    const chatRef = rtdbRef(rtdb, `messages/${userId}/messages`);
+  onAdminChatUpdate(userId: string, callback: (messages: any[]) => void) {
+    const sanitizedUserId = userId.replace(/[.#$[\]/]/g, '_');
+    const chatRef = rtdbRef(rtdb, `messages/${sanitizedUserId}`);
     return onValue(chatRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
@@ -1274,12 +1291,14 @@ export const databaseService = {
       } else {
         callback([]);
       }
+    }, (error) => {
+      console.error("RTDB Listener Error:", error);
     });
   },
 
-  async onUnreadAdminChatCount(userId: string, senderToWatch: 'admin' | 'user', callback: (count: number) => void) {
-    const { onValue } = await import('firebase/database');
-    const chatRef = rtdbRef(rtdb, `messages/${userId}/messages`);
+  onUnreadAdminChatCount(userId: string, senderToWatch: 'admin' | 'user', callback: (count: number) => void) {
+    const sanitizedUserId = userId.replace(/[.#$[\]/]/g, '_');
+    const chatRef = rtdbRef(rtdb, `messages/${sanitizedUserId}`);
     return onValue(chatRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
@@ -1288,6 +1307,8 @@ export const databaseService = {
       } else {
         callback(0);
       }
+    }, (error) => {
+      console.error("RTDB Unread Count Error:", error);
     });
   },
 

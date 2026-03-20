@@ -43,7 +43,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
     
     const setupChat = async () => {
       setIsLoading(true);
-      unsubscribe = await databaseService.onAdminChatUpdate(chatUserId, (msgs) => {
+      unsubscribe = databaseService.onAdminChatUpdate(chatUserId, (msgs) => {
         setMessages(msgs);
         setIsLoading(false);
         
@@ -56,7 +56,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
     setupChat();
 
     return () => {
-      if (unsubscribe && typeof unsubscribe === 'function') {
+      if (unsubscribe) {
         unsubscribe();
       }
     };
@@ -66,8 +66,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = async (textOverride?: string) => {
-    const textToSend = textOverride || inputText.trim();
+  const handleSendMessage = async (textOverride?: any) => {
+    const textToSend = (typeof textOverride === 'string' ? textOverride : inputText).trim();
     if (!textToSend) return;
 
     const newMessage: ChatMessage = {
@@ -77,11 +77,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
     };
 
     try {
-      if (!textOverride) setInputText('');
+      if (typeof textOverride !== 'string') setInputText('');
       const success = await databaseService.saveAdminChatMessage(chatUserId, newMessage);
       if (!success) {
         // Optionnel: remettre le texte si l'envoi a échoué
-        if (!textOverride) setInputText(textToSend);
+        if (typeof textOverride !== 'string') setInputText(textToSend);
       }
     } catch (error) {
       console.error("Error in handleSendMessage:", error);

@@ -64,11 +64,11 @@ const UserListItem: React.FC<{ user: User; onOpenChat?: (user: User) => void }> 
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
-        const chatUserId = `${user.name}_${user.phone.replace(/\D/g, '')}`;
+        const chatUserId = user.id || `${user.name}_${user.phone.replace(/\D/g, '')}`;
         let unsubscribe: any;
         
-        const setupListener = async () => {
-            unsubscribe = await databaseService.onUnreadAdminChatCount(chatUserId, 'user', (count) => {
+        const setupListener = () => {
+            unsubscribe = databaseService.onUnreadAdminChatCount(chatUserId, 'user', (count) => {
                 setUnreadCount(count);
             });
         };
@@ -76,9 +76,9 @@ const UserListItem: React.FC<{ user: User; onOpenChat?: (user: User) => void }> 
         setupListener();
         
         return () => {
-            if (unsubscribe && typeof unsubscribe === 'function') unsubscribe();
+            if (unsubscribe) unsubscribe();
         };
-    }, [user.phone, user.name]);
+    }, [user.phone, user.name, user.id]);
 
     return (
         <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 shadow-sm">

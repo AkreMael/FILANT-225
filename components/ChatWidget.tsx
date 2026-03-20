@@ -94,8 +94,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, activeTab, c
     if (!userId) return;
     
     let unsubscribe: any;
-    const setupFirebaseListener = async () => {
-      unsubscribe = await databaseService.onAdminChatUpdate(userId, (msgs) => {
+    const setupFirebaseListener = () => {
+      unsubscribe = databaseService.onAdminChatUpdate(userId, (msgs) => {
         // Map RTDB messages to our Message format if needed
         const mappedMsgs = msgs.map(m => ({
           ...m,
@@ -107,7 +107,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, activeTab, c
     
     setupFirebaseListener();
     return () => {
-      if (unsubscribe && typeof unsubscribe === 'function') unsubscribe();
+      if (unsubscribe) unsubscribe();
     };
   }, [userId]);
 
@@ -208,9 +208,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, activeTab, c
     return null;
   };
 
-  const handleSend = async (overrideText?: string) => {
-    const textToSend = overrideText || input;
-    if (!textToSend.trim()) return;
+  const handleSend = async (overrideText?: any) => {
+    const textToSend = (typeof overrideText === 'string' ? overrideText : input).trim();
+    if (!textToSend) return;
 
     let detected = detectPrice(textToSend);
     const isFormSubmission = textToSend.includes("Nouvelle demande via FILANT") || textToSend.includes("Nouvelle inscription via FILANT");
@@ -241,7 +241,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, activeTab, c
         body: JSON.stringify({ userPhone, sender: 'user', message: textToSend })
     }).catch(err => console.error("Error saving user message to PG:", err));
 
-    setInput('');
+    if (typeof overrideText !== 'string') setInput('');
     
     let aiResponseText = "";
     let isAILoading = false;
