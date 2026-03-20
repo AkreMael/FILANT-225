@@ -20,6 +20,12 @@ interface ChatScreenProps {
 const BackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>;
 const SendIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9-7-9-7V7l11 5-11 5v-2z" /></svg>;
 
+const QUICK_MESSAGES = [
+  { label: 'BIENVENUE', text: "Bonjour ! Bienvenue chez Filan 225. Nous avons bien reçu votre formulaire. Votre profil est en cours de traitement. Merci de votre confiance !" },
+  { label: 'VALIDATION', text: "Félicitations ! Votre inscription sur Filan 225 est validée. Vous faites officiellement partie de notre réseau. À très bientôt pour des opportunités !" },
+  { label: 'CORRECTION', text: "Bonjour, certaines informations de votre formulaire sont incomplètes. Merci de nous préciser les détails manquants ici même dans cette messagerie." }
+];
+
 const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmin, onBack }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -60,16 +66,17 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = async () => {
-    if (!inputText.trim()) return;
+  const handleSendMessage = async (textOverride?: string) => {
+    const textToSend = textOverride || inputText.trim();
+    if (!textToSend) return;
 
     const newMessage: ChatMessage = {
       sender: isAdmin ? 'admin' : 'user',
-      text: inputText.trim(),
+      text: textToSend,
       timestamp: Date.now()
     };
 
-    setInputText('');
+    if (!textOverride) setInputText('');
     await databaseService.saveAdminChatMessage(chatUserId, newMessage);
   };
 
@@ -87,6 +94,20 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
           </div>
         </div>
       </header>
+
+      {isAdmin && (
+        <div className="bg-white border-b border-slate-100 p-3 flex gap-2 overflow-x-auto scrollbar-hide sticky top-[73px] z-10 shadow-sm">
+          {QUICK_MESSAGES.map((msg) => (
+            <button
+              key={msg.label}
+              onClick={() => handleSendMessage(msg.text)}
+              className="flex-shrink-0 px-4 py-2 bg-orange-50 text-orange-600 border border-orange-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-100 transition-colors active:scale-95 shadow-sm"
+            >
+              {msg.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide bg-slate-50/50">
         {isLoading ? (
