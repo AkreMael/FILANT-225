@@ -33,8 +33,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const chatUserId = isAdmin && targetUser 
-    ? `${targetUser.name}_${targetUser.phone.replace(/\D/g, '')}`
-    : `${currentUser.name}_${currentUser.phone.replace(/\D/g, '')}`;
+    ? (targetUser.id || `${targetUser.name}_${targetUser.phone.replace(/\D/g, '')}`)
+    : (currentUser.id || `${currentUser.name}_${currentUser.phone.replace(/\D/g, '')}`);
 
   const chatTitle = isAdmin && targetUser ? `Chat avec ${targetUser.name}` : "Message Privé (Filant 225)";
 
@@ -96,7 +96,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
       </header>
 
       {isAdmin && (
-        <div className="bg-white border-b border-slate-100 p-3 flex gap-2 overflow-x-auto scrollbar-hide sticky top-[73px] z-10 shadow-sm">
+        <div className="bg-white border-b border-slate-100 p-3 flex gap-2 overflow-x-auto scrollbar-hide z-10 shadow-sm">
           {QUICK_MESSAGES.map((msg) => (
             <button
               key={msg.label}
@@ -148,7 +148,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-4 bg-white border-t border-slate-200 sticky bottom-0">
+      <div className="p-4 bg-white border-t border-slate-200">
         <div className="flex items-center gap-2 bg-slate-100 rounded-2xl p-2 shadow-inner">
           <input
             type="text"

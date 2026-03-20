@@ -1217,7 +1217,7 @@ export const databaseService = {
 
   async saveAdminChatMessage(userId: string, message: any) {
     const { push, set } = await import('firebase/database');
-    const chatRef = rtdbRef(rtdb, `Chats/${userId}/messages`);
+    const chatRef = rtdbRef(rtdb, `messages/${userId}/messages`);
     const newMessageRef = push(chatRef);
     const msgData = {
       ...message,
@@ -1228,7 +1228,7 @@ export const databaseService = {
     await set(newMessageRef, msgData);
     
     // Also sync to Firestore for persistence
-    const firestoreRef = doc(db, 'Chats', userId, 'messages', newMessageRef.key!);
+    const firestoreRef = doc(db, 'messages', userId, 'messages', newMessageRef.key!);
     await setDoc(firestoreRef, {
       ...msgData,
       timestamp: serverTimestamp()
@@ -1237,7 +1237,7 @@ export const databaseService = {
 
   async markAdminMessagesAsRead(userId: string, senderToMark: 'admin' | 'user') {
     const { get, update } = await import('firebase/database');
-    const chatRef = rtdbRef(rtdb, `Chats/${userId}/messages`);
+    const chatRef = rtdbRef(rtdb, `messages/${userId}/messages`);
     const snapshot = await get(chatRef);
     if (snapshot.exists()) {
       const data = snapshot.val();
@@ -1255,7 +1255,7 @@ export const databaseService = {
 
   async onAdminChatUpdate(userId: string, callback: (messages: any[]) => void) {
     const { onValue } = await import('firebase/database');
-    const chatRef = rtdbRef(rtdb, `Chats/${userId}/messages`);
+    const chatRef = rtdbRef(rtdb, `messages/${userId}/messages`);
     return onValue(chatRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
@@ -1269,7 +1269,7 @@ export const databaseService = {
 
   async onUnreadAdminChatCount(userId: string, senderToWatch: 'admin' | 'user', callback: (count: number) => void) {
     const { onValue } = await import('firebase/database');
-    const chatRef = rtdbRef(rtdb, `Chats/${userId}/messages`);
+    const chatRef = rtdbRef(rtdb, `messages/${userId}/messages`);
     return onValue(chatRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();

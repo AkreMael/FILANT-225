@@ -411,6 +411,11 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isValidMessage(request.resource.data);
       allow read: if isAdmin() || (isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid));
       allow update, delete: if isAdmin();
+
+      // Subcollection for private chat messages
+      match /messages/{messageId} {
+        allow read, write: if isAdmin() || isOwner(id);
+      }
     }
 
     match /recruitments/{id} {
