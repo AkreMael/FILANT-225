@@ -1,6 +1,6 @@
-import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification } from '../types';
+import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification, PrivateRegistration } from '../types';
 import { db, auth, rtdb, storage } from '../firebase';
-import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc, getDocFromServer } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc, getDocFromServer, onSnapshot } from 'firebase/firestore';
 import { ref as rtdbRef, push, set, serverTimestamp as rtdbTimestamp } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
 
@@ -665,57 +665,24 @@ export const databaseService = {
   saveRegistration: async (type: string, data: any) => {
     console.log(`Starting ${type} registration save...`, { type, dataKeys: Object.keys(data) });
     const collectionMap: Record<string, string> = {
-      'Travailleur': 'worker_registrations',
-      'Propriétaire d’équipement': 'equipment_registrations',
-      'Agence immobilière': 'agency_registrations',
-      'Entreprise': 'company_registrations'
+      'Travailleur': 'travailleurs',
+      'Propriétaire d’équipement': 'proprietaires',
+      'Agence immobilière': 'agences',
+      'Entreprise': 'entreprises'
     };
 
     try {
-      // Test Firestore connection first
-      console.log("Testing Firestore connection...");
-      try {
-        const testDocRef = doc(db, 'test', 'connection');
-        await getDocFromServer(testDocRef);
-        console.log("Firestore connection test finished.");
-      } catch (connError) {
-        console.log("Firestore connection test (might be offline or no doc):", connError);
-        // We continue anyway, as it might just be a missing doc or permission issue on the test doc
-      }
-
       if (!auth.currentUser) {
         console.log("No user logged in, signing in anonymously...");
         const { signInAnonymously } = await import('firebase/auth');
-        
-        // Add a timeout for sign-in
-        const signInPromise = signInAnonymously(auth);
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Sign-in timeout")), 10000));
-        
-        await Promise.race([signInPromise, timeoutPromise]);
-        console.log("Anonymous sign-in successful:", auth.currentUser?.uid);
+        await signInAnonymously(auth);
       }
 
       const collectionName = collectionMap[type] || 'other_registrations';
       console.log(`Target collection: ${collectionName}`);
       
-      // Handle photo uploads if they are base64
       const processedData = { ...data };
-      const timestamp = Date.now();
       const userId = auth.currentUser?.uid || 'anonymous';
-
-      console.log("Processing photos...");
-      if (data.photo && typeof data.photo === 'string' && data.photo.startsWith('data:')) {
-        console.log("Uploading photo 1...");
-        processedData.photo = await databaseService.uploadFile(data.photo, `registrations/${collectionName}/${userId}_${timestamp}_1.jpg`);
-      }
-      if (data.photo2 && typeof data.photo2 === 'string' && data.photo2.startsWith('data:')) {
-        console.log("Uploading photo 2...");
-        processedData.photo2 = await databaseService.uploadFile(data.photo2, `registrations/${collectionName}/${userId}_${timestamp}_2.jpg`);
-      }
-      if (data.photo3 && typeof data.photo3 === 'string' && data.photo3.startsWith('data:')) {
-        console.log("Uploading photo 3...");
-        processedData.photo3 = await databaseService.uploadFile(data.photo3, `registrations/${collectionName}/${userId}_${timestamp}_3.jpg`);
-      }
 
       const registrationRef = collection(db, collectionName);
       let finalData: any = {
@@ -726,7 +693,7 @@ export const databaseService = {
         price: data.price || 310
       };
 
-      // Map fields according to firestore.rules
+      // Map fields according to new schemas
       if (type === 'Travailleur') {
         finalData = {
           ...finalData,
@@ -735,61 +702,53 @@ export const databaseService = {
           city: data.ville || '',
           phone: data.telephone || '',
           whatsapp: data.whatsapp || '',
-          acquisitionMethod: data.formation === 'Sur le tas' ? 'tas' : 'formation',
-          workMode: data.local === 'OUI' ? 'local' : 'ambulant',
+          experience: data.formation || '',
+          workMode: data.local || '',
           birthDate: data.naissance || '',
-          email: data.gmail || '',
-          domain: data.domaine || '',
-          documentsUrl: processedData.photo || ''
+          email: data.gmail || ''
         };
       } else if (type === 'Propriétaire d’équipement') {
         finalData = {
           ...finalData,
-          ownerName: data.nomPrenom || '',
-          city: data.ville || '',
+          ownerName: data.titre || '', // In config, labelTitre is "Nom du Propriétaire"
+          location: data.ville || '',
           phone: data.telephone || '',
           whatsapp: data.whatsapp || '',
-          equipmentType: data.titre || '',
-          pricePerDay: parseFloat(data.prix) || 0,
-          description: data.description || '',
-          photos: [processedData.photo, processedData.photo2, processedData.photo3].filter(Boolean)
+          equipmentType: data.formation || '', // In config, labelRadio is "Type d'accessoires"
+          dailyPrice: parseFloat(data.prix) || 0,
+          description: data.description || ''
         };
       } else if (type === 'Agence immobilière') {
         finalData = {
           ...finalData,
-          agencyName: data.nomPrenom || '',
+          agencyName: data.titre || '', // In config, labelTitre is "Nom de l'agence"
+          managerName: data.nomPrenom || '',
           city: data.ville || '',
           phone: data.telephone || '',
           whatsapp: data.whatsapp || '',
-          serviceType: data.titre || '',
-          commissionRate: data.prix || '',
-          description: data.description || '',
-          photos: [processedData.photo, processedData.photo2, processedData.photo3].filter(Boolean)
+          services: data.formation ? [data.formation] : [], // In config, labelRadio is "Services"
+          interventionZones: data.zones || '',
+          description: data.description || ''
         };
       } else if (type === 'Entreprise') {
         finalData = {
           ...finalData,
-          companyName: data.nomPrenom || '',
-          city: data.ville || '',
+          companyName: data.titre || '', // In config, labelTitre is "Nom de l'entreprise"
+          ownerName: data.nomPrenom || '',
+          location: data.ville || '',
           phone: data.telephone || '',
           whatsapp: data.whatsapp || '',
-          industry: data.titre || '',
+          proposedSalary: data.prix || '',
           description: data.description || '',
-          photos: [processedData.photo, processedData.photo2, processedData.photo3].filter(Boolean)
+          email: data.gmail || ''
         };
       } else {
         finalData = { ...finalData, ...processedData };
       }
 
       console.log("Saving to Firestore...", finalData);
-      
-      // Add a timeout for Firestore write
-      const writePromise = addDoc(registrationRef, finalData);
-      const writeTimeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Firestore write timeout")), 20000));
-      
-      const docRef = await Promise.race([writePromise, writeTimeoutPromise]) as any;
-      
-      console.log(`${type} registration saved to Firestore with ID:`, docRef.id);
+      const docRef = await addDoc(registrationRef, finalData);
+      console.log(`${type} registration saved with ID:`, docRef.id);
       return { success: true, id: docRef.id };
     } catch (e) {
       console.error(`Failed to save ${type} registration:`, e);
@@ -800,6 +759,71 @@ export const databaseService = {
 
   saveWorkerRegistration: async (data: any) => {
     return databaseService.saveRegistration('Travailleur', data);
+  },
+
+  subscribeToPrivateRegistrations: (callback: (registrations: PrivateRegistration[]) => void) => {
+    const collections = ['travailleurs', 'proprietaires', 'agences', 'entreprises'];
+    const allRegistrations: Record<string, PrivateRegistration[]> = {};
+
+    const updateAll = () => {
+      const merged = Object.values(allRegistrations)
+        .flat()
+        .sort((a, b) => {
+          const timeA = a.createdAt?.toMillis?.() || 0;
+          const timeB = b.createdAt?.toMillis?.() || 0;
+          return timeB - timeA;
+        });
+      callback(merged);
+    };
+
+    const unsubscribes = collections.map(colName => {
+      return onSnapshot(collection(db, colName), (snapshot) => {
+        const registrations = snapshot.docs.map(doc => {
+          const data = doc.data();
+          let title = '';
+          let category = '';
+          let phone = '';
+
+          if (colName === 'travailleurs') {
+            title = data.jobTitle || 'Sans titre';
+            category = 'Profil Travailleur';
+            phone = data.phone || '';
+          } else if (colName === 'proprietaires') {
+            title = data.ownerName || 'Sans titre';
+            category = 'Profil Propriétaire';
+            phone = data.phone || '';
+          } else if (colName === 'agences') {
+            title = data.agencyName || 'Sans titre';
+            category = 'Profil Agence';
+            phone = data.phone || '';
+          } else if (colName === 'entreprises') {
+            title = data.companyName || 'Sans titre';
+            category = 'Profil Entreprise';
+            phone = data.phone || '';
+          }
+
+          return {
+            id: doc.id,
+            userId: data.userId,
+            createdAt: data.createdAt,
+            status: data.status || 'pending',
+            typeInscription: data.typeInscription || colName,
+            price: data.price || 0,
+            title,
+            category,
+            phone,
+            data
+          } as PrivateRegistration;
+        });
+
+        allRegistrations[colName] = registrations;
+        updateAll();
+      }, (error) => {
+        handleFirestoreError(error, OperationType.LIST, colName);
+      });
+    });
+
+    return () => unsubscribes.forEach(unsub => unsub());
   },
 
   getFavorites: (phone: string): FavoriteRequest[] => {
@@ -1279,5 +1303,15 @@ export const databaseService = {
       handleFirestoreError(error, OperationType.LIST, 'scanned_contacts');
       return [];
     }
+  },
+
+  async onScannedContactsChange(callback: (contacts: any[]) => void) {
+    const q = query(collection(db, 'scanned_contacts'), orderBy('scannedAt', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      const contacts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      callback(contacts);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'scanned_contacts');
+    });
   }
 };

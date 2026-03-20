@@ -35,7 +35,7 @@ service cloud.firestore {
     //   - createdAt: timestamp (required)
     //   - price: number (optional)
     //
-    // Collection: worker_registrations
+    // Collection: travailleurs
     // Document ID: auto-generated
     // Fields:
     //   - userId: string (required)
@@ -44,59 +44,56 @@ service cloud.firestore {
     //   - city: string (required)
     //   - phone: string (required)
     //   - whatsapp: string (required)
-    //   - acquisitionMethod: string (required, 'tas'|'formation')
-    //   - workMode: string (required, 'local'|'ambulant')
+    //   - experience: string (required, 'Appris sur le tas'|'Nouveau (Formation)')
+    //   - workMode: string (required, 'J'ai un local'|'Travailleur ambulant')
     //   - birthDate: string (required)
     //   - createdAt: timestamp (required)
     //   - status: string (optional, 'pending'|'paid'|'validated')
-    //   - documentsUrl: string (optional)
-    //   - domain: string (optional)
     //   - email: string (optional)
     //   - price: number (optional)
     //
-    // Collection: equipment_registrations
-    // Document ID: auto-generated
-    // Fields:
-    //   - userId: string (required)
-    //   - ownerName: string (required)
-    //   - city: string (required)
-    //   - phone: string (required)
-    //   - whatsapp: string (required)
-    //   - equipmentType: string (required)
-    //   - photos: list (required)
-    //   - pricePerDay: number (required)
-    //   - description: string (optional)
-    //   - createdAt: timestamp (required)
-    //   - status: string (optional)
-    //   - price: number (optional)
-    //
-    // Collection: agency_registrations
+    // Collection: agences
     // Document ID: auto-generated
     // Fields:
     //   - userId: string (required)
     //   - agencyName: string (required)
+    //   - managerName: string (required)
     //   - city: string (required)
     //   - phone: string (required)
     //   - whatsapp: string (required)
-    //   - serviceType: string (required)
-    //   - photos: list (required)
-    //   - commissionRate: string (required)
+    //   - services: list (required)
+    //   - interventionZones: string (optional)
+    //   - createdAt: timestamp (required)
+    //   - status: string (optional)
+    //   - price: number (optional)
+    //
+    // Collection: proprietaires
+    // Document ID: auto-generated
+    // Fields:
+    //   - userId: string (required)
+    //   - ownerName: string (required)
+    //   - location: string (required)
+    //   - phone: string (required)
+    //   - whatsapp: string (required)
+    //   - equipmentType: string (required)
+    //   - dailyPrice: number (required)
     //   - description: string (optional)
     //   - createdAt: timestamp (required)
     //   - status: string (optional)
     //   - price: number (optional)
     //
-    // Collection: company_registrations
+    // Collection: entreprises
     // Document ID: auto-generated
     // Fields:
     //   - userId: string (required)
     //   - companyName: string (required)
-    //   - city: string (required)
+    //   - ownerName: string (required)
+    //   - location: string (required)
     //   - phone: string (required)
     //   - whatsapp: string (required)
-    //   - industry: string (required)
-    //   - photos: list (required)
+    //   - proposedSalary: string (required)
     //   - description: string (optional)
+    //   - email: string (optional)
     //   - createdAt: timestamp (required)
     //   - status: string (optional)
     //   - price: number (optional)
@@ -231,14 +228,14 @@ service cloud.firestore {
              (!('price' in data) || data.price is number);
     }
 
-    function isValidWorkerRegistration(data) {
+    function isValidTravailleur(data) {
       let requiredFields = [
         'userId', 'jobTitle', 'fullName', 'city', 'phone', 
-        'whatsapp', 'acquisitionMethod', 'workMode', 'birthDate', 'createdAt'
+        'whatsapp', 'experience', 'workMode', 'birthDate', 'createdAt'
       ];
       let allowedFields = [
         'userId', 'jobTitle', 'fullName', 'city', 'phone', 'whatsapp', 
-        'documentsUrl', 'domain', 'acquisitionMethod', 'workMode', 
+        'experience', 'workMode', 
         'birthDate', 'email', 'status', 'createdAt', 'price', 'typeInscription'
       ];
       
@@ -250,32 +247,29 @@ service cloud.firestore {
              data.city is string && data.city.size() > 0 && data.city.size() < 100 &&
              data.phone is string && data.phone.size() >= 8 && data.phone.size() < 20 &&
              data.whatsapp is string && data.whatsapp.size() >= 8 && data.whatsapp.size() < 20 &&
-             data.acquisitionMethod in ['tas', 'formation'] &&
-             data.workMode in ['local', 'ambulant'] &&
+             data.experience in ['Appris sur le tas', 'Nouveau (Formation)'] &&
+             data.workMode in ["J'ai un local", "Travailleur ambulant"] &&
              data.birthDate is string && data.birthDate.size() < 50 &&
              data.createdAt is timestamp &&
-             (!('documentsUrl' in data) || isValidUrl(data.documentsUrl)) &&
-             (!('domain' in data) || (data.domain is string && data.domain.size() < 100)) &&
              (!('email' in data) || isValidEmail(data.email)) &&
              (!('status' in data) || data.status in ['pending', 'paid', 'validated']) &&
              (!('price' in data) || data.price is number) &&
              (!('typeInscription' in data) || data.typeInscription is string);
     }
 
-    function isValidEquipmentRegistration(data) {
-      let requiredFields = ['userId', 'ownerName', 'city', 'phone', 'whatsapp', 'equipmentType', 'photos', 'pricePerDay', 'createdAt'];
-      let allowedFields = ['userId', 'ownerName', 'city', 'phone', 'whatsapp', 'equipmentType', 'photos', 'pricePerDay', 'description', 'createdAt', 'status', 'price', 'typeInscription'];
+    function isValidProprietaire(data) {
+      let requiredFields = ['userId', 'ownerName', 'location', 'phone', 'whatsapp', 'equipmentType', 'dailyPrice', 'createdAt'];
+      let allowedFields = ['userId', 'ownerName', 'location', 'phone', 'whatsapp', 'equipmentType', 'dailyPrice', 'description', 'createdAt', 'status', 'price', 'typeInscription'];
       
       return hasRequiredFields(requiredFields) &&
              hasOnlyAllowedFields(allowedFields) &&
              data.userId is string &&
              data.ownerName is string && data.ownerName.size() > 0 &&
-             data.city is string && data.city.size() > 0 &&
+             data.location is string && data.location.size() > 0 &&
              data.phone is string && data.phone.size() >= 8 &&
              data.whatsapp is string && data.whatsapp.size() >= 8 &&
              data.equipmentType is string &&
-             data.photos is list &&
-             data.pricePerDay is number &&
+             data.dailyPrice is number &&
              data.createdAt is timestamp &&
              (!('description' in data) || data.description is string) &&
              (!('status' in data) || data.status is string) &&
@@ -283,42 +277,43 @@ service cloud.firestore {
              (!('typeInscription' in data) || data.typeInscription is string);
     }
 
-    function isValidAgencyRegistration(data) {
-      let requiredFields = ['userId', 'agencyName', 'city', 'phone', 'whatsapp', 'serviceType', 'photos', 'commissionRate', 'createdAt'];
-      let allowedFields = ['userId', 'agencyName', 'city', 'phone', 'whatsapp', 'serviceType', 'photos', 'commissionRate', 'description', 'createdAt', 'status', 'price', 'typeInscription'];
+    function isValidAgence(data) {
+      let requiredFields = ['userId', 'agencyName', 'managerName', 'city', 'phone', 'whatsapp', 'services', 'createdAt'];
+      let allowedFields = ['userId', 'agencyName', 'managerName', 'city', 'phone', 'whatsapp', 'services', 'interventionZones', 'description', 'createdAt', 'status', 'price', 'typeInscription'];
       
       return hasRequiredFields(requiredFields) &&
              hasOnlyAllowedFields(allowedFields) &&
              data.userId is string &&
              data.agencyName is string && data.agencyName.size() > 0 &&
+             data.managerName is string && data.managerName.size() > 0 &&
              data.city is string && data.city.size() > 0 &&
              data.phone is string && data.phone.size() >= 8 &&
              data.whatsapp is string && data.whatsapp.size() >= 8 &&
-             data.serviceType is string &&
-             data.photos is list &&
-             data.commissionRate is string &&
+             data.services is list &&
              data.createdAt is timestamp &&
+             (!('interventionZones' in data) || data.interventionZones is string) &&
              (!('description' in data) || data.description is string) &&
              (!('status' in data) || data.status is string) &&
              (!('price' in data) || data.price is number) &&
              (!('typeInscription' in data) || data.typeInscription is string);
     }
 
-    function isValidCompanyRegistration(data) {
-      let requiredFields = ['userId', 'companyName', 'city', 'phone', 'whatsapp', 'industry', 'photos', 'createdAt'];
-      let allowedFields = ['userId', 'companyName', 'city', 'phone', 'whatsapp', 'industry', 'photos', 'description', 'createdAt', 'status', 'price', 'typeInscription'];
+    function isValidEntreprise(data) {
+      let requiredFields = ['userId', 'companyName', 'ownerName', 'location', 'phone', 'whatsapp', 'proposedSalary', 'createdAt'];
+      let allowedFields = ['userId', 'companyName', 'ownerName', 'location', 'phone', 'whatsapp', 'proposedSalary', 'description', 'email', 'createdAt', 'status', 'price', 'typeInscription'];
       
       return hasRequiredFields(requiredFields) &&
              hasOnlyAllowedFields(allowedFields) &&
              data.userId is string &&
              data.companyName is string && data.companyName.size() > 0 &&
-             data.city is string && data.city.size() > 0 &&
+             data.ownerName is string && data.ownerName.size() > 0 &&
+             data.location is string && data.location.size() > 0 &&
              data.phone is string && data.phone.size() >= 8 &&
              data.whatsapp is string && data.whatsapp.size() >= 8 &&
-             data.industry is string &&
-             data.photos is list &&
+             data.proposedSalary is string &&
              data.createdAt is timestamp &&
              (!('description' in data) || data.description is string) &&
+             (!('email' in data) || isValidEmail(data.email)) &&
              (!('status' in data) || data.status is string) &&
              (!('price' in data) || data.price is number) &&
              (!('typeInscription' in data) || data.typeInscription is string);
@@ -384,31 +379,31 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    match /worker_registrations/{id} {
-      allow create: if isAuthenticated() && isValidWorkerRegistration(request.resource.data) && uidUnchanged();
+    match /travailleurs/{id} {
+      allow create: if isAuthenticated() && isValidTravailleur(request.resource.data) && uidUnchanged();
       allow read: if isAdmin() || isDocOwner();
-      allow update: if isAdmin() || (isDocOwner() && isValidWorkerRegistration(request.resource.data) && uidNotModified());
+      allow update: if isAdmin() || (isDocOwner() && isValidTravailleur(request.resource.data) && uidNotModified());
       allow delete: if isAdmin();
     }
 
-    match /equipment_registrations/{id} {
-      allow create: if isAuthenticated() && isValidEquipmentRegistration(request.resource.data) && uidUnchanged();
+    match /proprietaires/{id} {
+      allow create: if isAuthenticated() && isValidProprietaire(request.resource.data) && uidUnchanged();
       allow read: if isAdmin() || isDocOwner();
-      allow update: if isAdmin() || (isDocOwner() && isValidEquipmentRegistration(request.resource.data) && uidNotModified());
+      allow update: if isAdmin() || (isDocOwner() && isValidProprietaire(request.resource.data) && uidNotModified());
       allow delete: if isAdmin();
     }
 
-    match /agency_registrations/{id} {
-      allow create: if isAuthenticated() && isValidAgencyRegistration(request.resource.data) && uidUnchanged();
+    match /agences/{id} {
+      allow create: if isAuthenticated() && isValidAgence(request.resource.data) && uidUnchanged();
       allow read: if isAdmin() || isDocOwner();
-      allow update: if isAdmin() || (isDocOwner() && isValidAgencyRegistration(request.resource.data) && uidNotModified());
+      allow update: if isAdmin() || (isDocOwner() && isValidAgence(request.resource.data) && uidNotModified());
       allow delete: if isAdmin();
     }
 
-    match /company_registrations/{id} {
-      allow create: if isAuthenticated() && isValidCompanyRegistration(request.resource.data) && uidUnchanged();
+    match /entreprises/{id} {
+      allow create: if isAuthenticated() && isValidEntreprise(request.resource.data) && uidUnchanged();
       allow read: if isAdmin() || isDocOwner();
-      allow update: if isAdmin() || (isDocOwner() && isValidCompanyRegistration(request.resource.data) && uidNotModified());
+      allow update: if isAdmin() || (isDocOwner() && isValidEntreprise(request.resource.data) && uidNotModified());
       allow delete: if isAdmin();
     }
 

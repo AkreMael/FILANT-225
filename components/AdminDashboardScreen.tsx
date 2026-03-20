@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { databaseService, ConnectionLog, Association, ActiveContact, AdminContact } from '../services/databaseService';
-import { User } from '../types';
+import { User, PrivateRegistration } from '../types';
 import { smsService } from '../services/smsService';
 import Typewriter from './common/Typewriter';
 import MenuBackground from './common/MenuBackground';
+import { QRCodeSVG } from 'qrcode.react';
 
 const IconWrapper: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
     <div className={`flex items-center justify-center rounded-full ${className}`}>
@@ -25,6 +26,7 @@ const ChatIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-
 const WaveIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
 const AssistantIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
 const QRIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7V5a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m0 10v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2m7-10h4m-4 4h4m-4 4h4M7 7h.01M7 11h.01M7 15h.01" /></svg>;
+const SyncIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>;
 const WhatsAppIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor">
         <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.886-.001 2.269.655 4.288 1.902 5.941l-1.442 5.253 5.354-1.405z" />
@@ -116,11 +118,14 @@ const UserListItem: React.FC<{ user: User; onOpenChat?: (user: User) => void }> 
 };
 
 const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onLogout, onSelectUser, onOpenChat, initialView = 'grid' }) => {
-  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms' | 'firestore-users' | 'wave-payments' | 'assistant-requests' | 'scanned-qr'>(initialView);
+  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms' | 'firestore-users' | 'wave-payments' | 'assistant-requests' | 'scanned-qr' | 'private-registrations'>(initialView);
   const [firestoreUsers, setFirestoreUsers] = useState<User[]>([]);
+  const [privateRegistrations, setPrivateRegistrations] = useState<PrivateRegistration[]>([]);
+  const [selectedRegistration, setSelectedRegistration] = useState<PrivateRegistration | null>(null);
   const [wavePayments, setWavePayments] = useState<any[]>([]);
   const [assistantRequests, setAssistantRequests] = useState<any[]>([]);
   const [scannedContacts, setScannedContacts] = useState<any[]>([]);
+  const [selectedQR, setSelectedQR] = useState<any | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [logs, setLogs] = useState<ConnectionLog[]>([]);
   const [associations, setAssociations] = useState<Association[]>([]);
@@ -163,6 +168,18 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
       clientDescription: ''
   });
 
+  const refreshScannedContacts = async () => {
+    setIsSyncing(true);
+    try {
+      const contacts = await databaseService.getAllScannedContacts();
+      setScannedContacts(contacts);
+    } catch (error) {
+      console.error("Error refreshing scanned contacts:", error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   useEffect(() => {
       if (view === 'contacts') setAdminContacts(databaseService.getAdminContacts());
       if (view === 'sms') setLogs(databaseService.getConnectionLogs());
@@ -190,10 +207,24 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
       }
       if (view === 'scanned-qr') {
           setIsSyncing(true);
-          databaseService.getAllScannedContacts().then(contacts => {
+          let unsubscribe: any;
+          databaseService.onScannedContactsChange((contacts) => {
               setScannedContacts(contacts);
               setIsSyncing(false);
+          }).then(unsub => {
+              unsubscribe = unsub;
           });
+          return () => {
+              if (unsubscribe) unsubscribe();
+          };
+      }
+      if (view === 'private-registrations') {
+          setIsSyncing(true);
+          const unsubscribe = databaseService.subscribeToPrivateRegistrations((registrations) => {
+              setPrivateRegistrations(registrations);
+              setIsSyncing(false);
+          });
+          return () => unsubscribe();
       }
       if (view === 'active-contacts') {
           const list = databaseService.getActiveContacts();
@@ -1128,9 +1159,19 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Historique des scans utilisateurs</p>
                 </div>
             </div>
-            {isSyncing && (
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-emerald-500 border-t-transparent" />
-            )}
+            <div className="flex items-center gap-2">
+                <button 
+                    onClick={refreshScannedContacts}
+                    disabled={isSyncing}
+                    className={`p-2 rounded-xl transition-all active:scale-90 ${isSyncing ? 'bg-gray-100 text-gray-300 animate-spin' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
+                    title="Rafraîchir"
+                >
+                    <SyncIcon />
+                </button>
+                {isSyncing && (
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-emerald-500 border-t-transparent" />
+                )}
+            </div>
         </header>
 
         <main className="p-6 overflow-y-auto flex-1 scrollbar-hide">
@@ -1183,7 +1224,16 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <p className="text-xs font-black text-gray-900 uppercase">{contact.scannerName || 'Utilisateur inconnu'}</p>
-                                    <p className="text-[10px] font-mono font-bold text-indigo-500 tracking-tighter">{contact.scannerUserId}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-[10px] font-mono font-bold text-indigo-500 tracking-tighter">{contact.scannerUserId}</p>
+                                        <button 
+                                            onClick={() => setSelectedQR(contact)}
+                                            className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-all active:scale-90"
+                                            title="Voir le Code"
+                                        >
+                                            <ViewIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1191,6 +1241,170 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                 </div>
             )}
         </main>
+
+        {/* Modal QR Code */}
+        {selectedQR && (
+            <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-6 backdrop-blur-md animate-in fade-in duration-300">
+                <div className="bg-white rounded-[3rem] p-8 w-full max-w-sm shadow-2xl relative animate-in zoom-in-95 duration-300">
+                    <button 
+                        onClick={() => setSelectedQR(null)}
+                        className="absolute -top-4 -right-4 w-12 h-12 bg-white rounded-full flex items-center justify-center text-gray-400 shadow-xl active:scale-90 transition-all z-10"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+
+                    <div className="flex flex-col items-center">
+                        <div className="bg-emerald-50 p-4 rounded-3xl mb-6">
+                            <QRIcon />
+                        </div>
+                        <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight text-center mb-1">{selectedQR.name}</h3>
+                        <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-8">{selectedQR.title || 'Contact Scanné'}</p>
+                        
+                        <div className="bg-slate-50 p-6 rounded-[2.5rem] border-4 border-emerald-500/20 shadow-inner mb-8">
+                            <QRCodeSVG 
+                                value={`Métier: ${selectedQR.title || 'Non spécifié'}\nNom: ${selectedQR.name}\nVille: ${selectedQR.city || 'N/A'}\nNuméro: ${selectedQR.phone}`} 
+                                size={200} 
+                                level="H" 
+                            />
+                        </div>
+
+                        <div className="w-full space-y-3">
+                            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 text-center">Données du Code</p>
+                                <p className="text-[11px] font-mono font-bold text-gray-600 text-center break-all">
+                                    {`Métier: ${selectedQR.title || 'Non spécifié'}\nNom: ${selectedQR.name}\nVille: ${selectedQR.city || 'N/A'}\nNuméro: ${selectedQR.phone}`}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+    </div>
+  );
+
+  const renderPrivateRegistrationsView = () => (
+    <div className="flex-1 flex flex-col h-full bg-white font-sans animate-unfold-in text-left">
+        <header className="p-4 flex items-center justify-between border-b border-gray-100 bg-white sticky top-0 z-20">
+            <button onClick={() => setView('grid')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-400 transition-transform active:scale-90">
+                <BackIcon />
+            </button>
+            <h2 className="text-sm font-black text-gray-800 uppercase tracking-widest flex-1 text-center">Inscriptions Privées</h2>
+            <div className="w-10"></div>
+        </header>
+        <div className="p-4 space-y-4 flex-1 overflow-y-auto scrollbar-hide">
+            {privateRegistrations.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                    <ActivationIcon />
+                    <p className="mt-4 font-bold uppercase text-xs tracking-widest">
+                        {isSyncing ? 'Chargement...' : 'Aucune inscription privée'}
+                    </p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 gap-4">
+                    {privateRegistrations.map((reg) => (
+                        <div key={reg.id} className="bg-gray-50 rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 className="font-black text-gray-900 uppercase text-sm leading-tight">{reg.title}</h4>
+                                    <p className="text-[10px] text-orange-600 font-black uppercase tracking-widest mt-1">{reg.category}</p>
+                                </div>
+                                <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${
+                                    reg.status === 'active' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
+                                }`}>
+                                    {reg.status}
+                                </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 mb-4">
+                                <span className="text-[10px] text-gray-400 font-bold uppercase">Type: {reg.typeInscription}</span>
+                                <span className="text-gray-300">•</span>
+                                <span className="text-[10px] text-gray-400 font-bold uppercase">{new Date(reg.createdAt).toLocaleDateString()}</span>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={() => setSelectedRegistration(reg)}
+                                    className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-colors active:scale-95"
+                                >
+                                    Voir détails
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        if (onOpenChat) {
+                                            const chatUser: User = {
+                                                id: reg.userId,
+                                                name: reg.title,
+                                                phone: reg.phone,
+                                                role: 'Client',
+                                                city: reg.data?.ville || 'Inconnue'
+                                            };
+                                            onOpenChat(chatUser);
+                                        }
+                                    }}
+                                    className="flex-1 py-2.5 bg-orange-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-700 transition-colors active:scale-95"
+                                >
+                                    Messagerie Privée
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+
+        {/* Modal Détails Inscription */}
+        {selectedRegistration && (
+            <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 max-h-[80vh] overflow-y-auto scrollbar-hide">
+                    <h3 className="text-xl font-black text-gray-900 mb-6 uppercase tracking-tight border-b border-gray-100 pb-2">Détails de l'Inscription</h3>
+                    
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">Catégorie</span>
+                                <p className="font-bold text-gray-800 text-sm uppercase">{selectedRegistration.category}</p>
+                            </div>
+                            <div>
+                                <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">Type</span>
+                                <p className="font-bold text-gray-800 text-sm uppercase">{selectedRegistration.typeInscription}</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">Titre / Nom</span>
+                            <p className="font-bold text-gray-800 text-sm uppercase">{selectedRegistration.title}</p>
+                        </div>
+
+                        <div>
+                            <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">Téléphone</span>
+                            <p className="font-bold text-gray-800 text-sm">+225 {selectedRegistration.phone}</p>
+                        </div>
+
+                        <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                            <span className="text-[10px] font-black text-orange-600 uppercase block mb-3 border-b border-orange-100 pb-1">Informations Complètes</span>
+                            <div className="space-y-3">
+                                {Object.entries(selectedRegistration.data || {}).map(([key, value]) => (
+                                    <div key={key}>
+                                        <span className="text-[9px] font-black text-gray-400 uppercase block">{key}</span>
+                                        <p className="text-xs text-gray-700 font-medium">
+                                            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button 
+                        onClick={() => setSelectedRegistration(null)} 
+                        className="w-full mt-8 py-4 bg-gray-900 text-white font-black rounded-2xl uppercase text-xs tracking-widest hover:bg-black transition-colors active:scale-95"
+                    >
+                        Fermer
+                    </button>
+                </div>
+            </div>
+        )}
     </div>
   );
 
@@ -1203,6 +1417,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
     if (view === 'wave-payments') return renderWavePaymentsView();
     if (view === 'assistant-requests') return renderAssistantRequestsView();
     if (view === 'scanned-qr') return renderScannedQRView();
+    if (view === 'private-registrations') return renderPrivateRegistrationsView();
     
     return (
       <div className="flex-1 bg-slate-900 flex flex-col h-full text-left relative overflow-hidden">
@@ -1315,6 +1530,13 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                               <QRIcon />
                            </div>
                           <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">QR Codes Scannés</span>
+                      </button>
+
+                      <button onClick={() => setView('private-registrations')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                           <div className="bg-yellow-500/20 p-4 rounded-full group-hover:bg-yellow-500/30 transition-colors shadow-inner">
+                              <ActivationIcon />
+                           </div>
+                          <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Inscription Privée</span>
                       </button>
                   </div>
               </main>

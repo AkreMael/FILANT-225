@@ -30,7 +30,6 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
     const [isSuccess, setIsSuccess] = useState(false);
     const [showVideo, setShowVideo] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const config = useMemo(() => {
         switch (registrationType) {
@@ -39,15 +38,13 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
                     title: "Inscription Propriétaire",
                     labelTitre: "Nom du Propriétaire *",
                     placeholderTitre: "👤 Filant mael",
-                    labelVille: "Ville / Quartier actuelle *",
+                    labelVille: "Ville & Quartier actuels *",
                     placeholderVille: "🏕️",
                     labelRadio: "Type d'accessoires à louer *",
                     radioOpts: ["Bétonnière", "Électrogène", "Tentes", "Projecteur", "Sonorisation", "Mobilier", "Autres"],
-                    photoLabel: "Ajouter 3 images de votre article *",
                     showPrix: true,
-                    labelPrix: "Prix de location 1 jour *",
+                    labelPrix: "Prix de location par jour *",
                     showDescription: true,
-                    showMultiplePhotos: true,
                     price: 310
                 };
             case 'Agence immobilière':
@@ -55,11 +52,14 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
                     title: "Inscription Agence",
                     labelTitre: "Nom de l'agence *",
                     placeholderTitre: "Ex: Agence Horizon...",
-                    labelVille: "Ville / Quartier actuelle *",
+                    labelNom: "Nom du responsable *",
+                    placeholderNom: "👤 Nom du responsable",
+                    labelVille: "Ville actuelle *",
                     placeholderVille: "🏕️",
-                    labelRadio: "Type de service *",
-                    radioOpts: ["Vente de terrains", "Location d'appartements", "Gestion immobilière", "Autres"],
-                    photoLabel: "Logo ou image de l'agence *",
+                    labelRadio: "Services *",
+                    radioOpts: ["Location (maisons/boutiques)", "Vente (terrains/immeubles)", "Gestion locative", "Autres"],
+                    showZones: true,
+                    labelZones: "Zones d'intervention (Facultatif)",
                     showDescription: true,
                     price: 310
                 };
@@ -68,25 +68,33 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
                     title: "Inscription Entreprise",
                     labelTitre: "Nom de l'entreprise *",
                     placeholderTitre: "Ex: Filant BTP...",
-                    labelVille: "Ville / Quartier actuelle *",
+                    labelNom: "Nom du propriétaire *",
+                    placeholderNom: "👤 Nom du propriétaire",
+                    labelVille: "Lieu *",
                     placeholderVille: "🏕️",
-                    labelRadio: "Secteur d'activité *",
-                    radioOpts: ["Services", "Commerce", "Industrie", "Autres"],
-                    photoLabel: "Logo ou image de l'entreprise *",
+                    showPrix: true,
+                    labelPrix: "Salaire proposé *",
+                    showEmail: true,
+                    labelEmail: "Email de l'entreprise *",
                     showDescription: true,
                     price: 310
                 };
             default: 
                 return {
                     title: "Inscription Travailleur",
-                    labelNom: "Nom complet *",
+                    labelNom: "Nom & Prénoms *",
                     placeholderNom: "👤 Filant mael",
-                    labelTitre: "Métier / Compétence *",
+                    labelTitre: "Titre du métier *",
                     placeholderTitre: "Ex: Maçon, Coiffeuse, Chauffeur...",
-                    labelVille: "Ville / Quartier actuelle *",
+                    labelVille: "Ville actuelle *",
                     placeholderVille: "🏕️",
-                    photoLabel: "Photo de profil professionnelle *",
-                    showDescription: true,
+                    labelRadio: "Expérience *",
+                    radioOpts: ["Appris sur le tas", "Nouveau (Formation)"],
+                    labelWorkMode: "Mode d'exercice *",
+                    workModeOpts: ["J'ai un local", "Travailleur ambulant"],
+                    showBirthDate: true,
+                    showEmail: true,
+                    labelEmail: "Email (Gmail) *",
                     price: 310
                 };
         }
@@ -101,9 +109,6 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
         formation: '',
         naissance: '',
         gmail: '',
-        photo: '',
-        photo2: '',
-        photo3: '',
         domaine: '',
         local: '',
         adresse: '',
@@ -127,28 +132,29 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: string = 'photo') => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setFormData(prev => ({ ...prev, [field]: reader.result as string }));
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
         const isWorker = registrationType === 'Travailleur';
-        const requiredFields = isWorker 
-            ? ['titre', 'nomPrenom', 'ville', 'telephone', 'whatsapp', 'photo']
-            : ['titre', 'ville', 'telephone', 'whatsapp', 'photo'];
+        const isAgency = registrationType === 'Agence immobilière';
+        const isCompany = registrationType === 'Entreprise';
+        const isEquipment = registrationType === 'Propriétaire d’équipement';
+
+        let requiredFields = ['titre', 'ville', 'telephone', 'whatsapp'];
+        
+        if (isWorker) {
+            requiredFields = [...requiredFields, 'nomPrenom', 'formation', 'local', 'naissance', 'gmail'];
+        } else if (isAgency) {
+            requiredFields = [...requiredFields, 'nomPrenom', 'formation'];
+        } else if (isCompany) {
+            requiredFields = [...requiredFields, 'nomPrenom', 'prix', 'gmail'];
+        } else if (isEquipment) {
+            requiredFields = [...requiredFields, 'prix'];
+        }
 
         const missingFields = requiredFields.filter(f => !formData[f as keyof typeof formData]);
         if (missingFields.length > 0) {
-            setError("Veuillez renseigner tous les champs obligatoires et joindre vos pièces justificatives.");
+            setError("Veuillez renseigner tous les champs obligatoires.");
             return;
         }
 
@@ -161,13 +167,6 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
             // Save to Firestore and Storage using the centralized service
             const result = await databaseService.saveRegistration(registrationType, {
                 ...formData,
-                jobTitle: formData.titre,
-                fullName: formData.nomPrenom,
-                city: formData.ville,
-                phone: formData.telephone,
-                whatsapp: formData.whatsapp,
-                email: formData.gmail,
-                description: formData.description,
                 typeInscription: registrationType,
                 price: config.price
             });
@@ -227,31 +226,32 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
     if (isSuccess) {
         return (
             <div className="min-h-full w-full bg-slate-900 flex flex-col items-center justify-center p-6 animate-in slide-in-from-bottom-full duration-1000 ease-out">
-                <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
-                    <div className="bg-green-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div className="bg-white rounded-[3rem] p-10 max-w-sm w-full text-center shadow-2xl border border-white/10">
+                    <div className="bg-green-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
                         <CheckIcon />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Demande Transmise !</h2>
-                    <p className="text-gray-700 leading-relaxed mb-6 text-sm">
-                        Votre inscription est prise en charge. Vous êtes enregistré avec succès. <br/><br/>
-                        Pour valider votre mise en ligne, un paiement de <span className="font-bold text-red-600">{config.price} FCFA</span> est requis. <br/><br/>
-                        Cliquez sur le bouton ci-dessous pour effectuer votre paiement.
+                    <h2 className="text-2xl font-black text-gray-900 mb-4 uppercase tracking-tighter">Inscription Réussie !</h2>
+                    <p className="text-gray-600 leading-relaxed mb-8 text-sm font-medium">
+                        Votre demande a été transmise avec succès. <br/><br/>
+                        Pour finaliser votre opération et valider votre mise en ligne, veuillez confirmer votre inscription.
                     </p>
-                    <button 
-                        onClick={handlePaymentTrigger} 
-                        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-4 rounded-xl shadow-lg transition-transform transform active:scale-95 flex items-center justify-center gap-2 text-xs uppercase mb-3"
-                    >
-                        🚀 Effectuer le paiement ({config.price} FCFA)
-                    </button>
+                    
                     <button 
                         onClick={handleAssistantRedirect} 
-                        className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-4 rounded-xl shadow-lg transition-transform transform active:scale-95 flex items-center justify-center gap-2 text-xs uppercase"
+                        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-5 px-4 rounded-3xl shadow-xl transition-all transform active:scale-95 flex items-center justify-center gap-3 text-sm uppercase tracking-widest"
                     >
-                        👉 Transmettre à l'Assistant FILANT°225
+                        Confirmer l'inscription - {config.price} CFA 🚀
                     </button>
-                    <button onClick={onBack} className="mt-4 text-gray-400 hover:text-gray-600 font-medium text-sm">
+
+                    <button onClick={onBack} className="mt-8 text-gray-400 hover:text-gray-600 font-black text-[10px] uppercase tracking-widest transition-colors">
                         Retourner au menu principal
                     </button>
+
+                    <div className="mt-10 pt-8 border-t border-gray-100">
+                        <p className="text-[10px] text-gray-400 italic leading-tight px-4">
+                            Rejoignez le réseau Filan 225 dès maintenant ! Donnez de la visibilité à vos compétences ou services et accédez à des opportunités garanties en un clic. Votre avenir professionnel commence ici.
+                        </p>
+                    </div>
                 </div>
             </div>
         );
@@ -295,54 +295,10 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
                                 {error && <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-xl text-sm font-medium animate-pulse text-center">{error}</div>}
 
                                 <div className="space-y-5">
-                                    <div className="flex flex-col items-center">
-                                        <div 
-                                            onClick={() => fileInputRef.current?.click()} 
-                                            className="w-full h-44 bg-white rounded-3xl border-2 border-dashed border-orange-200 flex flex-col items-center justify-center cursor-pointer overflow-hidden relative group hover:border-orange-500 hover:bg-orange-50 transition-all duration-300 shadow-inner"
-                                        >
-                                            {formData.photo ? (
-                                                <div className="relative w-full h-full">
-                                                    <img src={formData.photo} className="w-full h-full object-cover" alt="Aperçu photo" referrerPolicy="no-referrer" />
-                                                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                        <div className="bg-white/20 backdrop-blur-md p-2 rounded-full mb-2">
-                                                            <CameraIcon />
-                                                        </div>
-                                                        <span className="text-white text-[10px] font-black uppercase tracking-widest">Changer la photo</span>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <div className="bg-orange-500 p-3 rounded-full mb-3 shadow-lg transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
-                                                        <CameraIcon />
-                                                    </div>
-                                                    <span className="text-[11px] text-gray-400 font-black uppercase tracking-widest text-center px-4 group-hover:text-orange-600 transition-colors">
-                                                        {config.photoLabel}
-                                                    </span>
-                                                    <div className="absolute bottom-3 right-3 opacity-20 group-hover:opacity-100 transition-opacity">
-                                                        <div className="w-6 h-6 border-r-2 border-b-2 border-orange-500 rounded-br-lg"></div>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-                                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'photo')} />
+                                    <div className="space-y-1.5">
+                                        <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">{config.labelTitre}</label>
+                                        <input name="titre" value={formData.titre} onChange={handleChange} type="text" placeholder={config.placeholderTitre} className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
                                     </div>
-
-                                    {config.showMultiplePhotos && (
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div onClick={() => document.getElementById('photo2')?.click()} className="w-full h-32 bg-white rounded-3xl border-2 border-dashed border-orange-200 flex flex-col items-center justify-center cursor-pointer overflow-hidden relative shadow-inner">
-                                                {formData.photo2 ? <img src={formData.photo2} className="w-full h-full object-cover" alt="Photo 2" referrerPolicy="no-referrer" /> : (
-                                                    <span className="text-[10px] text-gray-400 font-black uppercase">Image 2</span>
-                                                )}
-                                                <input id="photo2" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'photo2')} />
-                                            </div>
-                                            <div onClick={() => document.getElementById('photo3')?.click()} className="w-full h-32 bg-white rounded-3xl border-2 border-dashed border-orange-200 flex flex-col items-center justify-center cursor-pointer overflow-hidden relative shadow-inner">
-                                                {formData.photo3 ? <img src={formData.photo3} className="w-full h-full object-cover" alt="Photo 3" referrerPolicy="no-referrer" /> : (
-                                                    <span className="text-[10px] text-gray-400 font-black uppercase">Image 3</span>
-                                                )}
-                                                <input id="photo3" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'photo3')} />
-                                            </div>
-                                        </div>
-                                    )}
 
                                     {config.labelNom && (
                                         <div className="space-y-1.5">
@@ -351,31 +307,47 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
                                         </div>
                                     )}
 
+                                    <div className="space-y-1.5">
+                                        <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">{config.labelVille || "Ville *"}</label>
+                                        <input name="ville" value={formData.ville} onChange={handleChange} type="text" placeholder={config.placeholderVille || "Ex: Abidjan"} className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
+                                    </div>
+
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">{config.labelVille || "Ville *"}</label>
-                                            <input name="ville" value={formData.ville} onChange={handleChange} type="text" placeholder={config.placeholderVille || "Ex: Abidjan"} className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
-                                        </div>
                                         <div className="space-y-1.5">
                                             <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">Téléphone *</label>
                                             <input name="telephone" value={formData.telephone} onChange={handleChange} type="tel" placeholder="🇨🇮 SIM1" className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
                                         </div>
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">WhatsApp *</label>
-                                        <input name="whatsapp" value={formData.whatsapp} onChange={handleChange} type="tel" placeholder="🇨🇮 Contact°WhatsApp" className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">{config.labelTitre}</label>
-                                        <input name="titre" value={formData.titre} onChange={handleChange} type="text" placeholder={config.placeholderTitre} className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
-                                    </div>
-
-                                    {config.showEmail && (
                                         <div className="space-y-1.5">
-                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">Email *</label>
-                                            <input name="gmail" value={formData.gmail} onChange={handleChange} type="email" placeholder="votre@email.com" className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
+                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">WhatsApp *</label>
+                                            <input name="whatsapp" value={formData.whatsapp} onChange={handleChange} type="tel" placeholder="🇨🇮 WhatsApp" className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
+                                        </div>
+                                    </div>
+
+                                    {config.labelRadio && (
+                                        <div className="space-y-1.5">
+                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">{config.labelRadio}</label>
+                                            <div className="flex flex-wrap gap-3 mt-1">
+                                                {config.radioOpts?.map((opt: string) => (
+                                                    <label key={opt} className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl cursor-pointer transition-all shadow-md ${formData.formation === opt ? 'bg-white text-orange-600 ring-4 ring-white/30' : 'bg-white/20 text-white border border-white/30'}`}>
+                                                        <input type="radio" name="formation" value={opt} checked={formData.formation === opt} onChange={handleChange} className="hidden" />
+                                                        <span className="text-[11px] font-black uppercase">{opt}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {config.labelWorkMode && (
+                                        <div className="space-y-1.5">
+                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">{config.labelWorkMode}</label>
+                                            <div className="grid grid-cols-2 gap-3 mt-1">
+                                                {config.workModeOpts?.map((opt: string) => (
+                                                    <label key={opt} className={`flex items-center justify-center gap-2 p-4 rounded-2xl cursor-pointer transition-all shadow-md ${formData.local === opt ? 'bg-white text-orange-600 ring-4 ring-white/30' : 'bg-white/20 text-white border border-white/30'}`}>
+                                                        <input type="radio" name="local" value={opt} checked={formData.local === opt} onChange={handleChange} className="hidden" />
+                                                        <span className="text-[11px] font-black uppercase">{opt}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
 
@@ -383,6 +355,20 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
                                         <div className="space-y-1.5">
                                             <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">{config.labelPrix}</label>
                                             <input name="prix" value={formData.prix} onChange={handleChange} type="text" placeholder="Ex: 5000 FCFA" className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
+                                        </div>
+                                    )}
+
+                                    {config.showBirthDate && (
+                                        <div className="space-y-1.5">
+                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">Date de naissance *</label>
+                                            <input name="naissance" value={formData.naissance} onChange={handleChange} type="date" className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
+                                        </div>
+                                    )}
+
+                                    {config.showEmail && (
+                                        <div className="space-y-1.5">
+                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">{config.labelEmail || "Email *"}</label>
+                                            <input name="gmail" value={formData.gmail} onChange={handleChange} type="email" placeholder="votre@email.com" className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
                                         </div>
                                     )}
 
@@ -399,60 +385,22 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
                                             <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Plus de détails..." className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md min-h-[100px] resize-none" />
                                         </div>
                                     )}
-
-                                    {registrationType === 'Travailleur' && (
-                                        <div className="space-y-1.5">
-                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">Domaine *</label>
-                                            <input name="domaine" value={formData.domaine} onChange={handleChange} type="text" placeholder="Ex: Bâtiment, Beauté..." className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
-                                        </div>
-                                    )}
-
-                                    {registrationType === 'Travailleur' && (
-                                        <div className="space-y-1.5">
-                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">Date de naissance *</label>
-                                            <input name="naissance" value={formData.naissance} onChange={handleChange} type="date" className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
-                                        </div>
-                                    )}
-
-                                    {config.labelRadio && (
-                                        <div className="space-y-1.5">
-                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">{config.labelRadio}</label>
-                                            <div className="flex flex-wrap gap-3 mt-1">
-                                                {config.radioOpts?.map((opt: string) => (
-                                                    <label key={opt} className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl cursor-pointer transition-all shadow-md ${formData.formation === opt ? 'bg-white text-orange-600 ring-4 ring-white/30' : 'bg-white/20 text-white border border-white/30'}`}>
-                                                        <input type="radio" name="formation" value={opt} checked={formData.formation === opt} onChange={handleChange} className="hidden" />
-                                                        <span className="text-[11px] font-black uppercase">{opt}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {registrationType === 'Travailleur' && (
-                                        <div className="space-y-1.5">
-                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">Avez-vous un local professionnel ? *</label>
-                                            <div className="grid grid-cols-2 gap-3 mt-1">
-                                                <label className={`flex items-center justify-center gap-2 p-4 rounded-2xl cursor-pointer transition-all shadow-md ${formData.local === 'OUI' ? 'bg-white text-orange-600 ring-4 ring-white/30' : 'bg-white/20 text-white border border-white/30'}`}>
-                                                    <input type="radio" name="local" value="OUI" checked={formData.local === 'OUI'} onChange={handleChange} className="hidden" />
-                                                    <span className="text-[11px] font-black uppercase">OUI</span>
-                                                </label>
-                                                <label className={`flex items-center justify-center gap-2 p-4 rounded-2xl cursor-pointer transition-all shadow-md ${formData.local === 'NON' ? 'bg-white text-orange-600 ring-4 ring-white/30' : 'bg-white/20 text-white border border-white/30'}`}>
-                                                    <input type="radio" name="local" value="NON" checked={formData.local === 'NON'} onChange={handleChange} className="hidden" />
-                                                    <span className="text-[11px] font-black uppercase">NON</span>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
 
-                                <div className="pt-6 pb-12">
+                                <div className="pt-6">
                                     <button type="submit" disabled={isSubmitting} className="w-full bg-black hover:bg-slate-900 text-white font-black py-5 rounded-3xl shadow-2xl transition-all transform active:scale-95 disabled:opacity-80 uppercase tracking-widest text-sm min-h-[60px] flex items-center justify-center gap-3">
                                         {isSubmitting ? <Spinner /> : (
                                             <>
-                                                <span>Confirmer l'inscription-{config.price}.CFA🚀</span>
+                                                <span>Valider l'inscription 🚀</span>
                                             </>
                                         )}
                                     </button>
+                                </div>
+
+                                <div className="mt-8 pt-6 border-t border-white/10">
+                                    <p className="text-[10px] text-white/60 italic leading-tight text-center px-4">
+                                        Rejoignez le réseau Filan 225 dès maintenant ! Donnez de la visibilité à vos compétences ou services et accédez à des opportunités garanties en un clic. Votre avenir professionnel commence ici.
+                                    </p>
                                 </div>
                             </form>
                         )}

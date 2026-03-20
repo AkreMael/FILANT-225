@@ -53,29 +53,88 @@
       },
       "required": ["userId", "userName", "role", "content", "timestamp"]
     },
-    "WorkerRegistration": {
-      "title": "WorkerRegistration",
+    "Travailleur": {
+      "title": "Travailleur",
       "description": "Inscription détaillée d'un travailleur.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
-        "jobTitle": { "type": "string" },
-        "fullName": { "type": "string" },
-        "city": { "type": "string" },
-        "phone": { "type": "string" },
-        "whatsapp": { "type": "string" },
-        "documentsUrl": { "type": "string" },
-        "domain": { "type": "string" },
-        "acquisitionMethod": { "type": "string", "enum": ["tas", "formation"] },
-        "workMode": { "type": "string", "enum": ["local", "ambulant"] },
-        "birthDate": { "type": "string" },
-        "email": { "type": "string" },
+        "jobTitle": { "type": "string", "description": "Titre du métier" },
+        "fullName": { "type": "string", "description": "Nom & Prénoms" },
+        "city": { "type": "string", "description": "Ville actuelle" },
+        "phone": { "type": "string", "description": "Téléphone (SIM1)" },
+        "whatsapp": { "type": "string", "description": "Compte WhatsApp" },
+        "experience": { "type": "string", "enum": ["Appris sur le tas", "Nouveau (Formation)"] },
+        "workMode": { "type": "string", "enum": ["J'ai un local", "Travailleur ambulant"] },
+        "birthDate": { "type": "string", "description": "Date de naissance" },
+        "email": { "type": "string", "description": "Email (Gmail)" },
         "status": { "type": "string", "enum": ["pending", "paid", "validated"] },
         "createdAt": { "type": "string", "format": "date-time" },
         "price": { "type": "number" },
-        "typeInscription": { "type": "string" }
+        "photoUrl": { "type": "string" }
       },
-      "required": ["userId", "jobTitle", "fullName", "city", "phone", "whatsapp", "acquisitionMethod", "workMode", "birthDate", "createdAt"]
+      "required": ["userId", "jobTitle", "fullName", "city", "phone", "whatsapp", "experience", "workMode", "birthDate", "createdAt"]
+    },
+    "AgenceImmobiliere": {
+      "title": "AgenceImmobiliere",
+      "description": "Inscription d'une agence immobilière.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "agencyName": { "type": "string", "description": "Nom de l'agence" },
+        "managerName": { "type": "string", "description": "Nom du responsable" },
+        "city": { "type": "string", "description": "Ville actuelle" },
+        "phone": { "type": "string", "description": "Téléphone (SIM1)" },
+        "whatsapp": { "type": "string", "description": "Compte WhatsApp" },
+        "services": { "type": "array", "items": { "type": "string" }, "description": "Services proposés" },
+        "interventionZones": { "type": "string", "description": "Zones d'intervention (Facultatif)" },
+        "status": { "type": "string", "enum": ["pending", "paid", "validated"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "price": { "type": "number" },
+        "photoUrl": { "type": "string" }
+      },
+      "required": ["userId", "agencyName", "managerName", "city", "phone", "whatsapp", "services", "createdAt"]
+    },
+    "ProprietaireEquipement": {
+      "title": "ProprietaireEquipement",
+      "description": "Inscription d'un propriétaire d'équipement.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "ownerName": { "type": "string", "description": "Nom du propriétaire" },
+        "location": { "type": "string", "description": "Ville & Quartier actuels" },
+        "phone": { "type": "string", "description": "Téléphone (SIM1)" },
+        "whatsapp": { "type": "string", "description": "Compte WhatsApp" },
+        "equipmentType": { "type": "string", "description": "Type d'accessoires à louer" },
+        "dailyPrice": { "type": "number", "description": "Prix de location par jour" },
+        "description": { "type": "string", "description": "Description (Facultatif)" },
+        "status": { "type": "string", "enum": ["pending", "paid", "validated"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "price": { "type": "number" },
+        "photos": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["userId", "ownerName", "location", "phone", "whatsapp", "equipmentType", "dailyPrice", "createdAt"]
+    },
+    "Entreprise": {
+      "title": "Entreprise",
+      "description": "Inscription d'une entreprise.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "companyName": { "type": "string", "description": "Nom de l'entreprise" },
+        "ownerName": { "type": "string", "description": "Nom du propriétaire" },
+        "location": { "type": "string", "description": "Lieu" },
+        "phone": { "type": "string", "description": "Téléphone (SIM1)" },
+        "whatsapp": { "type": "string", "description": "Compte WhatsApp" },
+        "proposedSalary": { "type": "string", "description": "Salaire proposé" },
+        "email": { "type": "string", "description": "Email de l'entreprise" },
+        "description": { "type": "string", "description": "Description (Facultatif)" },
+        "status": { "type": "string", "enum": ["pending", "paid", "validated"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "price": { "type": "number" },
+        "photoUrl": { "type": "string" }
+      },
+      "required": ["userId", "companyName", "ownerName", "location", "phone", "whatsapp", "proposedSalary", "createdAt"]
     },
     "ChatMessage": {
       "title": "ChatMessage",
@@ -121,9 +180,21 @@
       "schema": "Message",
       "description": "Collection des messages de chat."
     },
-    "/worker_registrations/{id}": {
-      "schema": "WorkerRegistration",
+    "/travailleurs/{id}": {
+      "schema": "Travailleur",
       "description": "Collection des inscriptions détaillées des travailleurs."
+    },
+    "/agences/{id}": {
+      "schema": "AgenceImmobiliere",
+      "description": "Collection des inscriptions des agences immobilières."
+    },
+    "/proprietaires/{id}": {
+      "schema": "ProprietaireEquipement",
+      "description": "Collection des inscriptions des propriétaires d'équipement."
+    },
+    "/entreprises/{id}": {
+      "schema": "Entreprise",
+      "description": "Collection des inscriptions des entreprises."
     },
     "/Chats/{userId}/messages/{messageId}": {
       "schema": "ChatMessage",

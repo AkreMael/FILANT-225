@@ -17,6 +17,7 @@ export enum Tab {
 }
 
 export interface User {
+  id?: string;
   name: string;
   city: string;
   phone: string;
@@ -69,4 +70,17 @@ export interface FavoriteRequest {
   answers: Record<string, string | null>;
   userInfo: User;
   totalPrice?: number;
+}
+
+export interface PrivateRegistration {
+  id: string;
+  userId: string;
+  createdAt: any;
+  status: 'pending' | 'approved' | 'rejected';
+  typeInscription: string;
+  price: number;
+  title: string;
+  category: string;
+  phone: string;
+  data: any;
 }
