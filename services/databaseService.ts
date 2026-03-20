@@ -1216,23 +1216,33 @@ export const databaseService = {
   },
 
   async saveAdminChatMessage(userId: string, message: any) {
-    const { push, set } = await import('firebase/database');
-    const chatRef = rtdbRef(rtdb, `messages/${userId}/messages`);
-    const newMessageRef = push(chatRef);
-    const msgData = {
-      ...message,
-      id: newMessageRef.key,
-      timestamp: Date.now(),
-      read: false
-    };
-    await set(newMessageRef, msgData);
-    
-    // Also sync to Firestore for persistence
-    const firestoreRef = doc(db, 'messages', userId, 'messages', newMessageRef.key!);
-    await setDoc(firestoreRef, {
-      ...msgData,
-      timestamp: serverTimestamp()
-    });
+    try {
+      const chatRef = rtdbRef(rtdb, `messages/${userId}/messages`);
+      const newMessageRef = push(chatRef);
+      const msgData = {
+        ...message,
+        id: newMessageRef.key,
+        timestamp: Date.now(),
+        read: false,
+        userId: userId
+      };
+      
+      // Use Promise.all to run both writes in parallel and handle errors
+      await Promise.all([
+        set(newMessageRef, msgData),
+        setDoc(doc(db, 'messages', userId, 'messages', newMessageRef.key!), {
+          ...msgData,
+          timestamp: serverTimestamp()
+        })
+      ]);
+      
+      console.log("Admin chat message saved successfully to RTDB and Firestore");
+      return true;
+    } catch (error) {
+      console.error("Error saving admin chat message:", error);
+      handleFirestoreError(error, OperationType.WRITE, `messages/${userId}/messages`);
+      return false;
+    }
   },
 
   async markAdminMessagesAsRead(userId: string, senderToMark: 'admin' | 'user') {

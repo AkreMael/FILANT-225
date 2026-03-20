@@ -45,15 +45,17 @@ interface Message extends StoredChatMessage {
 
 interface ChatWidgetProps {
     userPhone: string;
+    userId?: string;
     activeTab: Tab;
     currentMenuView: string;
 }
 
-const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, activeTab, currentMenuView }) => {
+const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, activeTab, currentMenuView }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [firebaseMessages, setFirebaseMessages] = useState<Message[]>([]);
   
   const [position, setPosition] = useState({ bottom: '100px', left: '20px' });
   const [moveDuration, setMoveDuration] = useState(0);
@@ -86,6 +88,44 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, activeTab, currentMe
     if (history.length > 0) setMessages(history);
     else resetChatWithWelcome();
   }, [userPhone]);
+
+  // Listen to Firebase messages in real-time
+  useEffect(() => {
+    if (!userId) return;
+    
+    let unsubscribe: any;
+    const setupFirebaseListener = async () => {
+      unsubscribe = await databaseService.onAdminChatUpdate(userId, (msgs) => {
+        // Map RTDB messages to our Message format if needed
+        const mappedMsgs = msgs.map(m => ({
+          ...m,
+          sender: m.sender === 'admin' ? 'ai' : 'user' // Map admin to 'ai' for consistent styling in widget
+        }));
+        setFirebaseMessages(mappedMsgs);
+      });
+    };
+    
+    setupFirebaseListener();
+    return () => {
+      if (unsubscribe && typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [userId]);
+
+  // Merge local and firebase messages
+  useEffect(() => {
+    if (firebaseMessages.length === 0) return;
+    
+    setMessages(prev => {
+      // Create a map of existing messages by ID or text+timestamp to avoid duplicates
+      const existingIds = new Set(prev.map(m => m.id || `${m.text}_${m.timestamp}`));
+      const newFromFirebase = firebaseMessages.filter(m => !existingIds.has(m.id || `${m.text}_${m.timestamp}`));
+      
+      if (newFromFirebase.length === 0) return prev;
+      
+      const merged = [...prev, ...newFromFirebase].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+      return merged;
+    });
+  }, [firebaseMessages]);
 
   const resetChatWithWelcome = () => {
     const welcomeMsg: Message = { 
@@ -186,6 +226,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, activeTab, currentMe
     setMessages(prev => [...prev, userMsg]);
     databaseService.saveChatMessage(userPhone, userMsg);
     
+    // Sync to Firebase if userId is available
+    if (userId) {
+        databaseService.saveAdminChatMessage(userId, {
+            ...userMsg,
+            sender: 'user'
+        });
+    }
+    
     // Save to PostgreSQL
     fetch('/api/chat/save', {
         method: 'POST',
@@ -247,6 +295,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, activeTab, currentMe
 
     setMessages(prev => [...prev, aiMsg]);
     databaseService.saveChatMessage(userPhone, aiMsg);
+    
+    // Sync to Firebase if userId is available
+    if (userId) {
+        databaseService.saveAdminChatMessage(userId, {
+            ...aiMsg,
+            sender: 'admin' // Assistant acts as admin for the user's "Messagerie Bleue"
+        });
+    }
     
     // Save to RTDB if it's a validated request (has payment info or is a form submission)
     if (detected || isFormSubmission || isCardRecovery) {

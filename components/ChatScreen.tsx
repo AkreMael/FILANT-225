@@ -76,8 +76,16 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
       timestamp: Date.now()
     };
 
-    if (!textOverride) setInputText('');
-    await databaseService.saveAdminChatMessage(chatUserId, newMessage);
+    try {
+      if (!textOverride) setInputText('');
+      const success = await databaseService.saveAdminChatMessage(chatUserId, newMessage);
+      if (!success) {
+        // Optionnel: remettre le texte si l'envoi a échoué
+        if (!textOverride) setInputText(textToSend);
+      }
+    } catch (error) {
+      console.error("Error in handleSendMessage:", error);
+    }
   };
 
   return (
