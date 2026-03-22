@@ -192,6 +192,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
         };
     }
 
+    // Cas spécial Inscription
+    if (text.toLowerCase().includes("inscription") || text.toLowerCase().includes("mise en ligne")) {
+        return {
+            amount: "310",
+            link: "https://pay.wave.com/m/M_ci_jwxwatdcoKS8/c/ci/?amount=310"
+        };
+    }
+
     // Cas spécial Récupération de carte
     if (text.includes("récupération de carte") || text.includes("7100")) {
         return {
@@ -219,14 +227,22 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
     const isFormSubmission = textToSend.includes("Nouvelle demande via FILANT") || textToSend.includes("Nouvelle inscription via FILANT");
     const isCardRecovery = textToSend.includes("récupération de carte");
     
+    const msgId = Date.now().toString();
     const userMsg: Message = { 
-        id: Date.now().toString(), 
+        id: msgId, 
         text: textToSend, 
         sender: 'user',
         timestamp: Date.now()
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    // Only update local state if we're not using Firebase sync or to show it immediately
+    // The merge logic in useEffect will handle de-duplication if IDs match
+    setMessages(prev => {
+        const exists = prev.some(m => m.id === msgId);
+        if (exists) return prev;
+        return [...prev, userMsg];
+    });
+
     databaseService.saveChatMessage(userPhone, userMsg);
     
     // Sync to Firebase if chatUserId is available
@@ -287,8 +303,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
         }
     }
 
+    const aiMsgId = (Date.now() + 1).toString();
     const aiMsg: Message = { 
-        id: (Date.now() + 1).toString(), 
+        id: aiMsgId, 
         text: aiResponseText, 
         sender: 'ai',
         timestamp: Date.now(),
@@ -296,7 +313,11 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
         whatsAppPayload: whatsAppPayload || aiResponseText // Fallback sur la réponse IA
     };
 
-    setMessages(prev => [...prev, aiMsg]);
+    setMessages(prev => {
+        const exists = prev.some(m => m.id === aiMsgId);
+        if (exists) return prev;
+        return [...prev, aiMsg];
+    });
     databaseService.saveChatMessage(userPhone, aiMsg);
     
     // Sync to Firebase if chatUserId is available

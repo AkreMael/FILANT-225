@@ -205,18 +205,16 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
 
     const handleAssistantRedirect = () => {
         const detailMessage = `*Nouvelle inscription via FILANT°225*\n\n` +
-            `*Type:* ${registrationType}\n` +
-            `*Objet:* ${formData.titre}\n` +
-            (formData.nomPrenom ? `*Nom:* ${formData.nomPrenom}\n` : '') +
+            `*Nom:* ${formData.nomPrenom || formData.titre}\n` +
+            `*Service:* ${registrationType} (${formData.titre})\n` +
+            `*Montant:* ${config.price} FCFA\n\n` +
             `*Ville:* ${formData.ville}\n` +
             `*Tél:* ${formData.telephone}\n` +
             `*WhatsApp:* ${formData.whatsapp}\n` +
-            (formData.prix ? `*Prix:* ${formData.prix}\n` : '') +
             (formData.formation ? `*Catégorie:* ${formData.formation}\n` : '') +
             (formData.gmail ? `*Email:* ${formData.gmail}\n` : '') +
             (formData.description ? `*Description:* ${formData.description}\n` : '') +
             `\n--- PAIEMENT REQUIS ---\n` +
-            `Montant: ${config.price} FCFA\n` +
             `Lien Wave: https://pay.wave.com/m/M_ci_jwxwatdcoKS8/c/ci/?amount=${config.price}`;
 
         const event = new CustomEvent('trigger-chat-message', { detail: detailMessage });

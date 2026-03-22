@@ -1220,14 +1220,15 @@ export const databaseService = {
     try {
       const sanitizedUserId = userId.replace(/[.#$[\]/]/g, '_');
       const chatRef = rtdbRef(rtdb, `messages/${sanitizedUserId}`);
-      const newMessageRef = push(chatRef);
-      const messageId = newMessageRef.key;
+      
+      const messageId = (typeof message === 'object' && message.id) ? message.id : push(chatRef).key;
+      const newMessageRef = rtdbRef(rtdb, `messages/${sanitizedUserId}/${messageId}`);
       
       const msgData = typeof message === 'string' 
         ? {
             id: messageId,
             text: message,
-            sender: 'user', // Default to user if only string provided
+            sender: 'user',
             timestamp: Date.now(),
             read: false,
             userId: sanitizedUserId
@@ -1235,7 +1236,7 @@ export const databaseService = {
         : {
             ...message,
             id: messageId,
-            timestamp: Date.now(),
+            timestamp: message.timestamp || Date.now(),
             read: false,
             userId: sanitizedUserId
           };

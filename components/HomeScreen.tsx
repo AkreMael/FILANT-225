@@ -636,7 +636,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
                         <div className="bg-blue-600 p-3 rounded-full shadow-lg transform group-hover:scale-110 transition-transform relative">
                             <ChatBubbleIcon />
                             {unreadChatCount > 0 && (
-                                <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full border-2 border-slate-900 flex items-center justify-center px-1 animate-pulse">
+                                <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full border-2 border-slate-900 flex items-center justify-center px-1 animate-blink-red-green shadow-lg">
                                     <span className="text-[9px] font-black text-white leading-none">{unreadChatCount}</span>
                                 </div>
                             )}
@@ -1024,6 +1024,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
         }
         .animate-blink-fast {
             animation: blink-fast 0.6s step-end infinite;
+        }
+
+        @keyframes blink-red-green {
+            0%, 100% { background-color: #ef4444; }
+            50% { background-color: #22c55e; }
+        }
+        .animate-blink-red-green {
+            animation: blink-red-green 0.3s infinite;
         }
 
         /* SEARCH BAR ANIMATIONS */

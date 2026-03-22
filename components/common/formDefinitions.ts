@@ -379,10 +379,11 @@ export const getQuestionsForType = (formType: string, title: string, serviceMode
 
 export const generateWhatsAppMessage = (title: string, questions: Question[], answers: Answers, user: {name: string, city: string, phone: string}, totalPrice?: number, mode?: string, count?: number) => {
     let message = `*Nouvelle demande via FILANT°225*\n\n`;
-    message += `*Service/Objet:* ${title}\n`;
-    if (mode) message += `*Option:* ${mode}\n`;
+    message += `*Nom:* ${user.name}\n`;
+    message += `*Service:* ${title}${mode ? ` (${mode})` : ''}\n`;
     if (count) message += `*Quantité/Personne:* ${count}\n`;
-    message += `\n--- RÉPONSES ---\n`;
+    
+    message += `\n--- DÉTAILS ---\n`;
     questions.forEach(q => {
         // On n'inclut que les questions dont la condition est remplie
         if (!q.condition || q.condition(answers)) {
@@ -392,14 +393,14 @@ export const generateWhatsAppMessage = (title: string, questions: Question[], an
             }
         }
     });
-    message += `\n--- INFORMATIONS CLIENT ---\n`;
-    message += `*Nom:* ${user.name}\n`;
-    message += `*Ville (profil):* ${user.city}\n`;
+    
+    message += `\n--- CONTACT ---\n`;
+    message += `*Ville:* ${user.city}\n`;
     message += `*Téléphone:* ${user.phone}\n`;
+    
     if (totalPrice !== undefined && totalPrice > 0) {
-        message += `\n--- FACTURE ---\n`;
-        message += `*Montant Total à Payer:* ${Math.floor(totalPrice)} FCFA\n`;
-        message += `\n*LIEN DE PAIEMENT:* https://pay.wave.com/m/M_ci_jwxwatdcoKS8/c/ci/?amount=${Math.floor(totalPrice)}\n`;
+        message += `\n*Montant:* ${Math.floor(totalPrice)} FCFA\n`;
+        message += `*Lien de paiement:* https://pay.wave.com/m/M_ci_jwxwatdcoKS8/c/ci/?amount=${Math.floor(totalPrice)}\n`;
     }
     return message;
 };

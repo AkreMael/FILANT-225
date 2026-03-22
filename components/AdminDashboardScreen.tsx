@@ -1364,11 +1364,23 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                 </span>
                             </div>
                             
+                            <div className="mt-4 pt-4 border-t border-gray-100">
+                                <div className="flex flex-col space-y-1">
+                                    <p className="text-xs font-black text-gray-900 uppercase">{reg.title}</p>
+                                    <p className="text-[10px] text-gray-500 font-bold uppercase">{reg.data?.ville || 'Ville inconnue'} • +225 {reg.phone}</p>
+                                    <p className="text-[10px] font-black mt-1">
+                                        <span className="text-gray-400 uppercase">Profil: </span>
+                                        <span className="text-blue-600 uppercase">
+                                            {reg.typeInscription === 'Propriétaire' ? 'Propriétaire (si propriétaire d’équipement)' : 
+                                             reg.typeInscription === 'Travailleur' ? 'Travailleur' : reg.typeInscription}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+
                             <div className="flex items-center justify-between mt-4">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[10px] text-gray-400 font-bold uppercase">Type: {reg.typeInscription}</span>
-                                    <span className="text-gray-300">•</span>
-                                    <span className="text-[10px] text-gray-400 font-bold uppercase">{new Date(reg.createdAt).toLocaleDateString()}</span>
+                                    <span className="text-[9px] text-gray-400 font-bold uppercase">{new Date(reg.createdAt).toLocaleDateString()}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button 
@@ -1400,41 +1412,42 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
         {selectedRegistration && (
             <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6 backdrop-blur-sm animate-in fade-in duration-200">
                 <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 max-h-[80vh] overflow-y-auto scrollbar-hide">
-                    <h3 className="text-xl font-black text-gray-900 mb-6 uppercase tracking-tight border-b border-gray-100 pb-2">Détails de l'Inscription</h3>
+                    <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+                        <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Détails de l'Inscription</h3>
+                        <span className="text-[10px] font-black px-3 py-1 bg-orange-100 text-orange-600 rounded-full uppercase">
+                            {selectedRegistration.category}
+                        </span>
+                    </div>
                     
                     <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+                            <span className="text-[10px] font-black text-blue-600 uppercase block mb-4 border-b border-blue-100 pb-1">Contenu de l'inscription</span>
+                            <div className="space-y-4">
+                                {Object.entries(selectedRegistration.data || {}).map(([key, value]) => {
+                                    // Skip internal fields if any, but here we show "contenu réel"
+                                    if (key === 'ville' || key === 'phone' || key === 'name') return null;
+                                    return (
+                                        <div key={key} className="flex flex-col">
+                                            <span className="text-[9px] font-black text-gray-400 uppercase mb-1">{key}</span>
+                                            <p className="text-sm text-gray-800 font-bold leading-relaxed">
+                                                {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                            </p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 px-2">
                             <div>
-                                <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">Catégorie</span>
-                                <p className="font-bold text-gray-800 text-sm uppercase">{selectedRegistration.category}</p>
+                                <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">Type de Profil</span>
+                                <p className="font-bold text-gray-800 text-xs uppercase">
+                                    {selectedRegistration.typeInscription === 'Propriétaire' ? 'Propriétaire' : 'Travailleur'}
+                                </p>
                             </div>
                             <div>
-                                <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">Type</span>
-                                <p className="font-bold text-gray-800 text-sm uppercase">{selectedRegistration.typeInscription}</p>
-                            </div>
-                        </div>
-
-                        <div>
-                            <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">Titre / Nom</span>
-                            <p className="font-bold text-gray-800 text-sm uppercase">{selectedRegistration.title}</p>
-                        </div>
-
-                        <div>
-                            <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">Téléphone</span>
-                            <p className="font-bold text-gray-800 text-sm">+225 {selectedRegistration.phone}</p>
-                        </div>
-
-                        <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                            <span className="text-[10px] font-black text-orange-600 uppercase block mb-3 border-b border-orange-100 pb-1">Informations Complètes</span>
-                            <div className="space-y-3">
-                                {Object.entries(selectedRegistration.data || {}).map(([key, value]) => (
-                                    <div key={key}>
-                                        <span className="text-[9px] font-black text-gray-400 uppercase block">{key}</span>
-                                        <p className="text-xs text-gray-700 font-medium">
-                                            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                                        </p>
-                                    </div>
-                                ))}
+                                <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">Date</span>
+                                <p className="font-bold text-gray-800 text-xs uppercase">{new Date(selectedRegistration.createdAt).toLocaleDateString()}</p>
                             </div>
                         </div>
                     </div>
