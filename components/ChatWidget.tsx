@@ -46,11 +46,12 @@ interface Message extends StoredChatMessage {
 interface ChatWidgetProps {
     userPhone: string;
     userId?: string;
+    userName?: string;
     activeTab: Tab;
     currentMenuView: string;
 }
 
-const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, activeTab, currentMenuView }) => {
+const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, activeTab, currentMenuView }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -61,6 +62,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, activeTab, c
   const [moveDuration, setMoveDuration] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const chatUserId = userId || `${userName || 'User'}_${userPhone.replace(/\D/g, '')}`;
 
   useEffect(() => {
     if (isOpen) return;
@@ -91,11 +94,11 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, activeTab, c
 
   // Listen to Firebase messages in real-time
   useEffect(() => {
-    if (!userId) return;
+    if (!chatUserId) return;
     
     let unsubscribe: any;
     const setupFirebaseListener = () => {
-      unsubscribe = databaseService.onAdminChatUpdate(userId, (msgs) => {
+      unsubscribe = databaseService.onAdminChatUpdate(chatUserId, (msgs) => {
         // Map RTDB messages to our Message format if needed
         const mappedMsgs = msgs.map(m => ({
           ...m,
@@ -109,7 +112,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, activeTab, c
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [userId]);
+  }, [chatUserId]);
 
   // Merge local and firebase messages
   useEffect(() => {
@@ -226,9 +229,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, activeTab, c
     setMessages(prev => [...prev, userMsg]);
     databaseService.saveChatMessage(userPhone, userMsg);
     
-    // Sync to Firebase if userId is available
-    if (userId) {
-        databaseService.saveAdminChatMessage(userId, {
+    // Sync to Firebase if chatUserId is available
+    if (chatUserId) {
+        databaseService.saveAdminChatMessage(chatUserId, {
             ...userMsg,
             sender: 'user'
         });
@@ -296,9 +299,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, activeTab, c
     setMessages(prev => [...prev, aiMsg]);
     databaseService.saveChatMessage(userPhone, aiMsg);
     
-    // Sync to Firebase if userId is available
-    if (userId) {
-        databaseService.saveAdminChatMessage(userId, {
+    // Sync to Firebase if chatUserId is available
+    if (chatUserId) {
+        databaseService.saveAdminChatMessage(chatUserId, {
             ...aiMsg,
             sender: 'admin' // Assistant acts as admin for the user's "Messagerie Bleue"
         });

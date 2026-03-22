@@ -239,7 +239,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
   useEffect(() => {
     if (!user.phone || isAdmin(user)) return;
     
-    const chatUserId = `${user.name}_${user.phone.replace(/\D/g, '')}`;
+    const chatUserId = user.userId || user.id || `${user.name}_${user.phone.replace(/\D/g, '')}`;
     let unsubscribe: any;
     
     const setupUnreadListener = async () => {
@@ -253,7 +253,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
     return () => {
       if (unsubscribe && typeof unsubscribe === 'function') unsubscribe();
     };
-  }, [user.phone, user.name]);
+  }, [user.id, user.phone, user.name]);
 
   const CARD_LIFESPAN_MS = 30 * 24 * 60 * 60 * 1000; 
   const cardType = getCardType(user.role);

@@ -52,19 +52,17 @@ const EditIcon = ({ className }: { className?: string }) => (
 
 const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
-interface AdminDashboardScreenProps {
-  onBack: () => void;
-  onLogout?: () => void;
-  onSelectUser?: (log: ConnectionLog) => void;
-  onOpenChat?: (user: User) => void;
-  initialView?: 'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms' | 'wave-payments' | 'assistant-requests';
-}
-
-const UserListItem: React.FC<{ user: User; onOpenChat?: (user: User) => void }> = ({ user, onOpenChat }) => {
+const AdminChatButton: React.FC<{ 
+    user: Partial<User>; 
+    onOpenChat?: (user: User) => void;
+    className?: string;
+}> = ({ user, onOpenChat, className }) => {
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
-        const chatUserId = user.id || `${user.name}_${user.phone.replace(/\D/g, '')}`;
+        const chatUserId = user.userId || user.id || `${user.name}_${(user.phone || '').replace(/\D/g, '')}`;
+        if (!chatUserId) return;
+        
         let unsubscribe: any;
         
         const setupListener = () => {
@@ -78,8 +76,47 @@ const UserListItem: React.FC<{ user: User; onOpenChat?: (user: User) => void }> 
         return () => {
             if (unsubscribe) unsubscribe();
         };
-    }, [user.phone, user.name, user.id]);
+    }, [user.phone, user.name, user.id, user.userId]);
 
+    return (
+        <button 
+            onClick={(e) => {
+                e.stopPropagation();
+                if (onOpenChat) {
+                    const fullUser: User = {
+                        id: user.id || user.userId || '',
+                        userId: user.userId || user.id,
+                        name: user.name || 'Utilisateur',
+                        phone: user.phone || '',
+                        role: user.role || 'Client',
+                        city: user.city || 'Inconnue',
+                        ...user
+                    };
+                    onOpenChat(fullUser);
+                }
+            }}
+            className={`relative p-2 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 transition-colors active:scale-90 ${className}`}
+            title="Message Privé"
+        >
+            <ChatIcon />
+            {unreadCount > 0 && (
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border border-white flex items-center justify-center">
+                    <span className="text-[8px] font-black text-white">{unreadCount}</span>
+                </div>
+            )}
+        </button>
+    );
+};
+
+interface AdminDashboardScreenProps {
+  onBack: () => void;
+  onLogout?: () => void;
+  onSelectUser?: (log: ConnectionLog) => void;
+  onOpenChat?: (user: User) => void;
+  initialView?: 'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms' | 'wave-payments' | 'assistant-requests';
+}
+
+const UserListItem: React.FC<{ user: User; onOpenChat?: (user: User) => void }> = ({ user, onOpenChat }) => {
     return (
         <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 shadow-sm">
             <div className="flex justify-between items-start mb-2">
@@ -94,24 +131,13 @@ const UserListItem: React.FC<{ user: User; onOpenChat?: (user: User) => void }> 
                 </span>
             </div>
             <div className="flex items-center justify-between mt-4">
-                <a href={`tel:${user.phone}`} className="text-blue-600 font-mono text-xs font-bold">+225 {user.phone}</a>
                 <div className="flex items-center gap-2">
-                    <button 
-                        onClick={() => onOpenChat && onOpenChat(user)}
-                        className="relative p-2 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 transition-colors active:scale-90"
-                        title="Message Privé"
-                    >
-                        <ChatIcon />
-                        {unreadCount > 0 && (
-                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border border-white flex items-center justify-center">
-                                <span className="text-[8px] font-black text-white">{unreadCount}</span>
-                            </div>
-                        )}
-                    </button>
+                    <a href={`tel:${user.phone}`} className="text-blue-600 font-mono text-xs font-bold">+225 {user.phone}</a>
                     <span className="text-[9px] text-gray-400 font-bold uppercase">
                         {user.lastSeen ? (typeof user.lastSeen === 'object' && 'toDate' in user.lastSeen ? (user.lastSeen as any).toDate().toLocaleDateString() : 'Actif') : 'Inscrit'}
                     </span>
                 </div>
+                <AdminChatButton user={user} onOpenChat={onOpenChat} />
             </div>
         </div>
     );
@@ -1068,10 +1094,20 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                     <p className="text-[10px] text-gray-400 font-black uppercase">Téléphone: <span className="text-gray-700">+225 {payment.phone || inferredPhone || payment.userId}</span></p>
                                     <p className="text-[10px] text-gray-400 font-black uppercase">ID Transaction: <span className="text-gray-700 font-mono">{payment.transactionId || 'N/A'}</span></p>
                                 </div>
-                                <div className="flex items-center justify-end mt-4">
+                                <div className="flex items-center justify-between mt-4">
                                     <span className="text-[9px] text-gray-400 font-bold uppercase">
                                         {payment.timestamp ? new Date(payment.timestamp).toLocaleString() : 'Date inconnue'}
                                     </span>
+                                    <AdminChatButton 
+                                        user={{
+                                            id: payment.userId,
+                                            userId: payment.userId,
+                                            name: payment.userName,
+                                            phone: payment.phone || inferredPhone,
+                                            city: payment.city
+                                        }} 
+                                        onOpenChat={onOpenChat} 
+                                    />
                                 </div>
                             </div>
                         );
@@ -1134,10 +1170,22 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                 "{req.request || req.requestText || req.message || 'Pas de message'}"
                             </div>
                             <div className="flex items-center justify-between mt-4">
-                                <a href={`tel:${req.phone || req.userId}`} className="text-blue-600 font-mono text-[10px] font-bold">+225 {req.phone || req.userId}</a>
-                                <span className="text-[9px] text-gray-400 font-bold uppercase">
-                                    {req.timestamp ? new Date(req.timestamp).toLocaleString() : 'Date inconnue'}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <a href={`tel:${req.phone || req.userId}`} className="text-blue-600 font-mono text-[10px] font-bold">+225 {req.phone || req.userId}</a>
+                                    <span className="text-[9px] text-gray-400 font-bold uppercase">
+                                        {req.timestamp ? new Date(req.timestamp).toLocaleString() : 'Date inconnue'}
+                                    </span>
+                                </div>
+                                <AdminChatButton 
+                                    user={{
+                                        id: req.userId,
+                                        userId: req.userId,
+                                        name: req.userName,
+                                        phone: req.phone,
+                                        city: req.city
+                                    }} 
+                                    onOpenChat={onOpenChat} 
+                                />
                             </div>
                         </div>
                     ))}
@@ -1316,36 +1364,31 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                 </span>
                             </div>
                             
-                            <div className="flex items-center gap-2 mb-4">
-                                <span className="text-[10px] text-gray-400 font-bold uppercase">Type: {reg.typeInscription}</span>
-                                <span className="text-gray-300">•</span>
-                                <span className="text-[10px] text-gray-400 font-bold uppercase">{new Date(reg.createdAt).toLocaleDateString()}</span>
-                            </div>
-
-                            <div className="flex gap-3">
-                                <button 
-                                    onClick={() => setSelectedRegistration(reg)}
-                                    className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-colors active:scale-95"
-                                >
-                                    Voir détails
-                                </button>
-                                <button 
-                                    onClick={() => {
-                                        if (onOpenChat) {
-                                            const chatUser: User = {
-                                                id: reg.userId,
-                                                name: reg.title,
-                                                phone: reg.phone,
-                                                role: 'Client',
-                                                city: reg.data?.ville || 'Inconnue'
-                                            };
-                                            onOpenChat(chatUser);
-                                        }
-                                    }}
-                                    className="flex-1 py-2.5 bg-orange-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-700 transition-colors active:scale-95"
-                                >
-                                    Messagerie Privée
-                                </button>
+                            <div className="flex items-center justify-between mt-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-gray-400 font-bold uppercase">Type: {reg.typeInscription}</span>
+                                    <span className="text-gray-300">•</span>
+                                    <span className="text-[10px] text-gray-400 font-bold uppercase">{new Date(reg.createdAt).toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button 
+                                        onClick={() => setSelectedRegistration(reg)}
+                                        className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors active:scale-90"
+                                        title="Voir détails"
+                                    >
+                                        <ViewIcon className="h-5 w-5" />
+                                    </button>
+                                    <AdminChatButton 
+                                        user={{
+                                            id: reg.userId,
+                                            userId: reg.userId,
+                                            name: reg.title,
+                                            phone: reg.phone,
+                                            city: reg.data?.ville || 'Inconnue'
+                                        }} 
+                                        onOpenChat={onOpenChat} 
+                                    />
+                                </div>
                             </div>
                         </div>
                     ))}

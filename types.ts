@@ -18,6 +18,7 @@ export enum Tab {
 
 export interface User {
   id?: string;
+  userId?: string; // Firebase Auth UID
   name: string;
   city: string;
   phone: string;

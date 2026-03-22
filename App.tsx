@@ -166,7 +166,7 @@ const App: React.FC = () => {
       } else {
         testConnection();
         // Set the user ID from Firebase Auth
-        setCurrentUser(prev => prev ? { ...prev, id: user.uid } : null);
+        setCurrentUser(prev => prev ? { ...prev, userId: user.uid } : null);
       }
     });
     return () => unsubscribe();
@@ -931,7 +931,8 @@ const App: React.FC = () => {
           
           <ChatWidget 
             userPhone={currentUser.phone} 
-            userId={currentUser.id}
+            userId={currentUser.userId || currentUser.id}
+            userName={currentUser.name}
             activeTab={activeTab} 
             currentMenuView={menuView}
           />

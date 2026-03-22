@@ -33,8 +33,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const chatUserId = isAdmin && targetUser 
-    ? (targetUser.id || `${targetUser.name}_${targetUser.phone.replace(/\D/g, '')}`)
-    : (currentUser.id || `${currentUser.name}_${currentUser.phone.replace(/\D/g, '')}`);
+    ? (targetUser.userId || targetUser.id || `${targetUser.name}_${targetUser.phone.replace(/\D/g, '')}`)
+    : (currentUser.userId || currentUser.id || `${currentUser.name}_${currentUser.phone.replace(/\D/g, '')}`);
 
   const chatTitle = isAdmin && targetUser ? `Chat avec ${targetUser.name}` : "Message Privé (Filant 225)";
 
