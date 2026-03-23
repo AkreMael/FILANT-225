@@ -1,7 +1,7 @@
 import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification, PrivateRegistration } from '../types';
 import { db, auth, rtdb, storage } from '../firebase';
 import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc, getDocFromServer, onSnapshot } from 'firebase/firestore';
-import { ref as rtdbRef, push, set, serverTimestamp as rtdbTimestamp, get, update, onValue } from 'firebase/database';
+import { ref as rtdbRef, push, set, serverTimestamp as rtdbTimestamp, get, update, onValue, remove } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
 
 // --- ENUMS & INTERFACES FOR ERROR HANDLING ---
@@ -951,6 +951,15 @@ export const databaseService = {
       }
   },
 
+  saveChatHistory: (phone: string, history: StoredChatMessage[]) => {
+      try {
+          const key = getScopedKey(phone, CHAT_KEY_PREFIX);
+          localStorage.setItem(key, JSON.stringify(history));
+      } catch (e) {
+          console.error("Error saving chat history:", e);
+      }
+  },
+
   saveChatMessage: (phone: string, message: StoredChatMessage) => {
       try {
           const historyKey = getScopedKey(phone, CHAT_KEY_PREFIX);
@@ -1311,6 +1320,25 @@ export const databaseService = {
     }, (error) => {
       console.error("RTDB Unread Count Error:", error);
     });
+  },
+
+  async deleteAdminChatMessage(userId: string, messageId: string) {
+    try {
+      const sanitizedUserId = userId.replace(/[.#$[\]/]/g, '_');
+      const rtdbPath = `messages/${sanitizedUserId}/${messageId}`;
+      const firestorePath = `messages/${sanitizedUserId}/history/${messageId}`;
+      
+      await Promise.all([
+        remove(rtdbRef(rtdb, rtdbPath)),
+        deleteDoc(doc(db, 'messages', sanitizedUserId, 'history', messageId))
+      ]);
+      
+      console.log("Admin chat message deleted successfully from RTDB and Firestore");
+      return true;
+    } catch (error) {
+      console.error("Error deleting admin chat message:", error);
+      return false;
+    }
   },
 
   async saveScannedContact(contact: any) {

@@ -19,6 +19,7 @@ interface ChatScreenProps {
 
 const BackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>;
 const SendIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9-7-9-7V7l11 5-11 5v-2z" /></svg>;
+const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
 
 const QUICK_MESSAGES = [
   { label: 'BIENVENUE', text: "Bonjour ! Bienvenue chez Filan 225. Nous avons bien reçu votre formulaire. Votre profil est en cours de traitement. Merci de votre confiance !" },
@@ -30,6 +31,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteConfirm, setDeleteConfirm] = useState<{show: boolean, messageId: string | null}>({show: false, messageId: null});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Standardize chatUserId to always use the phone number if available
@@ -91,6 +93,15 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
     }
   };
 
+  const handleDeleteMessage = async () => {
+    if (!deleteConfirm.messageId) return;
+    
+    const success = await databaseService.deleteAdminChatMessage(chatUserId, deleteConfirm.messageId);
+    if (success) {
+      setDeleteConfirm({show: false, messageId: null});
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-50 animate-in fade-in duration-300">
       <header className="bg-white border-b border-slate-200 p-4 flex items-center gap-3 sticky top-0 z-20 shadow-sm">
@@ -140,17 +151,27 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
         ) : (
           messages.map((msg, idx) => {
             const isMe = (isAdmin && msg.sender === 'admin') || (!isAdmin && msg.sender === 'user');
+            const messageId = msg.id || `msg_${idx}`;
             return (
-              <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
+              <div key={messageId} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300 group`}>
+                <div className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm relative ${
                   isMe 
                     ? 'bg-orange-500 text-white rounded-tr-none' 
                     : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'
                 }`}>
                   <p className="text-sm leading-relaxed">{msg.text}</p>
-                  <p className={`text-[9px] mt-1.5 font-bold uppercase tracking-widest ${isMe ? 'text-white/60' : 'text-slate-400'}`}>
-                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+                  <div className="flex items-center justify-between mt-1.5 gap-4">
+                    <p className={`text-[9px] font-bold uppercase tracking-widest ${isMe ? 'text-white/60' : 'text-slate-400'}`}>
+                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    <button 
+                      onClick={() => setDeleteConfirm({show: true, messageId: messageId})}
+                      className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-black/10 ${isMe ? 'text-white/40' : 'text-slate-300'}`}
+                      title="Supprimer ce message"
+                    >
+                      <TrashIcon />
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -180,6 +201,35 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
           </button>
         </div>
       </div>
+
+      {/* Modal de confirmation de suppression */}
+      {deleteConfirm.show && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] p-8 w-full max-w-xs shadow-2xl text-center animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <TrashIcon />
+            </div>
+            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter mb-2">Supprimer le message</h3>
+            <p className="text-xs font-bold text-slate-500 leading-relaxed mb-8">
+              Voulez-vous supprimer ce message ? Cette action est irréversible.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={handleDeleteMessage}
+                className="w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg active:scale-95 transition-transform"
+              >
+                Oui, supprimer
+              </button>
+              <button 
+                onClick={() => setDeleteConfirm({show: false, messageId: null})}
+                className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-transform"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

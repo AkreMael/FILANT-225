@@ -633,11 +633,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
                         onClick={() => setActiveTab(Tab.UserChat)} 
                         className="flex flex-col items-center space-y-1 group"
                     >
-                        <div className="bg-blue-600 p-3 rounded-full shadow-lg transform group-hover:scale-110 transition-transform relative">
+                        <div className={`p-3 rounded-full shadow-lg transform group-hover:scale-110 transition-transform relative ${unreadChatCount > 0 ? 'animate-blink-red-green' : 'bg-blue-600'}`}>
                             <ChatBubbleIcon />
                             {unreadChatCount > 0 && (
-                                <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full border-2 border-slate-900 flex items-center justify-center px-1 animate-blink-red-green shadow-lg">
-                                    <span className="text-[9px] font-black text-white leading-none">{unreadChatCount}</span>
+                                <div className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] rounded-full border-2 border-white flex items-center justify-center px-1 bg-white shadow-xl z-20">
+                                    <span className="text-[10px] font-black text-blue-600 leading-none">{unreadChatCount}</span>
                                 </div>
                             )}
                         </div>

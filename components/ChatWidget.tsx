@@ -57,6 +57,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [firebaseMessages, setFirebaseMessages] = useState<Message[]>([]);
+  const [deleteConfirm, setDeleteConfirm] = useState<{show: boolean, messageId: string | null}>({show: false, messageId: null});
   
   const [position, setPosition] = useState({ bottom: '100px', left: '20px' });
   const [moveDuration, setMoveDuration] = useState(0);
@@ -377,6 +378,22 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
       window.open(url, '_blank');
   };
 
+  const handleDeleteMessage = async () => {
+      if (!deleteConfirm.messageId) return;
+      
+      // Delete from local state
+      const updatedMessages = messages.filter(m => m.id !== deleteConfirm.messageId);
+      setMessages(updatedMessages);
+      databaseService.saveChatHistory(userPhone, updatedMessages);
+      
+      // Delete from Firebase if chatUserId is available
+      if (chatUserId) {
+          await databaseService.deleteAdminChatMessage(chatUserId, deleteConfirm.messageId);
+      }
+      
+      setDeleteConfirm({show: false, messageId: null});
+  };
+
   const handleOpenPaymentView = (paymentInfo: {link: string, amount: string}, messageText: string) => {
       // Détermination intelligente du titre pour l'affichage de confirmation
       let title = "Mise en relation";
@@ -429,10 +446,23 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 scrollbar-hide">
             {messages.map((msg) => (
-                <div key={msg.id} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
-                  <div className={`max-w-[85%] p-4 rounded-2xl text-[13px] ${msg.sender === 'user' ? 'bg-orange-500 text-white rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none shadow-sm border border-gray-200'}`}>
+                <div key={msg.id} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'} group`}>
+                  <div className={`max-w-[85%] p-4 rounded-2xl text-[13px] relative ${msg.sender === 'user' ? 'bg-orange-500 text-white rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none shadow-sm border border-gray-200'}`}>
                     {msg.text}
                     
+                    <div className="flex items-center justify-between mt-2 gap-4">
+                        <span className={`text-[9px] font-bold uppercase tracking-widest ${msg.sender === 'user' ? 'text-white/60' : 'text-slate-400'}`}>
+                            {new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <button 
+                            onClick={() => setDeleteConfirm({show: true, messageId: msg.id || ''})}
+                            className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-black/10 ${msg.sender === 'user' ? 'text-white/40' : 'text-slate-300'}`}
+                            title="Supprimer ce message"
+                        >
+                            <TrashIcon className="h-3 w-3" />
+                        </button>
+                    </div>
+
                     {msg.sender === 'ai' && (msg.paymentInfo || msg.whatsAppPayload) && (
                         <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
                             {msg.paymentInfo && (
@@ -474,6 +504,35 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
             <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Votre demande ou montant..." className="flex-1 p-3 bg-gray-50 rounded-xl outline-none text-sm" />
             <button type="submit" className="p-3 bg-orange-500 text-white rounded-xl shadow-lg active:scale-95"><SendIcon className="w-6 h-6" /></button>
           </form>
+
+          {/* Modal de confirmation de suppression */}
+          {deleteConfirm.show && (
+              <div className="absolute inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                  <div className="bg-white rounded-[2rem] p-6 w-full max-w-[240px] shadow-2xl text-center animate-in zoom-in-95 duration-200">
+                      <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <TrashIcon className="h-6 w-6" />
+                      </div>
+                      <h3 className="text-sm font-black text-slate-900 uppercase tracking-tighter mb-2">Supprimer ?</h3>
+                      <p className="text-[10px] font-bold text-slate-500 leading-relaxed mb-6">
+                          Voulez-vous supprimer ce message ?
+                      </p>
+                      <div className="flex flex-col gap-2">
+                          <button 
+                              onClick={handleDeleteMessage}
+                              className="w-full py-3 bg-red-600 text-white rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg active:scale-95 transition-transform"
+                          >
+                              Oui, supprimer
+                          </button>
+                          <button 
+                              onClick={() => setDeleteConfirm({show: false, messageId: null})}
+                              className="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-black uppercase tracking-widest text-[9px] active:scale-95 transition-transform"
+                          >
+                              Annuler
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          )}
         </div>
       )}
     </>
