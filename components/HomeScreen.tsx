@@ -31,6 +31,7 @@ const SendIconSmall = () => (
 const InscriptionIcon: React.FC<{className?: string}> = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536" /></svg>;
 const MapPinIcon: React.FC = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
 const EmergencyIcon: React.FC = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>;
+const ChatBubbleIcon: React.FC<{ className?: string }> = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>;
 const AssistantIcon = () => <svg className="w-6 h-6 text-white" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M42 12H16C13.7909 12 12 13.7909 12 16V48C12 50.2091 13.7909 52 16 52H42C44.2091 52 46 50.2091 46 48V16C46 13.7909 44.2091 12 42 12Z" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M29 25C31.2091 25 33 23.2091 33 21C33 18.7909 31.2091 17 29 17C26.7909 17 25 18.7909 25 21C25 23.2091 26.7909 25 29 25Z" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M38 42C38 37.0294 33.9706 33 29 33C24.0294 33 20 37.0294 20 42" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M46 20H50" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M46 28H50" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M46 36H50" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 const SearchBarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
 const NotificationIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>;
@@ -187,9 +188,10 @@ interface HomeScreenProps {
   ) => void;
   onRegisterDirectly?: (type: string) => void;
   onTriggerClosedNotification?: () => void;
+  unreadChatCount?: number;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab, onOpenNightService, onOpenBuildingService, onRestrictedAccess, onOpenFavorites, onShowPopup, onRegisterDirectly }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab, onOpenNightService, onOpenBuildingService, onRestrictedAccess, onOpenFavorites, onShowPopup, onRegisterDirectly, unreadChatCount = 0 }) => {
   const isMainServiceOpen = true;
   const isNightServiceOpen = true;
 
@@ -550,7 +552,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
                             className="relative active:scale-90 transition-transform focus:outline-none"
                             aria-label="Notifications"
                         >
-                            <NotificationIcon />
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                                unreadCount > 0 ? 'animate-blink-red-green' : ''
+                            }`}>
+                                <NotificationIcon />
+                            </div>
                             {unreadCount > 0 && (
                                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold px-1 rounded-full border border-white shadow-sm">
                                     {unreadCount}
@@ -616,12 +622,31 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
                     </a>
                 )}
 
+                {!isAdmin(user) && (
+                    <button 
+                        onClick={() => setActiveTab(Tab.UserChat)}
+                        className="flex flex-col items-center space-y-1 group relative"
+                    >
+                        <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg transform group-hover:scale-110 relative overflow-hidden ${
+                            unreadChatCount > 0 ? 'animate-blink-red-green' : 'bg-blue-600'
+                        }`}>
+                            <ChatBubbleIcon className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
+                        </div>
+                        <span className={`text-[8px] font-black uppercase ${isClient ? 'text-slate-600' : 'text-white'}`}>Messages</span>
+                        {unreadChatCount > 0 && (
+                            <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full border-2 border-white flex items-center justify-center px-1 bg-red-600 shadow-xl z-20">
+                                <span className="text-[9px] font-black text-white leading-none">{unreadChatCount}</span>
+                            </div>
+                        )}
+                    </button>
+                )}
+
                 {isClient && (
                     <button 
                         onClick={() => handleMainServiceClick('assistant_qr')}
                         className="flex flex-col items-center space-y-1 group"
                     >
-                        <div className="bg-indigo-600 p-3 rounded-full shadow-lg transform group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-indigo-600 rounded-full shadow-lg transform group-hover:scale-110 transition-transform flex items-center justify-center">
                             <AssistantIcon />
                         </div>
                         <span className={`text-[8px] font-black uppercase text-slate-600`}>Assistant QR</span>
@@ -633,7 +658,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
                         onClick={() => handleMainServiceClick('emergency_form')}
                         className="flex flex-col items-center space-y-1 group"
                     >
-                        <div className="bg-red-600 p-3 rounded-full shadow-lg transform group-hover:scale-110 transition-transform border border-red-400 animate-pulse">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-red-600 rounded-full shadow-lg transform group-hover:scale-110 transition-transform border border-red-400 animate-pulse flex items-center justify-center">
                             <EmergencyIcon />
                         </div>
                         <span className={`text-[8px] font-black uppercase text-slate-600`}>Urgence</span>
@@ -993,7 +1018,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
             50% { background-color: #22c55e; }
         }
         .animate-blink-red-green {
-            animation: blink-red-green 0.3s infinite;
+            animation: blink-red-green 0.15s infinite;
         }
 
         /* SEARCH BAR ANIMATIONS */

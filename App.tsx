@@ -821,6 +821,7 @@ const App: React.FC = () => {
             onRestrictedAccess={handleRestrictedAccess}
             onShowPopup={showPopup}
             onRegisterDirectly={handleRegisterDirectly}
+            unreadChatCount={unreadChatCount}
           />;
           break;
       }
@@ -927,6 +928,7 @@ const App: React.FC = () => {
         onRestrictedAccess={handleRestrictedAccess}
         onShowPopup={showPopup}
         onRegisterDirectly={handleRegisterDirectly}
+        unreadChatCount={unreadChatCount}
       />;
       break;
   }

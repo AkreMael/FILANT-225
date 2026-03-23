@@ -44,14 +44,12 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, onToggle
   const navItems = isClient ? [
       { id: Tab.Profile, icon: <ProfileIcon />, label: "Profil" },
       { id: Tab.Menu, icon: <MenuIcon />, label: "Menu" },
-      { id: Tab.UserChat, icon: <ChatBubbleIcon />, label: "Messages", isBlue: true },
       { id: Tab.Offer, icon: <SiteIcon />, label: "Site" },
       { id: Tab.Scanner, icon: <ScannerIcon />, label: "Scanner" },
       { id: Tab.Payment, icon: <PaymentIcon />, label: "Paiement" },
     ] : [
       { id: Tab.Profile, icon: <ProfileIcon />, label: 'Profil' },
       { id: Tab.Menu, icon: <MenuIcon />, label: 'Menu' },
-      { id: Tab.UserChat, icon: <ChatBubbleIcon />, label: "Messages", isBlue: true },
       // L'icône Site est affichée uniquement pour les Entreprises (GroupA mais pas Client ici)
       ...(isGroupA ? [{ id: Tab.Offer, icon: <SiteIcon />, label: 'Site' }] : []),
       // Nouvelle icône Carte pour les rôles pro
@@ -138,7 +136,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, onToggle
             50% { background-color: #22c55e; }
         }
         .animate-blink-red-green {
-            animation: blink-red-green 0.3s infinite;
+            animation: blink-red-green 0.15s infinite;
         }
       `}</style>
     </div>
