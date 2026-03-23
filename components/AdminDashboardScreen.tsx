@@ -60,7 +60,7 @@ const AdminChatButton: React.FC<{
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
-        const chatUserId = user.userId || user.id || `${user.name}_${(user.phone || '').replace(/\D/g, '')}`;
+        const chatUserId = user.userId || user.id || `${user.name || 'User'}_${(user.phone || '').replace(/\D/g, '')}`;
         if (!chatUserId) return;
         
         let unsubscribe: any;
@@ -95,10 +95,10 @@ const AdminChatButton: React.FC<{
                     onOpenChat(fullUser);
                 }
             }}
-            className={`relative p-2 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 transition-colors active:scale-90 ${className}`}
+            className={`relative p-2 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 transition-colors active:scale-90 flex items-center justify-center ${className}`}
             title="Message Privé"
         >
-            <ChatIcon />
+            <ChatIcon className="w-5 h-5" />
             {unreadCount > 0 && (
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border border-white flex items-center justify-center">
                     <span className="text-[8px] font-black text-white">{unreadCount}</span>
@@ -563,6 +563,14 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                           <p className="text-[10px] text-gray-400 mt-2 line-clamp-2 italic">"{contact.description}"</p>
                                       </div>
                                       <div className="flex gap-2 mt-4">
+                                          <AdminChatButton 
+                                              user={{
+                                                  name: contact.name,
+                                                  phone: contact.phone
+                                              }}
+                                              onOpenChat={onOpenChat}
+                                              className="flex-1 h-10 rounded-xl"
+                                          />
                                           <a href={`tel:${contact.phone}`} className="flex-1 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-600 shadow-sm active:scale-95 transition-transform">
                                               <CallIcon className="w-4 h-4" />
                                           </a>
@@ -690,6 +698,15 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                       <p className="text-[10px] text-gray-400 mt-2 line-clamp-2 italic">"{assoc.client?.description}"</p>
                                   </div>
                                   <div className="flex gap-2 mt-4">
+                                      <AdminChatButton 
+                                          user={{
+                                              userId: assoc.client?.userId,
+                                              name: assoc.client?.name,
+                                              phone: assoc.client?.phone
+                                          }}
+                                          onOpenChat={onOpenChat}
+                                          className="flex-1 h-10 rounded-xl"
+                                      />
                                       <a href={`tel:${assoc.client?.phone}`} className="flex-1 h-10 rounded-xl bg-white border border-blue-200 flex items-center justify-center text-blue-600 shadow-sm active:scale-95 transition-transform">
                                           <CallIcon className="w-4 h-4" />
                                       </a>
@@ -726,6 +743,15 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                       <p className="text-[10px] text-gray-500 font-bold uppercase mt-0.5">{assoc.provider?.city}</p>
                                   </div>
                                   <div className="flex gap-2 mt-4">
+                                      <AdminChatButton 
+                                          user={{
+                                              userId: assoc.provider?.userId,
+                                              name: assoc.provider?.name,
+                                              phone: assoc.provider?.phone
+                                          }}
+                                          onOpenChat={onOpenChat}
+                                          className="flex-1 h-10 rounded-xl"
+                                      />
                                       <a href={`https://wa.me/225${assoc.provider?.phone}`} target="_blank" rel="noopener noreferrer" className="flex-1 h-10 rounded-xl bg-[#25D366] flex items-center justify-center text-white shadow-sm active:scale-95 transition-transform">
                                           <WhatsAppIcon className="w-4 h-4" />
                                       </a>
@@ -952,6 +978,15 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                   </div>
                                   
                                   <div className="flex gap-2">
+                                      <AdminChatButton 
+                                          user={{
+                                              name: contact.name,
+                                              phone: contact.phone,
+                                              city: contact.city
+                                          }}
+                                          onOpenChat={onOpenChat}
+                                          className="p-2.5 rounded-full"
+                                      />
                                       <a href={`tel:${contact.phone}`} className="p-2.5 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 transition-colors">
                                           <CallIcon className="w-4 h-4" />
                                       </a>
@@ -1074,12 +1109,24 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                         const inferredPhone = payment.userKey?.split('_').pop() || '';
                         return (
                             <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 shadow-sm relative">
-                                <button 
-                                    onClick={() => { setItemToDelete(payment); setDeleteId(payment.id); }} 
-                                    className="absolute top-3 right-3 p-3 bg-white rounded-full text-gray-400 hover:text-red-500 transition-all shadow-md z-30 active:scale-90"
-                                >
-                                    <TrashIcon />
-                                </button>
+                                <div className="absolute top-3 right-3 flex items-center gap-2 z-30">
+                                    <AdminChatButton 
+                                        user={{
+                                            id: payment.userId,
+                                            userId: payment.userId,
+                                            name: payment.userName,
+                                            phone: payment.phone || inferredPhone,
+                                            city: payment.city
+                                        }} 
+                                        onOpenChat={onOpenChat} 
+                                    />
+                                    <button 
+                                        onClick={() => { setItemToDelete(payment); setDeleteId(payment.id); }} 
+                                        className="p-3 bg-white rounded-full text-gray-400 hover:text-red-500 transition-all shadow-md active:scale-90"
+                                    >
+                                        <TrashIcon />
+                                    </button>
+                                </div>
                                 <div className="flex justify-between items-start mb-2 pr-12">
                                     <div>
                                         <h4 className="font-black text-gray-900 uppercase text-sm">{payment.userName || 'Utilisateur'}</h4>
@@ -1098,16 +1145,6 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                     <span className="text-[9px] text-gray-400 font-bold uppercase">
                                         {payment.timestamp ? new Date(payment.timestamp).toLocaleString() : 'Date inconnue'}
                                     </span>
-                                    <AdminChatButton 
-                                        user={{
-                                            id: payment.userId,
-                                            userId: payment.userId,
-                                            name: payment.userName,
-                                            phone: payment.phone || inferredPhone,
-                                            city: payment.city
-                                        }} 
-                                        onOpenChat={onOpenChat} 
-                                    />
                                 </div>
                             </div>
                         );
@@ -1151,13 +1188,25 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                 <div className="space-y-4">
                     {assistantRequests.map((req, idx) => (
                         <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 shadow-sm relative">
-                            <button 
-                                onClick={() => { setItemToDelete(req); setDeleteId(req.id); }} 
-                                className="absolute top-3 right-3 p-3 bg-white rounded-full text-gray-400 hover:text-red-500 transition-all shadow-md z-30 active:scale-90"
-                            >
-                                <TrashIcon />
-                            </button>
-                            <div className="flex justify-between items-start mb-2 pr-12">
+                                <div className="absolute top-3 right-3 flex items-center gap-2 z-30">
+                                    <AdminChatButton 
+                                        user={{
+                                            id: req.userId,
+                                            userId: req.userId,
+                                            name: req.userName,
+                                            phone: req.phone,
+                                            city: req.city
+                                        }} 
+                                        onOpenChat={onOpenChat} 
+                                    />
+                                    <button 
+                                        onClick={() => { setItemToDelete(req); setDeleteId(req.id); }} 
+                                        className="p-3 bg-white rounded-full text-gray-400 hover:text-red-500 transition-all shadow-md active:scale-90"
+                                    >
+                                        <TrashIcon />
+                                    </button>
+                                </div>
+                                <div className="flex justify-between items-start mb-2 pr-12">
                                 <div>
                                     <h4 className="font-black text-gray-900 uppercase text-sm">{req.userName || 'Utilisateur'}</h4>
                                     <p className="text-xs text-gray-500 font-bold">{req.city || 'Ville inconnue'}</p>
@@ -1176,16 +1225,6 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                         {req.timestamp ? new Date(req.timestamp).toLocaleString() : 'Date inconnue'}
                                     </span>
                                 </div>
-                                <AdminChatButton 
-                                    user={{
-                                        id: req.userId,
-                                        userId: req.userId,
-                                        name: req.userName,
-                                        phone: req.phone,
-                                        city: req.city
-                                    }} 
-                                    onOpenChat={onOpenChat} 
-                                />
                             </div>
                         </div>
                     ))}
@@ -1244,13 +1283,22 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                         <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">{contact.title || 'Contact Scanné'}</p>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-[9px] font-black text-gray-300 uppercase tracking-tighter mb-1">Scanné le</p>
-                                    <p className="text-[10px] font-bold text-gray-500">
-                                        {contact.scannedAt?.toDate ? contact.scannedAt.toDate().toLocaleString() : 
-                                         (contact.scannedAt && contact.scannedAt.seconds ? new Date(contact.scannedAt.seconds * 1000).toLocaleString() : 
-                                         new Date(contact.scannedAt).toLocaleString())}
-                                    </p>
+                                <div className="flex items-center gap-4">
+                                    <AdminChatButton 
+                                        user={{
+                                            name: contact.name,
+                                            phone: contact.phone
+                                        }}
+                                        onOpenChat={onOpenChat}
+                                    />
+                                    <div className="text-right">
+                                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-tighter mb-1">Scanné le</p>
+                                        <p className="text-[10px] font-bold text-gray-500">
+                                            {contact.scannedAt?.toDate ? contact.scannedAt.toDate().toLocaleString() : 
+                                             (contact.scannedAt && contact.scannedAt.seconds ? new Date(contact.scannedAt.seconds * 1000).toLocaleString() : 
+                                             new Date(contact.scannedAt).toLocaleString())}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1357,11 +1405,23 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                     <h4 className="font-black text-gray-900 uppercase text-sm leading-tight">{reg.title}</h4>
                                     <p className="text-[10px] text-orange-600 font-black uppercase tracking-widest mt-1">{reg.category}</p>
                                 </div>
-                                <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${
-                                    reg.status === 'active' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
-                                }`}>
-                                    {reg.status}
-                                </span>
+                                <div className="flex items-center gap-4">
+                                    <AdminChatButton 
+                                        user={{
+                                            id: reg.userId,
+                                            userId: reg.userId,
+                                            name: reg.title,
+                                            phone: reg.phone,
+                                            city: reg.data?.ville || 'Inconnue'
+                                        }} 
+                                        onOpenChat={onOpenChat} 
+                                    />
+                                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${
+                                        reg.status === 'active' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
+                                    }`}>
+                                        {reg.status}
+                                    </span>
+                                </div>
                             </div>
                             
                             <div className="mt-4 pt-4 border-t border-gray-100">
@@ -1390,16 +1450,6 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                     >
                                         <ViewIcon className="h-5 w-5" />
                                     </button>
-                                    <AdminChatButton 
-                                        user={{
-                                            id: reg.userId,
-                                            userId: reg.userId,
-                                            name: reg.title,
-                                            phone: reg.phone,
-                                            city: reg.data?.ville || 'Inconnue'
-                                        }} 
-                                        onOpenChat={onOpenChat} 
-                                    />
                                 </div>
                             </div>
                         </div>
