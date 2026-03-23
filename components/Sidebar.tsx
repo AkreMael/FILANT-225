@@ -17,6 +17,7 @@ const IdCardIcon: React.FC<IconProps> = ({ className }) => <svg xmlns="http://ww
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" />
 </svg>;
 const ScannerIcon: React.FC<IconProps> = ({ className }) => <svg className={className} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19 12H11V20" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M45 12H53V20" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M19 52H11V44" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M45 52H53V44" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M12 32H52" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+const ChatBubbleIcon: React.FC<IconProps> = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>;
 
 interface BottomNavProps {
   activeTab: Tab;
@@ -26,9 +27,10 @@ interface BottomNavProps {
   userRole?: string;
   userPhone?: string;
   isMiseEnRelationActive?: boolean;
+  unreadChatCount?: number;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, onToggleProfile, isProfileOpen, userRole, userPhone, isMiseEnRelationActive }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, onToggleProfile, isProfileOpen, userRole, userPhone, isMiseEnRelationActive, unreadChatCount }) => {
   const isClient = userRole === 'Client';
   const isGroupA = userRole === 'Client' || userRole === 'Entreprise';
   const isProRole = userRole === 'Travailleur' || 
@@ -42,6 +44,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, onToggle
   const navItems = isClient ? [
       { id: Tab.Profile, icon: <ProfileIcon />, label: "Profil" },
       { id: Tab.Menu, icon: <MenuIcon />, label: "Menu" },
+      { id: Tab.UserChat, icon: <ChatBubbleIcon />, label: "Messages", isBlue: true },
       { id: Tab.Offer, icon: <SiteIcon />, label: "Site" },
       { id: Tab.Scanner, icon: <ScannerIcon />, label: "Scanner" },
       { id: Tab.Payment, icon: <PaymentIcon />, label: "Paiement" },
@@ -61,6 +64,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, onToggle
         {navItems.map((item, idx) => {
           const isActive = item.id === Tab.Profile ? isProfileOpen : activeTab === item.id;
           const isRestricted = (item as any).isRestricted;
+          const isBlue = (item as any).isBlue;
+          const hasUnread = item.id === Tab.UserChat && (unreadChatCount || 0) > 0;
 
           return (
             <button
@@ -75,9 +80,11 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, onToggle
                 className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg mb-1 relative overflow-hidden ${
                   isRestricted
                     ? 'bg-gray-700 grayscale cursor-not-allowed'
-                    : isActive 
-                      ? 'bg-[#008000] ring-4 ring-[#008000]/30 animate-pulse-green' 
-                      : 'bg-[#FF4500] opacity-80 animate-float-subtle'
+                    : hasUnread
+                      ? 'animate-blink-red-green'
+                      : isActive 
+                        ? isBlue ? 'bg-blue-600 ring-4 ring-blue-600/30' : 'bg-[#008000] ring-4 ring-[#008000]/30 animate-pulse-green' 
+                        : isBlue ? 'bg-blue-500 opacity-90' : 'bg-[#FF4500] opacity-80 animate-float-subtle'
                 }`}
                 style={{ animationDelay: `${idx * 0.1}s` }}
               >
@@ -85,6 +92,13 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, onToggle
                   className: `h-6 w-6 sm:h-7 sm:w-7 transition-colors text-white` 
                 })}
                 
+                {/* Badge pour les messages non lus */}
+                {item.id === Tab.UserChat && (unreadChatCount || 0) > 0 && (
+                  <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full border-2 border-white flex items-center justify-center px-1 bg-white shadow-xl z-20">
+                    <span className="text-[9px] font-black text-blue-600 leading-none">{unreadChatCount}</span>
+                  </div>
+                )}
+
                 {/* Croix si restreint */}
                 {isRestricted && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -117,6 +131,13 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, onToggle
         }
         .animate-pulse-green {
           animation: pulse-green 2s infinite;
+        }
+        @keyframes blink-red-green {
+            0%, 100% { background-color: #ef4444; }
+            50% { background-color: #22c55e; }
+        }
+        .animate-blink-red-green {
+            animation: blink-red-green 0.3s infinite;
         }
       `}</style>
     </div>

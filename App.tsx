@@ -145,6 +145,8 @@ const App: React.FC = () => {
     return savedMode ? JSON.parse(savedMode) : true;
   });
 
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
+
   // Authentification anonyme pour Firestore
   useEffect(() => {
     const testConnection = async () => {
@@ -376,6 +378,19 @@ const App: React.FC = () => {
       setActiveTab(Tab.AdminDashboard);
     }
   };
+
+  // Écoute des messages non lus pour le badge
+  useEffect(() => {
+    if (currentUser?.phone && !isAdmin(currentUser)) {
+      const chatUserId = currentUser.userId || currentUser.id || `${currentUser.name}_${currentUser.phone.replace(/\D/g, '')}`;
+      const unsubscribe = databaseService.onUnreadAdminChatCount(chatUserId, 'admin', (count) => {
+        setUnreadChatCount(count);
+      });
+      return () => {
+        if (unsubscribe && typeof unsubscribe === 'function') unsubscribe();
+      };
+    }
+  }, [currentUser?.phone, currentUser?.userId, currentUser?.id, currentUser?.name]);
 
   const handleLogout = useCallback(() => {
     setIsProfileOpen(false);
@@ -1010,6 +1025,7 @@ const App: React.FC = () => {
             isProfileOpen={isProfileOpen}
             userRole={displayUser.role}
             isMiseEnRelationActive={isMiseEnRelationActive}
+            unreadChatCount={unreadChatCount}
           />
         </div>
       </div>

@@ -33,7 +33,6 @@ const MapPinIcon: React.FC = () => <svg xmlns="http://www.w3.org/2000/svg" class
 const EmergencyIcon: React.FC = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>;
 const AssistantIcon = () => <svg className="w-6 h-6 text-white" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M42 12H16C13.7909 12 12 13.7909 12 16V48C12 50.2091 13.7909 52 16 52H42C44.2091 52 46 50.2091 46 48V16C46 13.7909 44.2091 12 42 12Z" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M29 25C31.2091 25 33 23.2091 33 21C33 18.7909 31.2091 17 29 17C26.7909 17 25 18.7909 25 21C25 23.2091 26.7909 25 29 25Z" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M38 42C38 37.0294 33.9706 33 29 33C24.0294 33 20 37.0294 20 42" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M46 20H50" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M46 28H50" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/><path d="M46 36H50" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 const SearchBarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
-const ChatBubbleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>;
 const NotificationIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>;
 
 const ServiceRapideIcon: React.FC = () => <IconWrapper className="w-12 h-12 bg-white/20"><svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-current" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg></IconWrapper>;
@@ -197,7 +196,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showNoOffer, setShowNoOffer] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [showScanner, setShowScanner] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -235,25 +233,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
           clearInterval(notifTimer);
       };
   }, [user.phone]);
-
-  useEffect(() => {
-    if (!user.phone || isAdmin(user)) return;
-    
-    const chatUserId = user.userId || user.id || `${user.name}_${user.phone.replace(/\D/g, '')}`;
-    let unsubscribe: any;
-    
-    const setupUnreadListener = async () => {
-      unsubscribe = await databaseService.onUnreadAdminChatCount(chatUserId, 'admin', (count) => {
-        setUnreadChatCount(count);
-      });
-    };
-    
-    setupUnreadListener();
-    
-    return () => {
-      if (unsubscribe && typeof unsubscribe === 'function') unsubscribe();
-    };
-  }, [user.id, user.phone, user.name]);
 
   const CARD_LIFESPAN_MS = 30 * 24 * 60 * 60 * 1000; 
   const cardType = getCardType(user.role);
@@ -628,23 +607,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
                 <p className="text-sm font-medium">{user.city} <span className="text-green-400 font-bold animate-pulse ml-2">• EN LIGNE</span></p>
             </div>
             <div className="flex items-start space-x-3">
-                {!isAdmin(user) && (
-                    <button 
-                        onClick={() => setActiveTab(Tab.UserChat)} 
-                        className="flex flex-col items-center space-y-1 group"
-                    >
-                        <div className={`p-3 rounded-full shadow-lg transform group-hover:scale-110 transition-transform relative ${unreadChatCount > 0 ? 'animate-blink-red-green' : 'bg-blue-600'}`}>
-                            <ChatBubbleIcon />
-                            {unreadChatCount > 0 && (
-                                <div className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] rounded-full border-2 border-white flex items-center justify-center px-1 bg-white shadow-xl z-20">
-                                    <span className="text-[10px] font-black text-blue-600 leading-none">{unreadChatCount}</span>
-                                </div>
-                            )}
-                        </div>
-                        <span className={`text-[8px] font-black uppercase ${isClient ? 'text-slate-600' : 'text-white'}`}>Messages</span>
-                    </button>
-                )}
-
                 {isClient && (
                     <a href="https://www.tiktok.com/@filant225" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center space-y-1 group">
                         <div className="w-12 h-12 transform group-hover:scale-110 transition-transform flex items-center justify-center">
