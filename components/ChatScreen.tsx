@@ -32,9 +32,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
   const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Standardize chatUserId to always use the phone number if available
+  // This ensures consistency between different admin views (Cloud Users, Wave, Assistant)
+  // and the user's own chat view.
   const chatUserId = isAdmin && targetUser 
-    ? (targetUser.userId || targetUser.id || `${targetUser.name}_${targetUser.phone.replace(/\D/g, '')}`)
-    : (currentUser.userId || currentUser.id || `${currentUser.name}_${currentUser.phone.replace(/\D/g, '')}`);
+    ? ((targetUser.phone || '').replace(/\D/g, '') || targetUser.userId || targetUser.id || `${targetUser.name}_${(targetUser.phone || '').replace(/\D/g, '')}`)
+    : ((currentUser.phone || '').replace(/\D/g, '') || currentUser.userId || currentUser.id || `${currentUser.name}_${(currentUser.phone || '').replace(/\D/g, '')}`);
 
   const chatTitle = isAdmin && targetUser ? `Chat avec ${targetUser.name}` : "Message Privé (Filant 225)";
 

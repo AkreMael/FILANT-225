@@ -60,7 +60,8 @@ const AdminChatButton: React.FC<{
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
-        const chatUserId = user.userId || user.id || `${user.name || 'User'}_${(user.phone || '').replace(/\D/g, '')}`;
+        // Standardize chatUserId to always use the phone number if available
+        const chatUserId = (user.phone || '').replace(/\D/g, '') || user.userId || user.id || `${user.name || 'User'}_${(user.phone || '').replace(/\D/g, '')}`;
         if (!chatUserId) return;
         
         let unsubscribe: any;

@@ -130,6 +130,15 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
     });
   }, [firebaseMessages]);
 
+  useEffect(() => {
+    if (isOpen && chatUserId && firebaseMessages.length > 0) {
+      const lastMsg = firebaseMessages[firebaseMessages.length - 1];
+      if (lastMsg.sender === 'admin' && !lastMsg.read) {
+        databaseService.markAdminMessagesAsRead(chatUserId, 'admin');
+      }
+    }
+  }, [isOpen, chatUserId, firebaseMessages]);
+
   const resetChatWithWelcome = () => {
     const welcomeMsg: Message = { 
         id: 'init-1', 
