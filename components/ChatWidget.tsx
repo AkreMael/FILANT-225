@@ -49,9 +49,10 @@ interface ChatWidgetProps {
     userName?: string;
     activeTab: Tab;
     currentMenuView: string;
+    unreadChatCount?: number;
 }
 
-const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, activeTab, currentMenuView }) => {
+const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, activeTab, currentMenuView, unreadChatCount }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -64,7 +65,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const chatUserId = userId || `${userName || 'User'}_${userPhone.replace(/\D/g, '')}`;
+  const sanitizedPhone = userPhone.replace(/\D/g, '');
+  const chatUserId = sanitizedPhone || userId || `${userName || 'User'}_${sanitizedPhone}`;
 
   useEffect(() => {
     if (isOpen) return;
@@ -263,13 +265,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
         });
     }
     
-    // Save to PostgreSQL
-    fetch('/api/chat/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userPhone, sender: 'user', message: textToSend })
-    }).catch(err => console.error("Error saving user message to PG:", err));
-
     if (typeof overrideText !== 'string') setInput('');
     
     let aiResponseText = "";
@@ -354,13 +349,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
         });
     }
     
-    // Save to PostgreSQL
-    fetch('/api/chat/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userPhone, sender: 'ai', message: aiResponseText })
-    }).catch(err => console.error("Error saving AI message to PG:", err));
-
     if (isAILoading) {
         setIsTyping(false);
     }
@@ -426,7 +414,12 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
             <div className="relative w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center shadow-lg border-2 border-orange-300 overflow-hidden">
                <img src={ASSISTANT_IMAGE_URL} alt="Assistant" className="w-12 h-12 object-contain animate-pulse" referrerPolicy="no-referrer" />
             </div>
-            <span className="absolute -top-1 -right-1 flex h-4 w-4"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative inline-flex rounded-full h-4 w-4 bg-green-500"></span></span>
+            {unreadChatCount && unreadChatCount > 0 && (
+              <div className="absolute -top-1 -right-1 min-w-[20px] h-[20px] rounded-full bg-red-600 border-2 border-white flex items-center justify-center shadow-lg z-20">
+                <span className="text-[10px] font-black text-white">{unreadChatCount}</span>
+              </div>
+            )}
+            <span className="absolute bottom-1 right-1 flex h-4 w-4"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative inline-flex rounded-full h-4 w-4 bg-green-500"></span></span>
           </div>
         </button>
       )}

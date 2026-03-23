@@ -51,6 +51,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, onToggle
     ] : [
       { id: Tab.Profile, icon: <ProfileIcon />, label: 'Profil' },
       { id: Tab.Menu, icon: <MenuIcon />, label: 'Menu' },
+      { id: Tab.UserChat, icon: <ChatBubbleIcon />, label: "Messages", isBlue: true },
       // L'icône Site est affichée uniquement pour les Entreprises (GroupA mais pas Client ici)
       ...(isGroupA ? [{ id: Tab.Offer, icon: <SiteIcon />, label: 'Site' }] : []),
       // Nouvelle icône Carte pour les rôles pro
@@ -94,8 +95,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, onToggle
                 
                 {/* Badge pour les messages non lus */}
                 {item.id === Tab.UserChat && (unreadChatCount || 0) > 0 && (
-                  <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full border-2 border-white flex items-center justify-center px-1 bg-white shadow-xl z-20">
-                    <span className="text-[9px] font-black text-blue-600 leading-none">{unreadChatCount}</span>
+                  <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full border-2 border-white flex items-center justify-center px-1 bg-red-600 shadow-xl z-20">
+                    <span className="text-[9px] font-black text-white leading-none">{unreadChatCount}</span>
                   </div>
                 )}
 

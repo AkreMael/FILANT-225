@@ -1373,5 +1373,18 @@ export const databaseService = {
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'scanned_contacts');
     });
+  },
+
+  async saveFormSubmission(formData: any) {
+    try {
+      const docRef = await addDoc(collection(db, 'form_submissions'), {
+        ...formData,
+        timestamp: serverTimestamp()
+      });
+      return { success: true, id: docRef.id };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'form_submissions');
+      return { success: false, error };
+    }
   }
 };

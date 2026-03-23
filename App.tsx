@@ -382,7 +382,9 @@ const App: React.FC = () => {
   // Écoute des messages non lus pour le badge
   useEffect(() => {
     if (currentUser?.phone && !isAdmin(currentUser)) {
-      const chatUserId = currentUser.userId || currentUser.id || `${currentUser.name}_${currentUser.phone.replace(/\D/g, '')}`;
+      const sanitizedPhone = currentUser.phone.replace(/\D/g, '');
+      const chatUserId = sanitizedPhone || currentUser.userId || currentUser.id || `${currentUser.name}_${sanitizedPhone}`;
+      
       const unsubscribe = databaseService.onUnreadAdminChatCount(chatUserId, 'admin', (count) => {
         setUnreadChatCount(count);
       });
@@ -950,6 +952,7 @@ const App: React.FC = () => {
             userName={currentUser.name}
             activeTab={activeTab} 
             currentMenuView={menuView}
+            unreadChatCount={unreadChatCount}
           />
           
           {popup.show && (
