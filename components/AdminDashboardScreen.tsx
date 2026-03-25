@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { databaseService, ConnectionLog, Association, ActiveContact, AdminContact } from '../services/databaseService';
 import { User, PrivateRegistration } from '../types';
-import { smsService } from '../services/smsService';
 import Typewriter from './common/Typewriter';
 import MenuBackground from './common/MenuBackground';
 import { QRCodeSVG } from 'qrcode.react';
@@ -183,24 +182,20 @@ const UserListItem: React.FC<{ user: User; onOpenChat?: (user: User) => void }> 
 };
 
 const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onLogout, onSelectUser, onOpenChat, initialView = 'grid' }) => {
-  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms' | 'firestore-users' | 'wave-payments' | 'assistant-requests' | 'scanned-qr' | 'private-registrations'>(initialView);
+  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'user-messages' | 'firestore-users' | 'wave-payments' | 'assistant-requests' | 'scanned-qr' | 'private-registrations'>(initialView);
   const [firestoreUsers, setFirestoreUsers] = useState<User[]>([]);
   const [privateRegistrations, setPrivateRegistrations] = useState<PrivateRegistration[]>([]);
   const [selectedRegistration, setSelectedRegistration] = useState<PrivateRegistration | null>(null);
   const [wavePayments, setWavePayments] = useState<any[]>([]);
   const [assistantRequests, setAssistantRequests] = useState<any[]>([]);
   const [scannedContacts, setScannedContacts] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<any[]>([]);
   const [selectedQR, setSelectedQR] = useState<any | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [logs, setLogs] = useState<ConnectionLog[]>([]);
   const [associations, setAssociations] = useState<Association[]>([]);
   const [activeContacts, setActiveContacts] = useState<ActiveContact[]>([]);
   const [adminContacts, setAdminContacts] = useState<AdminContact[]>([]);
-  
-  const [smsRecipient, setSmsRecipient] = useState('');
-  const [smsMessage, setSmsMessage] = useState('');
-  const [isSendingSms, setIsSendingSms] = useState(false);
-  const [showRecipientList, setShowRecipientList] = useState(false);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -247,7 +242,12 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
 
   useEffect(() => {
       if (view === 'contacts') setAdminContacts(databaseService.getAdminContacts());
-      if (view === 'sms') setLogs(databaseService.getConnectionLogs());
+      if (view === 'user-messages') {
+        const unsubscribe = databaseService.onAllConversationsUpdate((convs) => {
+          setConversations(convs);
+        });
+        return () => unsubscribe();
+      }
       if (view === 'associations') setAssociations(databaseService.getAssociations());
       if (view === 'firestore-users') {
           setIsSyncing(true);
@@ -304,27 +304,6 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
           databaseService.saveActiveContacts(updated);
       }
   }, [view]);
-
-  const handleSendAdminSms = async () => {
-      if (!smsRecipient || !smsMessage) {
-          alert("Veuillez saisir un numéro et un message.");
-          return;
-      }
-      setIsSendingSms(true);
-      const success = await smsService.sendAdminManualSMS(smsRecipient, smsMessage);
-      setIsSendingSms(false);
-      if (!success) alert("Échec de l'ouverture de l'application SMS.");
-  };
-
-  const applySmsTemplate = (type: 'info' | 'notif' | 'alerte') => {
-      let text = '';
-      switch(type) {
-          case 'info': text = "FILANT225: Nous avons de nouveaux prestataires disponibles dans votre zone. Consultez l'application pour en savoir plus."; break;
-          case 'notif': text = "FILANT225: Votre demande de service a ete traitee. Un agent va vous contacter sous peu."; break;
-          case 'alerte': text = "FILANT225 ALERTE: Un nouveau service de securite est disponible pour vos deplacements de nuit."; break;
-      }
-      setSmsMessage(text);
-  };
 
   const handleAddAssociation = () => {
       if (!assocInputs.providerName || !assocInputs.providerPhone || !assocInputs.clientName || !assocInputs.clientPhone) {
@@ -436,82 +415,80 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
       }
   };
 
-  const renderSmsView = () => (
+  const renderUserMessagesView = () => (
       <div className="flex-1 flex flex-col h-full bg-slate-900 animate-unfold-in text-left">
           <header className="p-4 flex items-center justify-between border-b border-slate-800 bg-slate-900 sticky top-0 z-20">
                 <button onClick={() => setView('grid')} className="p-2 -ml-2 rounded-full hover:bg-slate-800 text-white">
                     <BackIcon />
                 </button>
-                <h2 className="text-sm font-black text-white uppercase tracking-widest flex-1 text-center">Gestion des SMS</h2>
+                <h2 className="text-sm font-black text-white uppercase tracking-widest flex-1 text-center">Messages Utilisateurs</h2>
                 <div className="w-10"></div>
           </header>
 
-          <div className="p-6 space-y-6 flex-1 overflow-y-auto scrollbar-hide">
-              <div className="bg-slate-800 p-5 rounded-3xl border border-slate-700 shadow-xl space-y-5">
-                  <h3 className="text-orange-500 font-black uppercase text-xs tracking-widest border-b border-slate-700 pb-2">Rédiger un SMS</h3>
-                  <div className="relative">
-                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Numéro du destinataire</label>
-                      <div className="flex gap-2">
-                          <input 
-                              type="tel" 
-                              value={smsRecipient} 
-                              onChange={e => setSmsRecipient(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                              placeholder="0705052632"
-                              className="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-orange-500 outline-none font-mono"
-                          />
-                          <button 
-                            onClick={() => setShowRecipientList(!showRecipientList)}
-                            className="bg-blue-600 text-white px-3 rounded-xl hover:bg-blue-700 active:scale-95 transition-all text-xs font-bold"
-                          >
-                              {showRecipientList ? 'Fermer' : 'Annuaire'}
-                          </button>
-                      </div>
-                      {showRecipientList && (
-                          <div className="absolute top-full left-0 right-0 z-30 bg-slate-800 border border-slate-600 rounded-xl mt-1 shadow-2xl max-h-40 overflow-y-auto">
-                              {logs.length > 0 ? logs.map((log, i) => (
-                                  <button 
-                                      key={i} 
-                                      onClick={() => { setSmsRecipient(log.phone); setShowRecipientList(false); }}
-                                      className="w-full text-left p-3 hover:bg-slate-700 text-white text-xs border-b border-slate-700 flex justify-between"
-                                  >
-                                      <span>{log.name}</span>
-                                      <span className="text-gray-400 font-mono">{log.phone}</span>
-                                  </button>
-                              )) : (
-                                  <p className="p-3 text-gray-500 text-xs italic">Aucun contact trouvé.</p>
+          <div className="p-4 space-y-4 flex-1 overflow-y-auto scrollbar-hide">
+              <div className="relative mb-6">
+                   <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none"><SearchIcon /></div>
+                   <input 
+                    type="text" 
+                    placeholder="Rechercher une conversation..." 
+                    value={searchTerm} 
+                    onChange={e => setSearchTerm(e.target.value)} 
+                    className="w-full pl-12 pr-12 py-3 bg-slate-800 border border-slate-700 rounded-2xl outline-none text-sm text-white placeholder:text-slate-500" 
+                   />
+              </div>
+
+              <div className="space-y-3 pb-20">
+                  {conversations
+                    .filter(c => c.userName.toLowerCase().includes(searchTerm.toLowerCase()) || c.userId.includes(searchTerm))
+                    .map((conv) => (
+                      <button 
+                        key={conv.userId}
+                        onClick={() => {
+                            if (onOpenChat) {
+                                onOpenChat({
+                                    id: conv.userId,
+                                    userId: conv.userId,
+                                    name: conv.userName,
+                                    phone: conv.userId.match(/^\d+$/) ? conv.userId : '',
+                                    role: 'Client',
+                                    city: ''
+                                } as User);
+                            }
+                        }}
+                        className="w-full bg-slate-800/50 border border-slate-700 p-4 rounded-3xl flex items-center gap-4 hover:bg-slate-800 transition-all active:scale-[0.98] group"
+                      >
+                          <div className="relative">
+                              <div className="w-12 h-12 bg-orange-500/20 rounded-2xl flex items-center justify-center text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-all">
+                                  <ChatIcon />
+                              </div>
+                              {conv.unreadCount > 0 && (
+                                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 rounded-full border-2 border-slate-900 flex items-center justify-center">
+                                      <span className="text-[10px] font-black text-white">{conv.unreadCount}</span>
+                                  </div>
                               )}
                           </div>
-                      )}
-                  </div>
-                  <div className="space-y-2">
-                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Templates rapides</label>
-                      <div className="flex flex-wrap gap-2">
-                          <button onClick={() => applySmsTemplate('notif')} className="bg-slate-700 text-white px-3 py-1.5 rounded-full text-[10px] font-bold uppercase hover:bg-orange-500 transition-colors">Notification</button>
-                          <button onClick={() => applySmsTemplate('info')} className="bg-slate-700 text-white px-3 py-1.5 rounded-full text-[10px] font-bold uppercase hover:bg-orange-500 transition-colors">Information</button>
-                          <button onClick={() => applySmsTemplate('alerte')} className="bg-slate-700 text-white px-3 py-1.5 rounded-full text-[10px] font-bold uppercase hover:bg-orange-500 transition-colors">Alerte</button>
+                          
+                          <div className="flex-1 text-left min-w-0">
+                              <div className="flex justify-between items-start mb-1">
+                                  <h4 className="font-black text-white uppercase text-xs truncate tracking-tighter">{conv.userName}</h4>
+                                  <span className="text-[9px] font-bold text-slate-500 uppercase">
+                                      {new Date(conv.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                              </div>
+                              <p className="text-[11px] text-slate-400 truncate leading-tight">
+                                  {conv.lastMessage}
+                              </p>
+                          </div>
+                      </button>
+                  ))}
+                  {conversations.length === 0 && (
+                      <div className="py-20 text-center">
+                          <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-600">
+                              <ChatIcon />
+                          </div>
+                          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Aucun message trouvé</p>
                       </div>
-                  </div>
-                  <div>
-                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Message SMS (Max 160 car.)</label>
-                      <textarea 
-                          value={smsMessage}
-                          onChange={e => setSmsMessage(e.target.value.slice(0, 160))}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:ring-2 focus:ring-orange-500 outline-none h-32 text-sm leading-relaxed"
-                          placeholder="Votre message ici..."
-                      />
-                      <div className="flex justify-end mt-1">
-                          <span className={`text-[9px] font-bold ${smsMessage.length > 150 ? 'text-red-500' : 'text-gray-500'}`}>
-                              {smsMessage.length} / 160
-                          </span>
-                      </div>
-                  </div>
-                  <button 
-                    onClick={handleSendAdminSms}
-                    disabled={isSendingSms || !smsMessage || !smsRecipient}
-                    className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-3 ${isSendingSms ? 'bg-gray-700 text-gray-500' : 'bg-orange-600 text-white hover:bg-orange-700'}`}
-                  >
-                      {isSendingSms ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : 'Ouvrir l\'application SMS'}
-                  </button>
+                  )}
               </div>
           </div>
       </div>
@@ -1557,7 +1534,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
     if (view === 'contacts') return renderContactStorageView();
     if (view === 'associations') return renderAssociationView();
     if (view === 'active-contacts') return renderActiveContactsView();
-    if (view === 'sms') return renderSmsView();
+    if (view === 'user-messages') return renderUserMessagesView();
     if (view === 'firestore-users') return renderFirestoreUsersView();
     if (view === 'wave-payments') return renderWavePaymentsView();
     if (view === 'assistant-requests') return renderAssistantRequestsView();
@@ -1642,11 +1619,11 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                           <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Association de contacts</span>
                       </button>
 
-                      <button onClick={() => setView('sms')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                      <button onClick={() => setView('user-messages')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
                            <div className="bg-orange-500/20 p-4 rounded-full group-hover:bg-orange-500/30 transition-colors shadow-inner">
-                              <SMSAdminIcon />
+                              <ChatIcon />
                            </div>
-                          <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Gestion des SMS</span>
+                          <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Messages Utilisateurs</span>
                       </button>
 
                       <button onClick={() => setView('firestore-users')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">

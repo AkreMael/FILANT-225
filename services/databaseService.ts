@@ -1345,7 +1345,7 @@ export const databaseService = {
     return [];
   },
 
-  async saveAdminChatMessage(userId: string, message: any) {
+  async saveAdminChatMessage(userId: string, message: any, userName?: string) {
     try {
       const sanitizedUserId = userId.replace(/[.#$[\]/]/g, '_');
       const chatRef = rtdbRef(rtdb, `messages/${sanitizedUserId}`);
@@ -1360,14 +1360,16 @@ export const databaseService = {
             sender: 'user',
             timestamp: Date.now(),
             read: false,
-            userId: sanitizedUserId
+            userId: sanitizedUserId,
+            userName: userName || sanitizedUserId
           }
         : {
             ...message,
             id: messageId,
             timestamp: message.timestamp || Date.now(),
             read: false,
-            userId: sanitizedUserId
+            userId: sanitizedUserId,
+            userName: userName || message.userName || sanitizedUserId
           };
       
       // Use Promise.all to run both writes in parallel and handle errors
@@ -1459,6 +1461,32 @@ export const databaseService = {
       console.error("Error deleting admin chat message:", error);
       return false;
     }
+  },
+
+  onAllConversationsUpdate(callback: (conversations: any[]) => void) {
+    const messagesRef = rtdbRef(rtdb, 'messages');
+    return onValue(messagesRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const conversations = Object.keys(data).map(userId => {
+          const userMessages = Object.values(data[userId]).sort((a: any, b: any) => b.timestamp - a.timestamp);
+          const lastMsg: any = userMessages[0];
+          const unreadCount = Object.values(data[userId]).filter((m: any) => m.sender === 'user' && !m.read).length;
+          return {
+            userId,
+            lastMessage: lastMsg.text,
+            timestamp: lastMsg.timestamp,
+            unreadCount,
+            userName: lastMsg.userName || userId
+          };
+        }).sort((a, b) => b.timestamp - a.timestamp);
+        callback(conversations);
+      } else {
+        callback([]);
+      }
+    }, (error) => {
+      console.error("RTDB All Conversations Error:", error);
+    });
   },
 
   async saveScannedContact(contact: any) {

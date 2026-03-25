@@ -262,7 +262,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
         databaseService.saveAdminChatMessage(chatUserId, {
             ...userMsg,
             sender: 'user'
-        });
+        }, userName || userPhone);
     }
     
     if (typeof overrideText !== 'string') setInput('');
@@ -330,7 +330,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
         databaseService.saveAdminChatMessage(chatUserId, {
             ...aiMsg,
             sender: 'admin' // Assistant acts as admin for the user's "Messagerie Bleue"
-        });
+        }, userName || userPhone);
     }
     
     // Save to RTDB if it's a validated request (has payment info or is a form submission)
