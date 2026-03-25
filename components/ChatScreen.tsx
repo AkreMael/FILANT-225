@@ -32,6 +32,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<{show: boolean, messageId: string | null}>({show: false, messageId: null});
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Standardize chatUserId to always use the phone number if available
@@ -55,6 +56,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
         // Mark messages from the other side as read
         const otherSide = isAdmin ? 'user' : 'admin';
         databaseService.markAdminMessagesAsRead(chatUserId, otherSide);
+
+        // Simulate typing indicator when receiving a message
+        if (msgs.length > 0 && msgs[msgs.length - 1].sender !== (isAdmin ? 'admin' : 'user')) {
+            setIsTyping(true);
+            setTimeout(() => setIsTyping(false), 2000);
+        }
       });
     };
 
@@ -176,6 +183,15 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
               </div>
             );
           })
+        )}
+        {isTyping && (
+            <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="bg-white rounded-2xl rounded-tl-none px-4 py-3 border border-slate-100 shadow-sm flex gap-1 items-center">
+                    <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                    <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                    <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce"></div>
+                </div>
+            </div>
         )}
         <div ref={messagesEndRef} />
       </div>

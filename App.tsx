@@ -31,6 +31,9 @@ import AssistantQRScreen from './components/AssistantQRScreen';
 import PaymentConfirmationScreen from './components/PaymentConfirmationScreen';
 import ProfessionalCardScreen from './components/ProfessionalCardScreen';
 import ChatScreen from './components/ChatScreen';
+import InterventionHistory from './components/InterventionHistory';
+import AvailabilityCalendar from './components/AvailabilityCalendar';
+import ReviewSystem from './components/ReviewSystem';
 import { motion, AnimatePresence } from 'motion/react';
 import { databaseService, SavedContact, ConnectionLog } from './services/databaseService';
 import { messagingService } from './services/messagingService';
@@ -912,6 +915,15 @@ const App: React.FC = () => {
           onBack={() => setActiveTab(Tab.Menu)}
         />
       );
+      break;
+    case Tab.InterventionHistory:
+      activeScreen = <InterventionHistory user={displayUser} onBack={() => setActiveTab(Tab.Menu)} />;
+      break;
+    case Tab.AvailabilityCalendar:
+      activeScreen = <AvailabilityCalendar user={displayUser} onBack={() => setActiveTab(Tab.Menu)} />;
+      break;
+    case Tab.Reviews:
+      activeScreen = <ReviewSystem user={displayUser} onBack={() => setActiveTab(Tab.Menu)} />;
       break;
     default:
       activeScreen = <HomeScreen 

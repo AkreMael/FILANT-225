@@ -85,6 +85,7 @@ const CardIconArea = ({ amount, isManual, onValueChange, onValidate, isValidated
 
 const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({ title, amount: initialAmount, paymentType, user, waveLink, onBack, onSuccess }) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [currentAmount, setCurrentAmount] = useState(initialAmount);
   const [isManualMode] = useState(initialAmount === "custom");
   const [isValidated, setIsValidated] = useState(initialAmount !== "custom");
@@ -127,23 +128,27 @@ const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({ t
         timestamp: Date.now()
       });
 
-      // Redirection automatique après un court délai de traitement visuel
+      // Simulation de succès pour une meilleure expérience "intégrée"
       setTimeout(() => {
-          const finalLink = isManualMode ? `${waveLink}${currentAmount}` : waveLink;
-          window.open(finalLink, '_blank');
           setIsProcessing(false);
+          setIsSuccess(true);
           
-          if (onSuccess) {
-              onSuccess();
-          }
+          setTimeout(() => {
+              const finalLink = isManualMode ? `${waveLink}${currentAmount}` : waveLink;
+              window.open(finalLink, '_blank');
+              
+              if (onSuccess) {
+                  onSuccess();
+              }
 
-          if (title.includes("Mise en Relation") || title.includes("Carte FILANT")) {
-              // On recharge pour refléter le changement de statut
-              window.location.reload();
-          } else {
-              onBack();
-          }
-      }, 1000);
+              if (title.includes("Mise en Relation") || title.includes("Carte FILANT")) {
+                  // On recharge pour refléter le changement de statut
+                  window.location.reload();
+              } else {
+                  onBack();
+              }
+          }, 1500);
+      }, 2000);
   };
 
   const handleManualValueChange = (val: string) => {
@@ -194,17 +199,29 @@ const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({ t
               <WaveLogo />
               <button 
                 onClick={handlePay}
-                disabled={isProcessing || !isValidated}
+                disabled={isProcessing || isSuccess || !isValidated}
                 className={`flex-1 font-black py-4 px-6 rounded-2xl shadow-xl transform active:scale-95 transition-all text-2xl uppercase tracking-wider min-h-[72px] flex items-center justify-center ${
                     isProcessing 
                     ? 'bg-gray-100 cursor-default' 
-                    : isValidated 
-                        ? 'bg-[#33C4F3] hover:bg-[#2bb2dd] text-white'
-                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : isSuccess
+                        ? 'bg-green-500 text-white'
+                        : isValidated 
+                            ? 'bg-[#33C4F3] hover:bg-[#2bb2dd] text-white'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
                 {isProcessing ? (
-                    <span className="animate-blink-gray text-gray-500">Paiement en cours</span>
+                    <div className="flex items-center gap-3">
+                        <div className="w-5 h-5 border-3 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+                        <span className="text-blue-500 text-lg">Traitement...</span>
+                    </div>
+                ) : isSuccess ? (
+                    <div className="flex items-center gap-3 animate-in zoom-in duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span>Succès</span>
+                    </div>
                 ) : 'Payer'}
               </button>
           </div>

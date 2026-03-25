@@ -165,6 +165,46 @@
         "scannedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["scannerUserId", "name", "phone", "scannedAt"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Avis et notation d'un travailleur par un utilisateur.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "workerId": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "userName", "workerId", "rating", "createdAt"]
+    },
+    "Intervention": {
+      "title": "Intervention",
+      "description": "Historique d'une intervention de service.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "workerId": { "type": "string" },
+        "workerName": { "type": "string" },
+        "serviceType": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "completed", "cancelled"] },
+        "date": { "type": "string", "format": "date-time" },
+        "price": { "type": "number" }
+      },
+      "required": ["userId", "workerId", "workerName", "serviceType", "status", "date"]
+    },
+    "Availability": {
+      "title": "Availability",
+      "description": "Disponibilité d'un travailleur pour une date spécifique.",
+      "type": "object",
+      "properties": {
+        "workerId": { "type": "string" },
+        "date": { "type": "string", "description": "Format YYYY-MM-DD" },
+        "slots": { "type": "array", "items": { "type": "string" }, "description": "Liste des créneaux horaires (ex: 08:00)" }
+      },
+      "required": ["workerId", "date", "slots"]
     }
   },
   "firestore": {
@@ -203,6 +243,18 @@
     "/scanned_contacts/{id}": {
       "schema": "ScannedContact",
       "description": "Collection des contacts scannés par les utilisateurs."
+    },
+    "/reviews/{id}": {
+      "schema": "Review",
+      "description": "Collection des avis et notations."
+    },
+    "/interventions/{id}": {
+      "schema": "Intervention",
+      "description": "Collection de l'historique des interventions."
+    },
+    "/availabilities/{id}": {
+      "schema": "Availability",
+      "description": "Collection des disponibilités des travailleurs."
     }
   }
 }

@@ -5,21 +5,23 @@ import cookieParser from "cookie-parser";
 import session from "express-session";
 import path from "path";
 import { fileURLToPath } from "url";
-import { Firestore } from "@google-cloud/firestore";
+import admin from "firebase-admin";
+import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Initialize Firestore
-let firestore: Firestore;
-try {
-  firestore = new Firestore({
-    projectId: process.env.GCP_PROJECT_ID || "filant225-base",
+// Load Firebase Config
+const firebaseConfig = JSON.parse(fs.readFileSync(path.join(__dirname, "firebase-applet-config.json"), "utf8"));
+
+// Initialize Firestore with Firebase Admin
+if (!admin.apps.length) {
+  admin.initializeApp({
+    projectId: process.env.GCP_PROJECT_ID || firebaseConfig.projectId,
   });
-  console.log("Firestore initialized successfully");
-} catch (error) {
-  console.error("Failed to initialize Firestore:", error);
 }
+const firestore = admin.firestore();
+console.log("Firestore initialized successfully with project:", admin.app().options.projectId);
 
 async function startServer() {
   const app = express();
@@ -58,31 +60,74 @@ async function startServer() {
 
   // API Routes
   app.get("/api/workers", async (req, res) => {
-    if (!firestore) return res.status(503).json({ error: "Database not initialized" });
     try {
-      const snapshot = await firestore.collection("workers").get();
-      const workers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      res.json(workers);
+      // Fetch from multiple collections to provide a comprehensive list
+      const collections = ["travailleurs", "agences", "proprietaires", "entreprises"];
+      const allDocs: any[] = [];
+      
+      for (const col of collections) {
+        try {
+          const snapshot = await firestore.collection(col).get();
+          snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            // Map different schemas to a common Worker interface
+            allDocs.push({
+              id: doc.id,
+              name: data.fullName || data.agencyName || data.ownerName || data.companyName || data.name || "Inconnu",
+              profileImageUrl: data.profileImageUrl || "",
+              phone: data.phone || "",
+              rating: data.rating || 4.5,
+              description: data.jobTitle || data.description || data.services?.join(", ") || "Professionnel qualifié",
+              category: data.experience || data.typeInscription || "Disponible",
+              isVerified: data.isVerified || false
+            });
+          });
+        } catch (colError) {
+          console.error(`Error fetching from collection ${col}:`, colError);
+        }
+      }
+
+      // If no docs found in real collections, return empty or mock if needed
+      // But for now, just return what we have
+      res.json(allDocs);
     } catch (error: any) {
       console.error("Error fetching workers:", error);
-      if (error.code === 7) {
-        return res.status(503).json({ error: "Firestore API not enabled. Please enable it in Google Cloud Console." });
-      }
-      res.status(500).json({ error: "Failed to fetch workers" });
+      res.status(500).json({ 
+        error: "Failed to fetch workers", 
+        details: error.message,
+        code: error.code 
+      });
     }
   });
 
   app.post("/api/workers", async (req, res) => {
     try {
       const worker = req.body;
-      const docRef = await firestore.collection("workers").add({
+      const docRef = await firestore.collection("travailleurs").add({
         ...worker,
-        createdAt: new Date().toISOString(),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
       res.json({ id: docRef.id, success: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving worker:", error);
-      res.status(500).json({ error: "Failed to save worker" });
+      res.status(500).json({ error: "Failed to save worker", details: error.message });
+    }
+  });
+
+  app.post("/api/workers/verify", async (req, res) => {
+    try {
+      const { workerId, collection, isVerified } = req.body;
+      if (!workerId || !collection) {
+        return res.status(400).json({ error: "Missing workerId or collection" });
+      }
+      await firestore.collection(collection).doc(workerId).update({
+        isVerified: !!isVerified,
+        verifiedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error verifying worker:", error);
+      res.status(500).json({ error: "Failed to verify worker", details: error.message });
     }
   });
 
@@ -91,9 +136,9 @@ async function startServer() {
       const snapshot = await firestore.collection("offers").get();
       const offers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       res.json(offers);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching offers:", error);
-      res.status(500).json({ error: "Failed to fetch offers" });
+      res.status(500).json({ error: "Failed to fetch offers", details: error.message });
     }
   });
 
@@ -221,10 +266,22 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     app.use(express.static(path.join(__dirname, "dist")));
-    app.get("(.*)", (req, res) => {
+    app.get("*", (req, res) => {
       res.sendFile(path.join(__dirname, "dist", "index.html"));
     });
   }
+
+  // Error handling middleware
+  app.use((err: any, req: any, res: any, next: any) => {
+    console.error("Unhandled error:", err);
+    if (res.headersSent) {
+      return next(err);
+    }
+    res.status(500).json({ 
+      error: "Internal Server Error", 
+      details: err.message 
+    });
+  });
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);

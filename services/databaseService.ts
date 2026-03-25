@@ -1,4 +1,4 @@
-import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification, PrivateRegistration } from '../types';
+import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification, PrivateRegistration, Review, Intervention, Availability } from '../types';
 import { db, auth, rtdb, storage } from '../firebase';
 import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc, getDocFromServer, onSnapshot } from 'firebase/firestore';
 import { ref as rtdbRef, push, set, serverTimestamp as rtdbTimestamp, get, update, onValue, remove } from 'firebase/database';
@@ -280,12 +280,16 @@ export const databaseService = {
       const cardDataService = databaseService.getCardData(user.phone, 'service');
 
       const userRef = doc(db, 'users', sanitizedPhone);
+      const docSnap = await getDocFromServer(userRef);
+      const existingData = docSnap.exists() ? docSnap.data() : {};
+
       const userData = {
         userId: auth.currentUser?.uid,
         name: user.name,
         phone: sanitizedPhone,
         city: user.city,
         role: user.role || localStorage.getItem('filant_user_role') || 'Client',
+        isVerified: existingData.isVerified || user.isVerified || false,
         lastSeen: serverTimestamp(),
         updatedAt: serverTimestamp(),
         lastConnection: new Date().toISOString(),
@@ -543,8 +547,16 @@ export const databaseService = {
     try {
       const response = await fetch('/api/workers');
       if (response.ok) {
-        const workers = await response.json();
-        if (workers && workers.length > 0) return workers;
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const workers = await response.json();
+          if (workers && workers.length > 0) return workers;
+        } else {
+          const text = await response.text();
+          console.warn("API returned non-JSON response for workers:", text.substring(0, 100));
+        }
+      } else {
+        console.warn(`API returned status ${response.status} for workers`);
       }
     } catch (e) {
       console.error("Failed to fetch workers from API, using mock data", e);
@@ -557,8 +569,16 @@ export const databaseService = {
     try {
       const response = await fetch('/api/offers');
       if (response.ok) {
-        const offers = await response.json();
-        if (offers && offers.length > 0) return offers;
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const offers = await response.json();
+          if (offers && offers.length > 0) return offers;
+        } else {
+          const text = await response.text();
+          console.warn("API returned non-JSON response for offers:", text.substring(0, 100));
+        }
+      } else {
+        console.warn(`API returned status ${response.status} for offers`);
       }
     } catch (e) {
       console.error("Failed to fetch offers from API, using mock data", e);
@@ -759,6 +779,106 @@ export const databaseService = {
 
   saveWorkerRegistration: async (data: any) => {
     return databaseService.saveRegistration('Travailleur', data);
+  },
+
+  // --- Reviews ---
+  getReviews: async (workerId: string): Promise<Review[]> => {
+    const path = 'reviews';
+    try {
+      const q = query(collection(db, path), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      return snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as Review))
+        .filter(review => review.workerId === workerId);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.LIST, path);
+      return [];
+    }
+  },
+
+  addReview: async (review: Omit<Review, 'id'>) => {
+    const path = 'reviews';
+    try {
+      const docRef = await addDoc(collection(db, path), {
+        ...review,
+        createdAt: new Date().toISOString()
+      });
+      return { success: true, id: docRef.id };
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, path);
+      return { success: false, error: e };
+    }
+  },
+
+  // --- Interventions ---
+  getInterventions: async (userId: string, role: string): Promise<Intervention[]> => {
+    const path = 'interventions';
+    try {
+      const q = query(collection(db, path), orderBy('date', 'desc'));
+      const snapshot = await getDocs(q);
+      const interventions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Intervention));
+      
+      if (role === 'Client') {
+        return interventions.filter(i => i.userId === userId);
+      } else {
+        return interventions.filter(i => i.workerId === userId);
+      }
+    } catch (e) {
+      handleFirestoreError(e, OperationType.LIST, path);
+      return [];
+    }
+  },
+
+  addIntervention: async (intervention: Omit<Intervention, 'id'>) => {
+    const path = 'interventions';
+    try {
+      const docRef = await addDoc(collection(db, path), {
+        ...intervention,
+        date: new Date().toISOString()
+      });
+      return { success: true, id: docRef.id };
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, path);
+      return { success: false, error: e };
+    }
+  },
+
+  updateInterventionStatus: async (id: string, status: 'completed' | 'cancelled') => {
+    const path = `interventions/${id}`;
+    try {
+      await setDoc(doc(db, 'interventions', id), { status }, { merge: true });
+      return { success: true };
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, path);
+      return { success: false, error: e };
+    }
+  },
+
+  // --- Availability ---
+  getAvailability: async (workerId: string, date: string): Promise<Availability | null> => {
+    const id = `${workerId}_${date}`;
+    const path = `availabilities/${id}`;
+    try {
+      const docSnap = await getDocFromServer(doc(db, 'availabilities', id));
+      if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() } as Availability;
+      }
+      return null;
+    } catch (e) {
+      handleFirestoreError(e, OperationType.GET, path);
+      return null;
+    }
+  },
+
+  updateAvailability: async (availability: Availability) => {
+    const path = `availabilities/${availability.id}`;
+    try {
+      await setDoc(doc(db, 'availabilities', availability.id), availability);
+      return { success: true };
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, path);
+      return { success: false, error: e };
+    }
   },
 
   subscribeToPrivateRegistrations: (callback: (registrations: PrivateRegistration[]) => void) => {
@@ -1375,16 +1495,40 @@ export const databaseService = {
     });
   },
 
-  async saveFormSubmission(formData: any) {
+  async deleteFormSubmission(id: string) {
+    try {
+      await deleteDoc(doc(db, 'form_submissions', id));
+      return { success: true };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `form_submissions/${id}`);
+      return { success: false, error };
+    }
+  },
+
+  async saveFormSubmission(data: any) {
     try {
       const docRef = await addDoc(collection(db, 'form_submissions'), {
-        ...formData,
-        timestamp: serverTimestamp()
+        ...data,
+        submittedAt: serverTimestamp()
       });
       return { success: true, id: docRef.id };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'form_submissions');
       return { success: false, error };
+    }
+  },
+
+  async verifyWorker(workerId: string, collection: string, isVerified: boolean) {
+    try {
+      const response = await fetch('/api/workers/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workerId, collection, isVerified }),
+      });
+      return await response.json();
+    } catch (e) {
+      console.error("Failed to verify worker", e);
+      return { success: false, error: e };
     }
   }
 };

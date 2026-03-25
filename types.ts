@@ -13,7 +13,10 @@ export enum Tab {
   Notifications = 'Notifications',
   Scanner = 'Scanner',
   AdminChat = 'AdminChat',
-  UserChat = 'UserChat'
+  UserChat = 'UserChat',
+  InterventionHistory = 'InterventionHistory',
+  AvailabilityCalendar = 'AvailabilityCalendar',
+  Reviews = 'Reviews'
 }
 
 export interface User {
@@ -23,6 +26,7 @@ export interface User {
   city: string;
   phone: string;
   role?: string;
+  isVerified?: boolean;
 }
 
 export interface Notification {
@@ -41,6 +45,7 @@ export interface Worker {
   rating: number;
   description: string;
   category: string;
+  isVerified?: boolean;
 }
 
 export interface Offer {
@@ -84,4 +89,32 @@ export interface PrivateRegistration {
   category: string;
   phone: string;
   data: any;
+}
+
+export interface Review {
+  id: string;
+  userId: string;
+  userName: string;
+  workerId: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+export interface Intervention {
+  id: string;
+  userId: string;
+  workerId: string;
+  workerName: string;
+  serviceType: string;
+  status: 'pending' | 'completed' | 'cancelled';
+  date: string;
+  price?: number;
+}
+
+export interface Availability {
+  id: string; // workerId_date
+  workerId: string;
+  date: string; // YYYY-MM-DD
+  slots: string[]; // ["08:00", "09:00", ...]
 }

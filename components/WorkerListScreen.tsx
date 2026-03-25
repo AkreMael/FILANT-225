@@ -134,6 +134,14 @@ interface WorkerCardProps {
   onScheduleService: (url?: string) => void;
 }
 
+const VerifiedBadge = () => (
+  <div className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full p-1 shadow-lg border-2 border-white">
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+      <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812 3.066 3.066 0 00.723 1.745 3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+    </svg>
+  </div>
+);
+
 const WorkerCard: React.FC<WorkerCardProps> = ({ worker, user, onScheduleService }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const isDisponible = worker.category === 'Disponible';
@@ -161,6 +169,7 @@ const WorkerCard: React.FC<WorkerCardProps> = ({ worker, user, onScheduleService
                 loading="eager"
                 referrerPolicy="no-referrer"
             />
+            {worker.isVerified && <VerifiedBadge />}
         </div>
         
         {/* Info Area */}
