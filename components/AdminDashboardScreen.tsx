@@ -182,9 +182,13 @@ const UserListItem: React.FC<{ user: User; onOpenChat?: (user: User) => void }> 
 };
 
 const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onLogout, onSelectUser, onOpenChat, initialView = 'grid' }) => {
-  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'user-messages' | 'firestore-users' | 'wave-payments' | 'assistant-requests' | 'scanned-qr' | 'private-registrations'>(initialView);
+  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'user-messages' | 'firestore-users' | 'wave-payments' | 'assistant-requests' | 'scanned-qr' | 'private-registrations' | 'registrations-travailleurs' | 'registrations-proprietaires' | 'registrations-agences' | 'registrations-entreprises'>(initialView);
   const [firestoreUsers, setFirestoreUsers] = useState<User[]>([]);
   const [privateRegistrations, setPrivateRegistrations] = useState<PrivateRegistration[]>([]);
+  const [travailleurRegistrations, setTravailleurRegistrations] = useState<PrivateRegistration[]>([]);
+  const [proprietaireRegistrations, setProprietaireRegistrations] = useState<PrivateRegistration[]>([]);
+  const [agenceRegistrations, setAgenceRegistrations] = useState<PrivateRegistration[]>([]);
+  const [entrepriseRegistrations, setEntrepriseRegistrations] = useState<PrivateRegistration[]>([]);
   const [selectedRegistration, setSelectedRegistration] = useState<PrivateRegistration | null>(null);
   const [wavePayments, setWavePayments] = useState<any[]>([]);
   const [assistantRequests, setAssistantRequests] = useState<any[]>([]);
@@ -287,6 +291,38 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
           setIsSyncing(true);
           const unsubscribe = databaseService.subscribeToPrivateRegistrations((registrations) => {
               setPrivateRegistrations(registrations);
+              setIsSyncing(false);
+          });
+          return () => unsubscribe();
+      }
+      if (view === 'registrations-travailleurs') {
+          setIsSyncing(true);
+          const unsubscribe = databaseService.subscribeToPrivateRegistrationsByType('Travailleur', (registrations) => {
+              setTravailleurRegistrations(registrations);
+              setIsSyncing(false);
+          });
+          return () => unsubscribe();
+      }
+      if (view === 'registrations-proprietaires') {
+          setIsSyncing(true);
+          const unsubscribe = databaseService.subscribeToPrivateRegistrationsByType('Propriétaire d’équipement', (registrations) => {
+              setProprietaireRegistrations(registrations);
+              setIsSyncing(false);
+          });
+          return () => unsubscribe();
+      }
+      if (view === 'registrations-agences') {
+          setIsSyncing(true);
+          const unsubscribe = databaseService.subscribeToPrivateRegistrationsByType('Agence immobilière', (registrations) => {
+              setAgenceRegistrations(registrations);
+              setIsSyncing(false);
+          });
+          return () => unsubscribe();
+      }
+      if (view === 'registrations-entreprises') {
+          setIsSyncing(true);
+          const unsubscribe = databaseService.subscribeToPrivateRegistrationsByType('Entreprise', (registrations) => {
+              setEntrepriseRegistrations(registrations);
               setIsSyncing(false);
           });
           return () => unsubscribe();
@@ -397,6 +433,16 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
               const updated = associations.filter(a => a.id !== id);
               setAssociations(updated);
               await databaseService.saveAssociations(updated);
+          } else if (view === 'private-registrations' && itemToDelete) {
+              await databaseService.deletePrivateRegistration(itemToDelete.typeInscription, itemToDelete.id);
+          } else if (view === 'registrations-travailleurs' && itemToDelete) {
+              await databaseService.deletePrivateRegistration('Travailleur', itemToDelete.id);
+          } else if (view === 'registrations-proprietaires' && itemToDelete) {
+              await databaseService.deletePrivateRegistration('Propriétaire d’équipement', itemToDelete.id);
+          } else if (view === 'registrations-agences' && itemToDelete) {
+              await databaseService.deletePrivateRegistration('Agence immobilière', itemToDelete.id);
+          } else if (view === 'registrations-entreprises' && itemToDelete) {
+              await databaseService.deletePrivateRegistration('Entreprise', itemToDelete.id);
           } else if (view === 'active-contacts') {
               const updated = activeContacts.filter(c => c.id !== id);
               setActiveContacts(updated);
@@ -1395,6 +1441,87 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
     </div>
   );
 
+  const renderRegistrationsByTypeView = (title: string, registrations: PrivateRegistration[]) => (
+    <div className="flex-1 flex flex-col h-full bg-white font-sans animate-unfold-in text-left">
+        <header className="p-4 flex items-center justify-between border-b border-gray-100 bg-white sticky top-0 z-20">
+            <button onClick={() => setView('grid')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-400 transition-transform active:scale-90">
+                <BackIcon />
+            </button>
+            <h2 className="text-sm font-black text-gray-800 uppercase tracking-widest flex-1 text-center">{title}</h2>
+            <div className="w-10"></div>
+        </header>
+        <div className="p-4 space-y-4 flex-1 overflow-y-auto scrollbar-hide">
+            {registrations.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                    <ActivationIcon />
+                    <p className="mt-4 font-bold uppercase text-xs tracking-widest">
+                        {isSyncing ? 'Chargement...' : 'Aucune demande'}
+                    </p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 gap-4">
+                    {registrations.map((reg) => (
+                        <div key={reg.id} className="bg-gray-50 rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 className="font-black text-gray-900 uppercase text-sm leading-tight">{reg.title}</h4>
+                                    <p className="text-[10px] text-orange-600 font-black uppercase tracking-widest mt-1">{reg.category}</p>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <AdminChatButton 
+                                        user={{
+                                            id: reg.userId,
+                                            userId: reg.userId,
+                                            name: reg.title,
+                                            phone: reg.phone,
+                                            city: reg.data?.ville || 'Inconnue'
+                                        }} 
+                                        onOpenChat={onOpenChat} 
+                                    />
+                                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${
+                                        reg.status === 'approved' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
+                                    }`}>
+                                        {reg.status}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div className="mt-4 pt-4 border-t border-gray-100">
+                                <div className="flex flex-col space-y-1">
+                                    <p className="text-xs font-black text-gray-900 uppercase">{reg.title}</p>
+                                    <p className="text-[10px] text-gray-500 font-bold uppercase">{reg.data?.ville || 'Ville inconnue'} • +225 {reg.phone}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between mt-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[9px] text-gray-400 font-bold uppercase">{new Date(reg.createdAt).toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button 
+                                        onClick={() => setSelectedRegistration(reg)}
+                                        className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors active:scale-90"
+                                        title="Voir détails"
+                                    >
+                                        <ViewIcon className="h-5 w-5" />
+                                    </button>
+                                    <button 
+                                        onClick={() => { setDeleteId(reg.id); setItemToDelete(reg); }}
+                                        className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors active:scale-90"
+                                        title="Supprimer"
+                                    >
+                                        <TrashIcon className="h-5 w-5" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    </div>
+  );
+
   const renderPrivateRegistrationsView = () => (
     <div className="flex-1 flex flex-col h-full bg-white font-sans animate-unfold-in text-left">
         <header className="p-4 flex items-center justify-between border-b border-gray-100 bg-white sticky top-0 z-20">
@@ -1433,7 +1560,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                         onOpenChat={onOpenChat} 
                                     />
                                     <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${
-                                        reg.status === 'active' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
+                                        reg.status === 'approved' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
                                     }`}>
                                         {reg.status}
                                     </span>
@@ -1539,6 +1666,10 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
     if (view === 'wave-payments') return renderWavePaymentsView();
     if (view === 'assistant-requests') return renderAssistantRequestsView();
     if (view === 'scanned-qr') return renderScannedQRView();
+    if (view === 'registrations-travailleurs') return renderRegistrationsByTypeView('Demandes Travailleurs', travailleurRegistrations);
+    if (view === 'registrations-proprietaires') return renderRegistrationsByTypeView('Demandes Équipements', proprietaireRegistrations);
+    if (view === 'registrations-agences') return renderRegistrationsByTypeView('Demandes Agences', agenceRegistrations);
+    if (view === 'registrations-entreprises') return renderRegistrationsByTypeView('Demandes Entreprises', entrepriseRegistrations);
     if (view === 'private-registrations') return renderPrivateRegistrationsView();
     
     return (
@@ -1654,11 +1785,32 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                           <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">QR Codes Scannés</span>
                       </button>
 
-                      <button onClick={() => setView('private-registrations')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
-                           <div className="bg-yellow-500/20 p-4 rounded-full group-hover:bg-yellow-500/30 transition-colors shadow-inner">
-                              <ActivationIcon />
+                      <button onClick={() => setView('registrations-travailleurs')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                           <div className="bg-orange-500/20 p-4 rounded-full group-hover:bg-orange-500/30 transition-colors shadow-inner text-orange-500">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.67.38m-4.5-8.319v2.25m0-2.25V6a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6v2.25m0 2.25v2.25m0-2.25a2.185 2.185 0 01-1.383-.618m0 2.25c.194.165.42.295.67.38m0-2.25c.67.38.194.67.67.38" /></svg>
                            </div>
-                          <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Inscription Privée</span>
+                          <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Demandes Travailleurs</span>
+                      </button>
+
+                      <button onClick={() => setView('registrations-proprietaires')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                           <div className="bg-emerald-500/20 p-4 rounded-full group-hover:bg-emerald-500/30 transition-colors shadow-inner text-emerald-500">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.528-1.036.94-2.197 1.088-3.386l-.738-2.652L3 14l2.652.738c1.19.147 2.35.56 3.386 1.088l3.03-2.496z" /><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 21.75l-4.135-4.134a1.21 1.21 0 010-1.707l4.134-4.135a1.21 1.21 0 011.707 0l4.135 4.135a1.21 1.21 0 010 1.707l-4.134 4.135a1.21 1.21 0 01-1.707 0z" /></svg>
+                           </div>
+                          <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Demandes Équipements</span>
+                      </button>
+
+                      <button onClick={() => setView('registrations-agences')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                           <div className="bg-blue-500/20 p-4 rounded-full group-hover:bg-blue-500/30 transition-colors shadow-inner text-blue-500">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" /></svg>
+                           </div>
+                          <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Demandes Agences</span>
+                      </button>
+
+                      <button onClick={() => setView('registrations-entreprises')} className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-[2.5rem] shadow-2xl border border-slate-700 flex flex-col items-center gap-4 hover:bg-slate-700 transition-all transform hover:scale-105 group active:scale-95">
+                           <div className="bg-purple-500/20 p-4 rounded-full group-hover:bg-purple-500/30 transition-colors shadow-inner text-purple-500">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h6M9 11.25h6M9 15.75h6" /></svg>
+                           </div>
+                          <span className="text-white text-[11px] font-black uppercase tracking-widest text-center leading-tight">Demandes Entreprises</span>
                       </button>
                   </div>
               </main>

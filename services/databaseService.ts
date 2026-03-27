@@ -881,6 +881,80 @@ export const databaseService = {
     }
   },
 
+  subscribeToPrivateRegistrationsByType: (type: string, callback: (registrations: PrivateRegistration[]) => void) => {
+    const colNameMap: Record<string, string> = {
+      'Travailleur': 'travailleurs',
+      'Propriétaire d’équipement': 'proprietaires',
+      'Agence immobilière': 'agences',
+      'Entreprise': 'entreprises'
+    };
+    const colName = colNameMap[type] || type.toLowerCase();
+    
+    return onSnapshot(collection(db, colName), (snapshot) => {
+      const registrations = snapshot.docs.map(doc => {
+        const data = doc.data();
+        let title = '';
+        let category = '';
+        let phone = '';
+
+        if (colName === 'travailleurs') {
+          title = data.jobTitle || 'Sans titre';
+          category = 'Profil Travailleur';
+          phone = data.phone || '';
+        } else if (colName === 'proprietaires') {
+          title = data.ownerName || 'Sans titre';
+          category = 'Profil Propriétaire';
+          phone = data.phone || '';
+        } else if (colName === 'agences') {
+          title = data.agencyName || 'Sans titre';
+          category = 'Profil Agence';
+          phone = data.phone || '';
+        } else if (colName === 'entreprises') {
+          title = data.companyName || 'Sans titre';
+          category = 'Profil Entreprise';
+          phone = data.phone || '';
+        }
+
+        return {
+          id: doc.id,
+          userId: data.userId,
+          createdAt: data.createdAt,
+          status: data.status || 'pending',
+          typeInscription: data.typeInscription || colName,
+          price: data.price || 0,
+          title,
+          category,
+          phone,
+          data
+        } as PrivateRegistration;
+      }).sort((a, b) => {
+        const timeA = a.createdAt?.toMillis?.() || 0;
+        const timeB = b.createdAt?.toMillis?.() || 0;
+        return timeB - timeA;
+      });
+      callback(registrations);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, colName);
+    });
+  },
+
+  deletePrivateRegistration: async (type: string, id: string) => {
+    const colNameMap: Record<string, string> = {
+      'Travailleur': 'travailleurs',
+      'Propriétaire d’équipement': 'proprietaires',
+      'Agence immobilière': 'agences',
+      'Entreprise': 'entreprises'
+    };
+    const colName = colNameMap[type] || type.toLowerCase();
+    try {
+      await deleteDoc(doc(db, colName, id));
+      return { success: true };
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, `${colName}/${id}`);
+      return { success: false, error: e };
+    }
+  },
+
   subscribeToPrivateRegistrations: (callback: (registrations: PrivateRegistration[]) => void) => {
     const collections = ['travailleurs', 'proprietaires', 'agences', 'entreprises'];
     const allRegistrations: Record<string, PrivateRegistration[]> = {};
