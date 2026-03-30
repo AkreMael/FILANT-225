@@ -31,7 +31,6 @@ import AssistantQRScreen from './components/AssistantQRScreen';
 import PaymentConfirmationScreen from './components/PaymentConfirmationScreen';
 import ProfessionalCardScreen from './components/ProfessionalCardScreen';
 import ChatScreen from './components/ChatScreen';
-import InterventionHistory from './components/InterventionHistory';
 import AvailabilityCalendar from './components/AvailabilityCalendar';
 import ReviewSystem from './components/ReviewSystem';
 import { motion, AnimatePresence } from 'motion/react';
@@ -75,6 +74,12 @@ interface PaymentConfirmationContext {
   waveLink: string;
   paymentType: string;
   onSuccess?: () => void;
+  formData?: {
+    formType: 'worker' | 'location' | 'personal_worker' | 'personal_location' | 'night_service' | 'rapid_building_service';
+    formTitle: string;
+    data: any;
+    whatsappMessage: string;
+  };
 }
 
 interface PopupState {
@@ -915,9 +920,6 @@ const App: React.FC = () => {
           onBack={() => setActiveTab(Tab.Menu)}
         />
       );
-      break;
-    case Tab.InterventionHistory:
-      activeScreen = <InterventionHistory user={displayUser} onBack={() => setActiveTab(Tab.Menu)} />;
       break;
     case Tab.AvailabilityCalendar:
       activeScreen = <AvailabilityCalendar user={displayUser} onBack={() => setActiveTab(Tab.Menu)} />;

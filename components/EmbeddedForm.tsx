@@ -186,8 +186,38 @@ const EmbeddedForm: React.FC<EmbeddedFormProps> = ({
     setIsSending(true);
     setTimeout(() => {
         const message = generateWhatsAppMessage(title, questions, answers, user, totalPrice, serviceMode, count);
+        const numericPrice = parseInt(totalPrice.replace(/\D/g, '')) || 0;
 
-        // Save to Firestore
+        if (numericPrice > 0) {
+            // Trigger payment flow
+            const event = new CustomEvent('trigger-payment-view', {
+                detail: {
+                    title: title,
+                    amount: numericPrice.toString(),
+                    waveLink: `https://pay.wave.com/m/M_ci_jwxwatdcoKS8/c/ci/?amount=${numericPrice}`,
+                    paymentType: "Service",
+                    formData: {
+                        formType,
+                        formTitle: title,
+                        data: answers,
+                        whatsappMessage: message
+                    },
+                    onSuccess: () => {
+                        if (target === 'whatsapp') {
+                            window.open(`https://wa.me/2250705052632?text=${encodeURIComponent(message)}`, '_blank');
+                        } else {
+                            window.dispatchEvent(new CustomEvent('trigger-chat-message', { detail: message }));
+                        }
+                    }
+                }
+            });
+            window.dispatchEvent(event);
+            setIsSending(false);
+            onClose();
+            return;
+        }
+
+        // If no price, save directly
         databaseService.saveFormSubmission({ 
             userPhone: user.phone, 
             formType, 

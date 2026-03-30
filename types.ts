@@ -14,7 +14,6 @@ export enum Tab {
   Scanner = 'Scanner',
   AdminChat = 'AdminChat',
   UserChat = 'UserChat',
-  InterventionHistory = 'InterventionHistory',
   AvailabilityCalendar = 'AvailabilityCalendar',
   Reviews = 'Reviews'
 }
@@ -72,7 +71,7 @@ export interface FavoriteRequest {
   id: string;
   title: string;
   date: string; // ISO string
-  formType: 'worker' | 'location' | 'personal_worker' | 'personal_location' | 'night_service';
+  formType: 'worker' | 'location' | 'personal_worker' | 'personal_location' | 'night_service' | 'rapid_building_service';
   answers: Record<string, string | null>;
   userInfo: User;
   totalPrice?: number;

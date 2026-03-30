@@ -12,6 +12,12 @@ interface PaymentConfirmationScreenProps {
   waveLink: string;
   onBack: () => void;
   onSuccess?: () => void;
+  formData?: {
+    formType: 'worker' | 'location' | 'personal_worker' | 'personal_location' | 'night_service' | 'rapid_building_service';
+    formTitle: string;
+    data: any;
+    whatsappMessage: string;
+  };
 }
 
 const Spinner = () => (
@@ -83,7 +89,16 @@ const CardIconArea = ({ amount, isManual, onValueChange, onValidate, isValidated
     </div>
 );
 
-const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({ title, amount: initialAmount, paymentType, user, waveLink, onBack, onSuccess }) => {
+const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({ 
+    title, 
+    amount: initialAmount, 
+    paymentType, 
+    user, 
+    waveLink, 
+    onBack, 
+    onSuccess,
+    formData
+}) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [currentAmount, setCurrentAmount] = useState(initialAmount);
@@ -127,6 +142,27 @@ const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({ t
         paymentType: paymentType,
         timestamp: Date.now()
       });
+
+      // Save to History (Favorites) if form data exists
+      if (formData) {
+          databaseService.saveFavorite(user.phone, {
+              title: formData.formTitle,
+              date: new Date().toISOString(),
+              formType: formData.formType as any,
+              answers: formData.data,
+              userInfo: user,
+              totalPrice: parseInt(currentAmount)
+          });
+          
+          // Also save to Firestore for admin visibility
+          databaseService.saveFormSubmission({
+              userPhone: user.phone,
+              formType: formData.formType,
+              formTitle: formData.formTitle,
+              data: formData.data,
+              whatsappMessage: formData.whatsappMessage
+          });
+      }
 
       // Simulation de succès pour une meilleure expérience "intégrée"
       setTimeout(() => {

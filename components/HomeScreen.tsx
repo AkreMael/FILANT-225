@@ -844,18 +844,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
                             </div>
                         )}
 
-                        {/* Nouvelles fonctionnalités : Historique, Calendrier, Avis */}
-                        <div className="grid grid-cols-3 gap-3 mb-4 px-1">
-                            <button 
-                                onClick={() => setActiveTab(Tab.InterventionHistory)}
-                                className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center space-y-1 active:scale-95 transition-all"
-                            >
-                                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
-                                    <LucideHistory className="w-5 h-5" />
-                                </div>
-                                <span className="text-[9px] font-bold text-slate-600 uppercase">Historique</span>
-                            </button>
-
+                        {/* Nouvelles fonctionnalités : Calendrier, Avis */}
+                        <div className="grid grid-cols-2 gap-3 mb-4 px-1">
                             {isProRole && (
                                 <button 
                                     onClick={() => setActiveTab(Tab.AvailabilityCalendar)}
