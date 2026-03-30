@@ -1091,7 +1091,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
               </div>
 
               {viewingContact && (
-                  <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
+                  <div className="absolute inset-0 bg-black/90 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
                       <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
                           <h3 className="text-xl font-black text-gray-900 mb-4 uppercase tracking-tight border-b border-gray-100 pb-2">Détails Contact</h3>
                           <div className="space-y-4 text-sm">
@@ -1418,7 +1418,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
 
         {/* Modal QR Code */}
         {selectedQR && (
-            <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-6 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="absolute inset-0 bg-black/90 z-[60] flex items-center justify-center p-6 backdrop-blur-md animate-in fade-in duration-300">
                 <div className="bg-white rounded-[3rem] p-8 w-full max-w-sm shadow-2xl relative animate-in zoom-in-95 duration-300">
                     <button 
                         onClick={() => setSelectedQR(null)}
@@ -1619,7 +1619,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
 
         {/* Modal Détails Inscription */}
         {selectedRegistration && (
-            <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="absolute inset-0 bg-black/90 z-50 flex items-center justify-center p-6 backdrop-blur-sm animate-in fade-in duration-200">
                 <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 max-h-[80vh] overflow-y-auto scrollbar-hide">
                     <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
                         <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Détails de l'Inscription</h3>
@@ -1836,12 +1836,12 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
   };
 
   return (
-      <div className="fixed inset-0 bg-gray-50 flex flex-col overflow-hidden">
+      <div className="absolute inset-0 bg-gray-50 flex flex-col overflow-hidden">
           {renderContent()}
 
           {/* Modal de confirmation de suppression */}
           {deleteId && (
-              <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
+              <div className="absolute inset-0 bg-black/90 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
                   <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
                       <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                           <TrashIcon />

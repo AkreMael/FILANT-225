@@ -10,7 +10,7 @@ const VideoOverlay: React.FC<VideoOverlayProps> = ({ isOpen, onClose, videoUrl =
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[600] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
+    <div className="absolute inset-0 z-[600] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
       <div className="bg-slate-900 w-full max-w-lg aspect-video rounded-3xl overflow-hidden shadow-2xl relative border-2 border-white/20">
         <button 
           onClick={onClose}

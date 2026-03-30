@@ -158,7 +158,7 @@ const LocationMapScreen: React.FC<LocationMapScreenProps> = ({ onBack }) => {
       )}
 
       {/* MAP VIEWPORT */}
-      <div className={`flex-1 relative bg-black overflow-hidden ${isFollowing ? 'h-full w-full fixed inset-0 z-[700] animate-in zoom-in-95' : ''}`}>
+      <div className={`flex-1 relative bg-black overflow-hidden ${isFollowing ? 'h-full w-full absolute inset-0 z-[700] animate-in zoom-in-95' : ''}`}>
         {mapUrl ? (
           <iframe
             title="Maps Intégré FILANT"

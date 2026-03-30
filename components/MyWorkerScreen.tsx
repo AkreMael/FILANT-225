@@ -257,7 +257,7 @@ const MyWorkerScreen: React.FC<MyWorkerScreenProps> = ({ onBack, user }) => {
 
       {/* CONFIRMATION DIALOG (OUI / NON) */}
       {requestToDelete && (
-          <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-200">
+          <div className="absolute inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-200">
               <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl text-center border-t-4 border-red-500 animate-in zoom-in-95 duration-200">
                   <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <TrashIcon className="w-7 h-7 text-red-600" />

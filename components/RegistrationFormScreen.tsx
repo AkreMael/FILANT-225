@@ -252,7 +252,7 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-orange-500 z-[600] flex flex-col font-sans overflow-hidden"
+            className="absolute inset-0 bg-orange-500 z-[600] flex flex-col font-sans overflow-hidden"
         >
             <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden scrollbar-hide">
                 <div className="p-6 flex flex-col items-center">

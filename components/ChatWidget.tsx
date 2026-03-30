@@ -424,7 +424,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed z-50 group"
+          className="absolute z-50 group"
           style={{ bottom: position.bottom, left: position.left, transition: `all ${moveDuration}s ease-in-out` }}
         >
           <div className="relative">
@@ -443,7 +443,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
       )}
 
       {isOpen && (
-        <div className="fixed bottom-20 left-4 right-4 z-50 h-[500px] max-h-[70vh] flex flex-col bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-orange-500/30 overflow-hidden animate-in slide-in-from-bottom-10">
+        <div className="absolute bottom-20 left-4 right-4 z-50 h-[500px] max-h-[70vh] flex flex-col bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-orange-500/30 overflow-hidden animate-in slide-in-from-bottom-10">
           <div className="bg-orange-500 p-4 flex justify-between items-center">
             <div className="flex items-center space-x-2">
                <MessageIcon className="w-5 h-5 text-white" />

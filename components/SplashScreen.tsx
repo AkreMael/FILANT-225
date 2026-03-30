@@ -25,7 +25,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ userName, onFinish }) => {
   const titleText = "FILANT225".split("");
 
   return (
-    <div className="fixed inset-0 z-[200] bg-white flex flex-col items-center justify-center font-sans overflow-hidden space-y-8">
+    <div className="absolute inset-0 z-[200] bg-white flex flex-col items-center justify-center font-sans overflow-hidden space-y-8">
       
       {/* Personalized Greeting */}
       <div className={`text-center transition-opacity duration-1000 ease-in-out ${textVisible ? 'opacity-100' : 'opacity-0'}`}>

@@ -462,7 +462,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
 
   if (showNoOffer) {
     return (
-        <div className="fixed inset-0 z-[600] bg-orange-500 flex flex-col items-center justify-center p-8 animate-in fade-in duration-300">
+        <div className="absolute inset-0 z-[600] bg-orange-500 flex flex-col items-center justify-center p-8 animate-in fade-in duration-300">
             <button 
                 onClick={() => setShowNoOffer(false)}
                 className="absolute top-8 left-8 p-3 bg-white/20 rounded-full text-white active:scale-90 transition-transform"

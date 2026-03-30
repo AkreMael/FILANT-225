@@ -110,7 +110,7 @@ const RestrictedNotification = ({ show, message }: { show: boolean, message: str
 );
 
 const GlobalModeLoading = ({ message }: { message: string }) => (
-    <div className="fixed inset-0 z-[2000] bg-slate-900 flex flex-col items-center justify-center p-10 text-center animate-in fade-in duration-300">
+    <div className="absolute inset-0 z-[2000] bg-slate-900 flex flex-col items-center justify-center p-10 text-center animate-in fade-in duration-300">
         <div className="relative">
             <div className="w-24 h-24 border-4 border-orange-500/20 rounded-full"></div>
             <div className="absolute inset-0 w-24 h-24 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>

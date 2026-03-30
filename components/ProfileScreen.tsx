@@ -233,7 +233,7 @@ const FavoriteDetailView: React.FC<{ fav: FavoriteRequest, onBack: () => void }>
     };
 
     return (
-        <div className="fixed inset-0 bg-orange-500 z-[300] flex flex-col h-full w-full">
+        <div className="absolute inset-0 bg-orange-500 z-[300] flex flex-col h-full w-full">
             <div className="p-4 flex items-center">
                 <button onClick={onBack} className="p-2 -ml-2 text-black active:scale-90 transition-transform">
                     <BackIcon className="w-8 h-8" />
@@ -482,7 +482,37 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
     </div>
   );
 
-  const renderMainView = () => (
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+    useEffect(() => {
+        const handleBeforeInstallPrompt = (e: any) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    }, []);
+
+    const handleInstallPWA = async () => {
+        if (!deferredPrompt) {
+            onShowPopup("Pour installer l'application sur Android :\n1. Appuyez sur les 3 points (⋮) en haut à droite du navigateur.\n2. Sélectionnez 'Installer l'application' ou 'Ajouter à l'écran d'accueil'.", "alert");
+            return;
+        }
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+        }
+    };
+
+    const handleDownloadAPK = () => {
+        onShowPopup("L'APK peut être généré en téléchargeant le projet et en l'ouvrant dans Android Studio. Souhaitez-vous que je vous explique comment faire ?", "confirm", (close) => {
+            window.open('https://capacitorjs.com/docs/android', '_blank');
+            close();
+        });
+    };
+
+    const renderMainView = () => (
     <div className="flex flex-col h-full bg-[#F3F3F3]">
         <header className="p-4 flex items-center bg-white shadow-sm border-b border-gray-100">
             <button onClick={handleBack} className="p-2 -ml-2 text-gray-800 hover:bg-gray-100 rounded-full transition-colors active:scale-90">
@@ -519,6 +549,22 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
                 )}
                 <div className="h-px bg-gray-50 mx-4"></div>
                 <ProfileRow icon={<VideoIcon className="w-10 h-10 text-red-500" />} title="Vidéos Tuto" subtitle="Tutoriels FILANT°225" onClick={() => window.open('https://www.youtube.com/@FILANT225', '_blank')} />
+            </div>
+
+            <div className="bg-white rounded-3xl overflow-hidden mx-4 shadow-sm border border-gray-100">
+                <ProfileRow 
+                    icon={<svg className="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>} 
+                    title="Installer l'App (PWA)" 
+                    subtitle="Version Web Installable" 
+                    onClick={handleInstallPWA} 
+                />
+                <div className="h-px bg-gray-50 mx-4"></div>
+                <ProfileRow 
+                    icon={<svg className="w-10 h-10 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>} 
+                    title="Télécharger l'App (APK)" 
+                    subtitle="Version Native Android" 
+                    onClick={handleDownloadAPK} 
+                />
             </div>
             <div className="mx-4 p-5 bg-white rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center">
                 <audio ref={audioRef} onEnded={() => setIsPlaying(false)} className="hidden" />
@@ -577,8 +623,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex justify-end" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-        <div ref={overlayRef} className="fixed inset-0 bg-black/40 transition-opacity duration-300 opacity-0" onClick={handleClose}></div>
+    <div className="absolute inset-0 z-[100] flex justify-end" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+        <div ref={overlayRef} className="absolute inset-0 bg-black/40 transition-opacity duration-300 opacity-0" onClick={handleClose}></div>
         <div ref={panelRef} className="relative z-10 w-full max-w-[320px] bg-[#F3F3F3] flex flex-col transition-transform duration-300 translate-x-full overflow-hidden">
             <main className="flex-1 overflow-y-auto scrollbar-hide">
                 {view === 'main' && renderMainView()}

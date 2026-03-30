@@ -13,7 +13,7 @@ interface GlobalPopupProps {
 
 const GlobalPopup: React.FC<GlobalPopupProps> = ({ message, type, onConfirm, onCancel, confirmLabel, cancelLabel, isConfirmLoading }) => {
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[2000] p-4 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-[2000] p-4 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-800 rounded-[2rem] shadow-2xl p-8 max-w-[320px] w-full border-2 border-orange-500 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
         <div className="mb-8 text-center">
             {type === 'alert' ? (

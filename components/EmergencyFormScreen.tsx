@@ -63,7 +63,7 @@ const EmergencyFormScreen: React.FC<EmergencyFormScreenProps> = ({ onBack, user 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-white z-[600] flex flex-col font-sans overflow-hidden"
+      className="absolute inset-0 bg-white z-[600] flex flex-col font-sans overflow-hidden"
     >
       <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden scrollbar-hide">
         <motion.div 

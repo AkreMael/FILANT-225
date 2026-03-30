@@ -30,7 +30,7 @@ const PayfonteModal: React.FC<PayfonteModalProps> = ({ response, onClose, onOtpS
   }, [status, response.data.reference, onClose]);
 
   return (
-    <div className="fixed inset-0 bg-black/90 z-[600] flex items-center justify-center p-4 backdrop-blur-md">
+    <div className="absolute inset-0 bg-black/90 z-[600] flex items-center justify-center p-4 backdrop-blur-md">
       <div className="bg-slate-800 border-2 border-orange-500 rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center">
         {status === 'processing' && (
           <div className="space-y-6">

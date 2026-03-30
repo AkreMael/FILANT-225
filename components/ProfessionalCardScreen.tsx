@@ -290,7 +290,7 @@ const ProfessionalCardScreen: React.FC<ProfessionalCardScreenProps> = ({ user, o
 
       {/* Camera Modal */}
       {showCamera && (
-        <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center">
+        <div className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center">
           <div className="relative w-full h-full bg-slate-900 overflow-hidden">
             <video 
               ref={videoRef} 

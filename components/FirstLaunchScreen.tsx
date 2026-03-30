@@ -160,7 +160,7 @@ const FirstLaunchScreen: React.FC<FirstLaunchScreenProps> = ({ onComplete }) => 
 
       {/* Confirmation Modal */}
       {selectedOption && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm border-2 border-orange-500 transform transition-all scale-100 animate-in zoom-in-95">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white text-center mb-6 leading-relaxed">
               {selectedOption.confirmationMessage} <br/>

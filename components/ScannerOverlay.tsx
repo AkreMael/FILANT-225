@@ -212,7 +212,7 @@ const ScannerOverlay: React.FC<ScannerOverlayProps> = ({ onScan, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black z-[101] flex flex-col font-sans overflow-hidden">
+    <div className="absolute inset-0 bg-black z-[101] flex flex-col font-sans overflow-hidden">
       <div className="p-6 flex items-center justify-between z-20">
         <button onClick={onClose} className="p-2 -ml-2 text-white hover:bg-white/10 rounded-full transition-colors active:scale-90">
           <BackArrowIcon className="w-8 h-8" />
