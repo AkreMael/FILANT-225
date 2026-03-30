@@ -186,7 +186,7 @@ const EmbeddedForm: React.FC<EmbeddedFormProps> = ({
     setIsSending(true);
     setTimeout(async () => {
         const message = generateWhatsAppMessage(title, questions, answers, user, totalPrice, serviceMode, count);
-        const numericPrice = parseInt(totalPrice.replace(/\D/g, '')) || 0;
+        const numericPrice = typeof totalPrice === 'number' ? totalPrice : (parseInt(String(totalPrice).replace(/\D/g, '')) || 0);
 
         if (numericPrice > 0) {
             // Save to Firebase first
