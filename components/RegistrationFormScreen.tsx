@@ -188,22 +188,8 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
         }
     };
 
-    const handlePaymentTrigger = () => {
-        const paymentEvent = new CustomEvent('trigger-payment-view', {
-            detail: {
-                amount: config.price.toString(),
-                title: `Inscription ${registrationType}`,
-                paymentType: 'Inscription',
-                waveLink: `https://pay.wave.com/m/M_ci_jwxwatdcoKS8/c/ci/?amount=${config.price}`,
-                onSuccess: () => {
-                    console.log("Paiement réussi");
-                }
-            }
-        });
-        window.dispatchEvent(paymentEvent);
-    };
-
-    const handleAssistantRedirect = () => {
+    const handleFinalConfirmation = () => {
+        // 1. Send to Assistant
         const detailMessage = `*Nouvelle inscription via FILANT°225*\n\n` +
             `*Nom:* ${formData.nomPrenom || formData.titre}\n` +
             `*Service:* ${registrationType} (${formData.titre})\n` +
@@ -217,8 +203,28 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
             `\n--- PAIEMENT REQUIS ---\n` +
             `Lien Wave: https://pay.wave.com/m/M_ci_jwxwatdcoKS8/c/ci/?amount=${config.price}`;
 
-        const event = new CustomEvent('trigger-chat-message', { detail: detailMessage });
-        window.dispatchEvent(event);
+        const chatEvent = new CustomEvent('trigger-chat-message', { 
+            detail: { 
+                message: detailMessage,
+                phone: formData.telephone,
+                name: formData.nomPrenom || formData.titre
+            } 
+        });
+        window.dispatchEvent(chatEvent);
+
+        // 2. Trigger Payment View
+        const paymentEvent = new CustomEvent('trigger-payment-view', {
+            detail: {
+                amount: config.price.toString(),
+                title: `Inscription ${registrationType}`,
+                paymentType: 'Inscription',
+                waveLink: `https://pay.wave.com/m/M_ci_jwxwatdcoKS8/c/ci/?amount=${config.price}`,
+                onSuccess: () => {
+                    console.log("Paiement réussi");
+                }
+            }
+        });
+        window.dispatchEvent(paymentEvent);
     };
 
     if (isSuccess) {
@@ -235,7 +241,7 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
                     </p>
                     
                     <button 
-                        onClick={handleAssistantRedirect} 
+                        onClick={handleFinalConfirmation} 
                         className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-5 px-4 rounded-3xl shadow-xl transition-all transform active:scale-95 flex items-center justify-center gap-3 text-sm uppercase tracking-widest"
                     >
                         Confirmer l'inscription - {config.price} CFA 🚀

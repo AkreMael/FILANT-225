@@ -41,6 +41,8 @@ const ASSISTANT_IMAGE_URL = "https://i.supaimg.com/5cd01a23-e101-4415-9e28-ff02a
 interface Message extends StoredChatMessage {
     paymentInfo?: { link: string; amount: string } | null;
     whatsAppPayload?: string;
+    userId?: string;
+    userName?: string;
 }
 
 interface ChatWidgetProps {
@@ -162,9 +164,15 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
   }, [messages, isOpen]);
 
   useEffect(() => {
-    const handleTrigger = (event: CustomEvent<string>) => {
+    const handleTrigger = (event: CustomEvent<string | { message: string, phone?: string, name?: string }>) => {
       setIsOpen(true);
-      handleSend(event.detail);
+      if (typeof event.detail === 'string') {
+        handleSend(event.detail);
+      } else if (event.detail && typeof event.detail === 'object') {
+        // If we have a phone/name in the event, we can prioritize it for this specific message
+        // This is useful for form submissions where the user just provided their info
+        handleSend(event.detail.message, event.detail.phone, event.detail.name);
+      }
     };
     window.addEventListener('trigger-chat-message' as any, handleTrigger as any);
     return () => {
@@ -231,7 +239,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
     return null;
   };
 
-  const handleSend = async (overrideText?: any) => {
+  const handleSend = async (overrideText?: any, overridePhone?: string, overrideName?: string) => {
     const textToSend = (typeof overrideText === 'string' ? overrideText : input).trim();
     if (!textToSend) return;
 
@@ -239,12 +247,20 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
     const isFormSubmission = textToSend.includes("Nouvelle demande via FILANT") || textToSend.includes("Nouvelle inscription via FILANT");
     const isCardRecovery = textToSend.includes("récupération de carte");
     
+    // Use override phone if provided, otherwise fallback to props
+    const effectivePhone = overridePhone || userPhone;
+    const effectiveName = overrideName || userName;
+    const sanitizedEffectivePhone = effectivePhone.replace(/\D/g, '');
+    const effectiveChatUserId = sanitizedEffectivePhone || userId || `${effectiveName || 'User'}_${sanitizedEffectivePhone}`;
+
     const msgId = Date.now().toString();
     const userMsg: Message = { 
         id: msgId, 
         text: textToSend, 
         sender: 'user',
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        userId: effectiveChatUserId,
+        userName: effectiveName || sanitizedEffectivePhone
     };
 
     // Only update local state if we're not using Firebase sync or to show it immediately
@@ -255,14 +271,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
         return [...prev, userMsg];
     });
 
-    databaseService.saveChatMessage(userPhone, userMsg);
+    databaseService.saveChatMessage(effectivePhone, userMsg);
     
-    // Sync to Firebase if chatUserId is available
-    if (chatUserId) {
-        databaseService.saveAdminChatMessage(chatUserId, {
+    // Sync to Firebase if effectiveChatUserId is available
+    if (effectiveChatUserId) {
+        databaseService.saveAdminChatMessage(effectiveChatUserId, {
             ...userMsg,
             sender: 'user'
-        }, userName || userPhone);
+        }, effectiveName || effectivePhone);
     }
     
     if (typeof overrideText !== 'string') setInput('');
@@ -315,7 +331,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
         sender: 'ai',
         timestamp: Date.now(),
         paymentInfo: detected, 
-        whatsAppPayload: whatsAppPayload || aiResponseText // Fallback sur la réponse IA
+        whatsAppPayload: whatsAppPayload || aiResponseText, // Fallback sur la réponse IA
+        userId: effectiveChatUserId,
+        userName: "Assistant FILANT"
     };
 
     setMessages(prev => {
@@ -323,22 +341,22 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
         if (exists) return prev;
         return [...prev, aiMsg];
     });
-    databaseService.saveChatMessage(userPhone, aiMsg);
+    databaseService.saveChatMessage(effectivePhone, aiMsg);
     
-    // Sync to Firebase if chatUserId is available
-    if (chatUserId) {
-        databaseService.saveAdminChatMessage(chatUserId, {
+    // Sync to Firebase if effectiveChatUserId is available
+    if (effectiveChatUserId) {
+        databaseService.saveAdminChatMessage(effectiveChatUserId, {
             ...aiMsg,
             sender: 'admin' // Assistant acts as admin for the user's "Messagerie Bleue"
-        }, userName || userPhone);
+        }, effectiveName || effectivePhone);
     }
     
     // Save to RTDB if it's a validated request (has payment info or is a form submission)
     if (detected || isFormSubmission || isCardRecovery) {
         databaseService.saveAssistantRequestToRTDB({
-            userId: userPhone.replace(/\D/g, ''),
-            userName: databaseService.getUserByPhone(userPhone)?.name || 'Utilisateur',
-            phone: userPhone.replace(/\D/g, ''),
+            userId: effectiveChatUserId,
+            userName: effectiveName || 'Utilisateur',
+            phone: sanitizedEffectivePhone,
             request: textToSend,
             requestText: textToSend, // Keep for backward compatibility if needed
             aiResponse: aiResponseText,

@@ -963,9 +963,9 @@ const App: React.FC = () => {
           </main>
           
           <ChatWidget 
-            userPhone={currentUser.phone} 
-            userId={currentUser.userId || currentUser.id}
-            userName={currentUser.name}
+            userPhone={displayUser.phone} 
+            userId={currentUser?.userId || currentUser?.id}
+            userName={displayUser.name}
             activeTab={activeTab} 
             currentMenuView={menuView}
             unreadChatCount={unreadChatCount}

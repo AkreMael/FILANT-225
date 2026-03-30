@@ -440,6 +440,11 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    match /form_submissions/{id} {
+      allow create: if true; // Allow anyone to submit forms (can be restricted if needed)
+      allow read, update, delete: if isAdmin();
+    }
+
     // Default deny
     match /{document=**} {
       allow read, write: if isAdmin();

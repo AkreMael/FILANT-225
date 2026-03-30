@@ -184,11 +184,24 @@ const EmbeddedForm: React.FC<EmbeddedFormProps> = ({
     }
     
     setIsSending(true);
-    setTimeout(() => {
+    setTimeout(async () => {
         const message = generateWhatsAppMessage(title, questions, answers, user, totalPrice, serviceMode, count);
         const numericPrice = parseInt(totalPrice.replace(/\D/g, '')) || 0;
 
         if (numericPrice > 0) {
+            // Save to Firebase first
+            try {
+                await databaseService.saveFormSubmission({ 
+                    userPhone: user.phone, 
+                    formType, 
+                    formTitle: title, 
+                    data: answers, 
+                    whatsappMessage: message 
+                });
+            } catch (err) {
+                console.error("Error saving form submission before payment:", err);
+            }
+
             // Trigger payment flow
             const event = new CustomEvent('trigger-payment-view', {
                 detail: {
@@ -206,7 +219,13 @@ const EmbeddedForm: React.FC<EmbeddedFormProps> = ({
                         if (target === 'whatsapp') {
                             window.open(`https://wa.me/2250705052632?text=${encodeURIComponent(message)}`, '_blank');
                         } else {
-                            window.dispatchEvent(new CustomEvent('trigger-chat-message', { detail: message }));
+                            window.dispatchEvent(new CustomEvent('trigger-chat-message', { 
+                                detail: {
+                                    message: message,
+                                    phone: user.phone,
+                                    name: user.name
+                                }
+                            }));
                         }
                     }
                 }
@@ -218,18 +237,29 @@ const EmbeddedForm: React.FC<EmbeddedFormProps> = ({
         }
 
         // If no price, save directly
-        databaseService.saveFormSubmission({ 
-            userPhone: user.phone, 
-            formType, 
-            formTitle: title, 
-            data: answers, 
-            whatsappMessage: message 
-        });
+        try {
+            await databaseService.saveFormSubmission({ 
+                userPhone: user.phone, 
+                formType, 
+                formTitle: title, 
+                data: answers, 
+                whatsappMessage: message 
+            });
+        } catch (err) {
+            console.error("Error saving form submission:", err);
+            // We continue anyway to not block the user, as the message is also sent via WhatsApp/Assistant
+        }
 
         if (target === 'whatsapp') {
           window.open(`https://wa.me/2250705052632?text=${encodeURIComponent(message)}`, '_blank');
         } else {
-          window.dispatchEvent(new CustomEvent('trigger-chat-message', { detail: message }));
+          window.dispatchEvent(new CustomEvent('trigger-chat-message', { 
+              detail: {
+                  message: message,
+                  phone: user.phone,
+                  name: user.name
+              }
+          }));
         }
         
         setIsSending(false);
