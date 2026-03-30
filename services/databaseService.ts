@@ -1537,6 +1537,24 @@ export const databaseService = {
     }
   },
 
+  async deleteAdminConversation(userId: string) {
+    try {
+      const sanitizedUserId = userId.replace(/[.#$[\]/]/g, '_');
+      const rtdbPath = `messages/${sanitizedUserId}`;
+      
+      await remove(rtdbRef(rtdb, rtdbPath));
+      
+      // Note: Deleting the entire history in Firestore would require a cloud function or deleting each doc.
+      // For the dashboard, deleting the RTDB entry is enough to remove it from the list.
+      
+      console.log("Admin conversation deleted successfully from RTDB");
+      return true;
+    } catch (error) {
+      console.error("Error deleting admin conversation:", error);
+      return false;
+    }
+  },
+
   onAllConversationsUpdate(callback: (conversations: any[]) => void) {
     const messagesRef = rtdbRef(rtdb, 'messages');
     return onValue(messagesRef, (snapshot) => {

@@ -453,6 +453,9 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
           } else if (view === 'assistant-requests' && itemToDelete) {
               await databaseService.deleteAssistantRequest(itemToDelete.userKey, itemToDelete.id);
               setAssistantRequests(prev => prev.filter(r => r.id !== itemToDelete.id));
+          } else if (view === 'user-messages' && itemToDelete) {
+              await databaseService.deleteAdminConversation(itemToDelete.userId);
+              setConversations(prev => prev.filter(c => c.userId !== itemToDelete.userId));
           }
           setDeleteId(null);
           setItemToDelete(null);
@@ -517,9 +520,22 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                           <div className="flex-1 text-left min-w-0">
                               <div className="flex justify-between items-start mb-1">
                                   <h4 className="font-black text-white uppercase text-xs truncate tracking-tighter">{conv.userName}</h4>
-                                  <span className="text-[9px] font-bold text-slate-500 uppercase">
-                                      {new Date(conv.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                      <span className="text-[9px] font-bold text-slate-500 uppercase">
+                                          {new Date(conv.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                      </span>
+                                      <button 
+                                          onClick={(e) => {
+                                              e.stopPropagation();
+                                              setDeleteId(conv.userId);
+                                              setItemToDelete({ ...conv, name: conv.userName });
+                                          }}
+                                          className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all active:scale-90"
+                                          title="Supprimer la conversation"
+                                      >
+                                          <TrashIcon className="w-3.5 h-3.5" />
+                                      </button>
+                                  </div>
                               </div>
                               <p className="text-[11px] text-slate-400 truncate leading-tight">
                                   {conv.lastMessage}
