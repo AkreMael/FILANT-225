@@ -211,20 +211,6 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
             } 
         });
         window.dispatchEvent(chatEvent);
-
-        // 2. Trigger Payment View
-        const paymentEvent = new CustomEvent('trigger-payment-view', {
-            detail: {
-                amount: config.price.toString(),
-                title: `Inscription ${registrationType}`,
-                paymentType: 'Inscription',
-                waveLink: `https://pay.wave.com/m/M_ci_jwxwatdcoKS8/c/ci/?amount=${config.price}`,
-                onSuccess: () => {
-                    console.log("Paiement réussi");
-                }
-            }
-        });
-        window.dispatchEvent(paymentEvent);
     };
 
     if (isSuccess) {

@@ -288,9 +288,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
 
     if (isFormSubmission) {
         if (textToSend.includes("Nouvelle inscription")) {
-            aiResponseText = "J'ai bien reçu votre demande d'inscription. Voici le récapitulatif. Veuillez procéder au paiement des frais de mise en ligne via le bouton ci-dessous, puis cliquez sur 'WhatsApp' pour finaliser avec un conseiller.";
+            aiResponseText = "J'ai bien reçu votre demande d'inscription. Voici le récapitulatif ci-dessus.\n\nSouhaitez-vous procéder au paiement maintenant ou contacter un conseiller sur WhatsApp ?";
         } else {
-            aiResponseText = "J'ai bien reçu votre demande. Voici le récapitulatif de votre commande. Veuillez procéder au paiement des frais de mise en relation via le bouton ci-dessous, puis cliquez sur 'Transmettre sur WhatsApp' pour finaliser avec un conseiller.";
+            aiResponseText = "J'ai bien reçu votre demande. Voici le récapitulatif de votre commande ci-dessus.\n\nSouhaitez-vous procéder au paiement maintenant ou contacter un conseiller sur WhatsApp ?";
         }
     } else if (isCardRecovery) {
         aiResponseText = "C'est noté. Pour récupérer et intégrer votre carte FILANT°225, un paiement de 7 100 FCFA est requis. Veuillez utiliser le bouton de paiement ci-dessous, puis transmettez votre demande sur WhatsApp.";
@@ -488,7 +488,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
                                         referrerPolicy="no-referrer"
                                     />
                                     <span className="uppercase tracking-widest text-[12px]">
-                                        {msg.paymentInfo.amount === 'custom' ? 'Payer' : `Payer – ${msg.paymentInfo.amount.replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F`}
+                                        {msg.paymentInfo.amount === 'custom' ? 'Payer (Wave)' : `Payer (Wave) – ${msg.paymentInfo.amount.replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F`}
                                     </span>
                                 </button>
                             )}
@@ -499,7 +499,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
                                     className="w-full bg-[#16a34a] hover:bg-[#15803d] text-white font-black py-4 px-4 rounded-xl shadow-lg flex items-center justify-center gap-3 transition-all active:scale-95"
                                 >
                                     <WhatsAppIcon className="w-5 h-5" />
-                                    <span className="uppercase tracking-widest text-[12px]">WhatsApp</span>
+                                    <span className="uppercase tracking-widest text-[12px]">WhatsApp (Conseiller)</span>
                                 </button>
                             )}
                         </div>
