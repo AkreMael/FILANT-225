@@ -32,6 +32,12 @@ export default defineConfig(({ mode }) => {
                 sizes: '512x512',
                 type: 'image/svg+xml',
                 purpose: 'any maskable'
+              },
+              {
+                src: 'https://i.supaimg.com/5cd01a23-e101-4415-9e28-ff02a617cd11.png',
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'any'
               }
             ]
           }
