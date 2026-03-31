@@ -39,49 +39,68 @@ interface RegistrationHubScreenProps {
 
 const RegistrationHubScreen: React.FC<RegistrationHubScreenProps> = ({ onSelectType, onBack }) => {
   return (
-    <div className="min-h-full w-full bg-gradient-to-br from-orange-500 to-indigo-900 p-4 font-sans text-white flex flex-col">
-      <header className="flex items-center mb-6">
-        <div className="flex items-center gap-2">
-            <button onClick={onBack} className="p-2 rounded-full hover:bg-white/20 transition-colors focus:outline-none" aria-label="Retour">
-              <BackIcon />
-            </button>
+    <div className="absolute inset-0 bg-white font-sans overflow-hidden flex flex-col">
+      <div className="relative h-[180px] w-full flex-shrink-0">
+        <img 
+          src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&q=80&w=1000" 
+          alt="header" 
+          className="w-full h-full object-cover grayscale-[0.2]" 
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute inset-0 bg-orange-600/40"></div>
+        <button onClick={onBack} className="absolute top-4 left-4 p-2 bg-white/20 backdrop-blur-md rounded-full text-white active:scale-90 z-20">
+            <BackIcon />
+        </button>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <h1 className="text-white font-black text-2xl tracking-tighter uppercase drop-shadow-lg">FILANT°225</h1>
+          <p className="text-white/90 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Inscription</p>
         </div>
-        <h1 className="text-xl font-bold ml-auto flex-1 text-right">Type d'inscription</h1>
-      </header>
-
-      <div className="p-4 mb-6 text-center bg-white/10 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20">
-          <p className="text-white/90">
-          Inscrivez-vous pour accéder à notre large gamme de services.
-          </p>
-          <p className="mt-2 font-bold text-white text-lg">
-          Fini le chômage !
-          </p>
-          <p className="text-white/80 text-sm">
-          Inscrivez-vous pour devenir indépendant et saisir de nouvelles opportunités.
-          </p>
       </div>
 
-      <div className="space-y-4 flex-1">
-          {registrationTypes.map(({ type, icon, audioText }) => (
-          <div
-              key={type}
-              className="w-full p-0 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl shadow-lg backdrop-blur-sm flex items-stretch transition-transform transform hover:scale-105 overflow-hidden group"
-          >
-              <button
-              onClick={() => onSelectType(type)}
-              className="flex-1 p-4 flex items-center gap-4 text-left text-white focus:outline-none"
-              >
-                  <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center shadow-md flex-shrink-0 text-white">
-                      {icon}
-                  </div>
-                  <span className="font-bold text-lg leading-tight">{type}</span>
-              </button>
-
-              <div className="w-16 flex items-center justify-center border-l border-white/20 bg-black/10 hover:bg-black/20 transition-colors">
-                  <SpeakerIcon text={audioText} className="text-white hover:text-orange-300 w-10 h-10" />
-              </div>
+      <div className="flex-1 bg-white rounded-t-[3rem] -mt-12 relative z-10 p-6 flex flex-col items-center overflow-y-auto scrollbar-hide">
+        <div className="w-16 h-1.5 bg-gray-100 rounded-full mb-8"></div>
+        
+        <div className="w-full max-w-md space-y-8">
+          <div className="text-center space-y-2">
+            <h2 className="text-2xl font-black text-black uppercase tracking-tight">Type d'inscription</h2>
+            <div className="h-1.5 w-20 bg-orange-500 mx-auto rounded-full"></div>
+            <p className="text-xs text-gray-500 font-bold mt-4 px-4 leading-relaxed">
+              Choisissez votre catégorie pour rejoindre la communauté FILANT°225 et saisir de nouvelles opportunités.
+            </p>
           </div>
-          ))}
+
+          <div className="space-y-4 pb-12">
+            {registrationTypes.map(({ type, icon, audioText }) => (
+              <div
+                key={type}
+                className="w-full bg-gray-50 border-2 border-gray-100 rounded-3xl shadow-sm flex items-stretch transition-all active:scale-[0.98] overflow-hidden group hover:border-orange-200"
+              >
+                <button
+                  onClick={() => onSelectType(type)}
+                  className="flex-1 p-5 flex items-center gap-4 text-left focus:outline-none"
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-orange-500 flex items-center justify-center shadow-lg flex-shrink-0 text-white transform group-hover:rotate-3 transition-transform">
+                    {icon}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-black text-black text-sm uppercase tracking-tight">{type}</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">S'inscrire maintenant</span>
+                  </div>
+                </button>
+
+                <div className="w-16 flex items-center justify-center border-l-2 border-gray-100 bg-white hover:bg-orange-50 transition-colors">
+                  <SpeakerIcon text={audioText} className="text-orange-500 w-10 h-10" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-auto pt-8 border-t border-gray-100 w-full max-w-md text-center">
+          <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
+            Fini le chômage avec FILANT°225
+          </p>
+        </div>
       </div>
     </div>
   );

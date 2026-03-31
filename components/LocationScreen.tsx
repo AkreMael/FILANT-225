@@ -160,10 +160,10 @@ interface LocationCardProps {
   item: LocationItem;
   user: User;
   onPropose: (url: string) => void;
+  onOpenForm: (context: { formType: 'worker' | 'location' | 'night_service' | 'rapid_building_service', title: string, imageUrl?: string, description?: string }) => void;
 }
 
-const LocationCard: React.FC<LocationCardProps> = ({ item, user, onPropose }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+const LocationCard: React.FC<LocationCardProps> = ({ item, user, onPropose, onOpenForm }) => {
   const equipmentImgData = EQUIPMENT_IMAGES[item.title];
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
 
@@ -176,7 +176,15 @@ const LocationCard: React.FC<LocationCardProps> = ({ item, user, onPropose }) =>
       }
   }, [equipmentImgData]);
 
-  const toggleForm = () => setIsExpanded(!isExpanded);
+  const handleDemandeClick = () => {
+    const src = Array.isArray(equipmentImgData) ? equipmentImgData[currentImgIndex] : (equipmentImgData || "");
+    onOpenForm({
+      formType: 'location',
+      title: item.title,
+      imageUrl: typeof src === 'string' ? src : src[0],
+      description: item.description
+    });
+  };
 
   const renderVisual = () => {
       if (equipmentImgData) {
@@ -196,7 +204,7 @@ const LocationCard: React.FC<LocationCardProps> = ({ item, user, onPropose }) =>
   };
 
   return (
-    <div className={`bg-white rounded-[2.5rem] p-5 flex flex-col transition-all relative overflow-hidden animate-in zoom-in-95 duration-300 border-2 ${isExpanded ? 'border-orange-600 shadow-2xl' : 'border-orange-500 shadow-xl'}`}>
+    <div className={`bg-white rounded-[2.5rem] p-5 flex flex-col transition-all relative overflow-hidden animate-in zoom-in-95 duration-300 border-2 border-orange-500 shadow-xl`}>
       <div className="flex gap-4">
         {renderVisual()}
         <div className="flex-1 flex flex-col justify-start">
@@ -223,11 +231,11 @@ const LocationCard: React.FC<LocationCardProps> = ({ item, user, onPropose }) =>
         </button>
 
         <button
-          onClick={toggleForm}
-          className={`w-11 h-11 rounded-full border-2 flex items-center justify-center transition-all shadow-md active:scale-90 animate-demande-signal ${isExpanded ? 'bg-orange-500 border-orange-600 text-white' : 'bg-white border-orange-500 text-orange-500'}`}
+          onClick={handleDemandeClick}
+          className={`w-11 h-11 rounded-full border-2 flex items-center justify-center transition-all shadow-md active:scale-90 animate-demande-signal bg-white border-orange-500 text-orange-500`}
           title="Demander"
         >
-          {isExpanded ? <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg> : <SendIcon />}
+          <SendIcon />
         </button>
 
         <a
@@ -238,17 +246,6 @@ const LocationCard: React.FC<LocationCardProps> = ({ item, user, onPropose }) =>
           <PhoneIcon />
         </a>
       </div>
-
-      {/* DEPLOYED FORM */}
-      {isExpanded && (
-          <EmbeddedForm 
-              title={item.title} 
-              formType="location" 
-              user={user} 
-              description={item.description}
-              onClose={() => setIsExpanded(false)} 
-          />
-      )}
     </div>
   );
 };
@@ -256,11 +253,12 @@ const LocationCard: React.FC<LocationCardProps> = ({ item, user, onPropose }) =>
 interface LocationScreenProps {
   onBack: () => void;
   user: User;
-  onPropose: (url: string) => void;
+  onPropose: (url: string, title: string) => void;
+  onOpenForm: (context: { formType: 'worker' | 'location' | 'night_service' | 'rapid_building_service', title: string, imageUrl?: string, description?: string }) => void;
   initialCategory?: 'appartement' | 'equipement';
 }
 
-const LocationScreen: React.FC<LocationScreenProps> = ({ onBack, user, onPropose, initialCategory = 'appartement' }) => {
+const LocationScreen: React.FC<LocationScreenProps> = ({ onBack, user, onPropose, onOpenForm, initialCategory = 'appartement' }) => {
   const [activeTab, setActiveTab] = useState<'appartement' | 'equipement'>(initialCategory);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -342,7 +340,8 @@ const LocationScreen: React.FC<LocationScreenProps> = ({ onBack, user, onPropose
                 key={item.id} 
                 item={item} 
                 user={user}
-                onPropose={onPropose}
+                onPropose={(url) => onPropose(url, item.title)}
+                onOpenForm={onOpenForm}
             />
           ))}
           {filteredItems.length === 0 && (

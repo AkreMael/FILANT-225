@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { getSynchronizedWorkerImage } from './WorkerListScreen';
 import { User } from '../types';
 import EmbeddedForm from './EmbeddedForm';
@@ -209,16 +210,26 @@ const RapidSectionCard: React.FC<{
     item: any, 
     type: 'batiment' | 'location', 
     user: User,
-    variant?: 'square' | 'horizontal'
-}> = ({ item, type, user, variant = 'square' }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
+    variant?: 'square' | 'horizontal',
+    onOpenForm: (context: any) => void
+}> = ({ item, type, user, variant = 'square', onOpenForm }) => {
+    const handleOpen = () => {
+        onOpenForm({
+            formType: type === 'batiment' ? 'rapid_building_service' : 'location',
+            title: item.title,
+            imageUrl: EQUIPMENT_IMAGES[item.title] || item.img,
+            description: item.description,
+            price: item.price
+        });
+    };
     
     if (variant === 'horizontal') {
         return (
             <div 
-                className={`w-full bg-white rounded-3xl overflow-hidden shadow-lg flex flex-col p-3 transition-all relative border border-gray-100/50 ${isExpanded ? 'ring-2 ring-orange-500' : ''}`}
+                className="w-full bg-white rounded-3xl overflow-hidden shadow-lg flex flex-col p-3 transition-all relative border border-gray-100/50 active:scale-95 cursor-pointer"
+                onClick={handleOpen}
             >
-                <div className="flex flex-row items-center" onClick={() => setIsExpanded(!isExpanded)}>
+                <div className="flex flex-row items-center">
                     <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border-2 border-orange-500/20 shadow-inner bg-slate-50 relative">
                         <EquipmentVisual title={item.title} fallbackImg={item.img} />
                     </div>
@@ -242,30 +253,21 @@ const RapidSectionCard: React.FC<{
                         </div>
                     </div>
                 </div>
-                {isExpanded && (
-                    <EmbeddedForm 
-                        title={item.title} 
-                        formType={type === 'batiment' ? 'rapid_building_service' : 'location'} 
-                        user={user} 
-                        description={item.description}
-                        imageUrl={EQUIPMENT_IMAGES[item.title] || item.img}
-                        onClose={() => setIsExpanded(false)} 
-                    />
-                )}
             </div>
         );
     }
 
     return (
         <div 
-            className={`flex-shrink-0 w-[180px] bg-white rounded-[2rem] overflow-hidden shadow-2xl flex flex-col transition-all relative border border-gray-100/50 ${isExpanded ? 'w-full ring-2 ring-orange-500' : ''}`}
+            className="flex-shrink-0 w-[180px] bg-white rounded-[2rem] overflow-hidden shadow-2xl flex flex-col transition-all relative border border-gray-100/50 active:scale-95 cursor-pointer"
+            onClick={handleOpen}
         >
-            <div className="p-3" onClick={() => setIsExpanded(!isExpanded)}>
+            <div className="p-3">
                 <div className="h-[120px] w-full rounded-2xl overflow-hidden relative shadow-inner bg-slate-50 flex items-center justify-center border border-gray-100">
                     <EquipmentVisual title={item.title} fallbackImg={item.img} />
                 </div>
             </div>
-            <div className="px-4 pb-5 flex flex-col flex-1 text-left relative" onClick={() => setIsExpanded(!isExpanded)}>
+            <div className="px-4 pb-5 flex flex-col flex-1 text-left relative">
                 <h4 className="text-[13px] font-black text-gray-900 uppercase leading-tight mb-1.5 tracking-tight line-clamp-1">{item.title}</h4>
                 {type === 'batiment' ? (
                     <p className="text-[#ef4444] font-black text-[12px] leading-tight mb-2 uppercase">
@@ -287,18 +289,6 @@ const RapidSectionCard: React.FC<{
                     <div className="flex h-3.5 w-3.5 rounded-full border-2 border-white shadow-lg animate-flash-green-red"></div>
                 </div>
             </div>
-            {isExpanded && (
-                <div className="p-4">
-                    <EmbeddedForm 
-                        title={item.title} 
-                        formType={type === 'batiment' ? 'rapid_building_service' : 'location'} 
-                        user={user} 
-                        description={item.description}
-                        imageUrl={EQUIPMENT_IMAGES[item.title] || item.img}
-                        onClose={() => setIsExpanded(false)} 
-                    />
-                </div>
-            )}
         </div>
     );
 };
@@ -307,20 +297,31 @@ interface ClassicCardProps {
     item: any;
     user: User;
     category: string;
+    onOpenForm: (context: any) => void;
 }
 
-const ClassicCard: React.FC<ClassicCardProps> = ({ item, user, category }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
+const ClassicCard: React.FC<ClassicCardProps> = ({ item, user, category, onOpenForm }) => {
     const index = Math.floor(Math.random() * 4); // For color rotation
     const colorStyle = classicCardColors[index % classicCardColors.length];
     const isWorker = category === 'travailleurs';
     const img = isWorker ? getSynchronizedWorkerImage(item.title) : (EQUIPMENT_IMAGES[item.title] || undefined);
     
+    const handleOpen = () => {
+        onOpenForm({
+            formType: category === 'immobilier' || category === 'equipement' ? 'location' : 'worker',
+            title: item.title,
+            imageUrl: img,
+            description: item.description,
+            price: item.price
+        });
+    };
+
     return (
         <div 
-            className={`bg-white rounded-xl shadow-lg overflow-hidden flex flex-col transition-all border border-gray-100 ${isExpanded ? 'col-span-2' : ''}`}
+            className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col transition-all border border-gray-100 active:scale-95 cursor-pointer"
+            onClick={handleOpen}
         >
-            <div className="flex flex-col" onClick={() => setIsExpanded(!isExpanded)}>
+            <div className="flex flex-col">
                 <div className={`aspect-[4/3] w-full flex items-center justify-center relative ${colorStyle.bg} ${colorStyle.border || ''} overflow-hidden`}>
                     {isWorker ? (
                         <img src={img as string} alt="" className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -338,17 +339,6 @@ const ClassicCard: React.FC<ClassicCardProps> = ({ item, user, category }) => {
                     </div>
                 </div>
             </div>
-            {isExpanded && (
-                <div className="p-4 border-t border-gray-100">
-                    <EmbeddedForm 
-                        title={item.title} 
-                        formType={category === 'immobilier' || category === 'equipement' ? 'location' : 'worker'} 
-                        user={user} 
-                        description={item.description}
-                        onClose={() => setIsExpanded(false)} 
-                    />
-                </div>
-            )}
         </div>
     );
 };
@@ -357,15 +347,24 @@ interface InterventionShopScreenProps {
     onBack: () => void;
     user: User;
     category: 'intervention' | 'immobilier' | 'equipement' | 'travailleurs';
+    onOpenForm: (context: any) => void;
 }
 
-const InterventionShopScreen: React.FC<InterventionShopScreenProps> = ({ onBack, user, category }) => {
+const InterventionShopScreen: React.FC<InterventionShopScreenProps> = ({ onBack, user, category, onOpenForm }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [showAllBatiment, setShowAllBatiment] = useState(false);
     const [showAllLocation, setShowAllLocation] = useState(false);
     
     const mainScrollRef = useRef<HTMLDivElement>(null);
     const isInterventionView = category === 'intervention';
+
+    const headerImage = useMemo(() => {
+        if (category === 'intervention') return "https://i.supaimg.com/bf0970ed-7dcd-44cb-9de3-62334cdf346a.jpg";
+        if (category === 'travailleurs') return "https://i.supaimg.com/ed09fd1b-87c1-4297-bab2-6f5e2f39baf0.jpg";
+        if (category === 'immobilier') return "https://i.supaimg.com/7dd280ea-2d80-472d-9997-d6c5b3d3c53c.jpg";
+        if (category === 'equipement') return "https://i.supaimg.com/03ee9f0b-9978-48aa-a0c1-a4ee2b0efb74.jpg";
+        return "https://i.supaimg.com/ed09fd1b-87c1-4297-bab2-6f5e2f39baf0.jpg";
+    }, [category]);
 
     const filteredIntervBat = useMemo(() => 
         batimentIntervItems.filter(i => i.title.toLowerCase().includes(searchTerm.toLowerCase())),
@@ -396,114 +395,135 @@ const InterventionShopScreen: React.FC<InterventionShopScreenProps> = ({ onBack,
         return "";
     };
 
-    if (isInterventionView) {
-        return (
-            <div className="flex flex-col min-h-screen bg-white font-sans animate-in fade-in duration-300 overflow-x-hidden relative">
-                <header className="bg-orange-500 pt-2 pb-4 px-4 sticky top-0 z-30 shadow-md">
-                    <div className="flex items-center gap-3 mb-4">
-                        <button onClick={onBack} className="p-2 rounded-full text-white hover:bg-orange-600 transition-colors">
-                            <BackIcon />
-                        </button>
-                        <div className="flex items-center gap-2">
-                             <img src="https://i.supaimg.com/5cd01a23-e101-4415-9e28-ff02a617cd11.png" alt="Logo" className="w-10 h-10 object-contain" referrerPolicy="no-referrer" />
-                            <div className="flex flex-col">
-                                <h1 className="text-xl font-black text-white leading-tight">Intervention Rapide</h1>
-                                <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest">FILANT°225</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="relative w-full px-2">
-                        <div className="absolute left-6 top-1/2 -translate-y-1/2"><SearchIcon className="h-5 w-5 text-gray-400" /></div>
-                        <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Rechercher un service..." className="w-full py-3.5 pl-12 pr-12 bg-white rounded-full text-sm text-black shadow-inner focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all" />
-                        <div className="absolute right-6 top-1/2 -translate-y-1/2"><MicIcon className="h-5 w-5 text-gray-400" /></div>
-                    </div>
-                </header>
-                
-                <main className="flex-1 pb-24 px-4 pt-6 space-y-10" ref={mainScrollRef}>
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center px-1">
-                            <div className="bg-[#f97316] px-4 py-1.5 rounded-full shadow-md">
-                                <h2 className="text-[13px] font-bold text-white uppercase tracking-tight">
-                                    Service du bâtiment maison rapide
-                                </h2>
-                            </div>
-                            <button onClick={() => setShowAllBatiment(!showAllBatiment)} className="text-orange-600 text-sm font-black uppercase hover:opacity-80 active:scale-95 transition-all">{showAllBatiment ? 'Moins' : 'Plus'}</button>
-                        </div>
-                        <div className={`${showAllBatiment ? 'grid grid-cols-1 gap-4' : 'flex gap-4 overflow-x-auto pb-4 scrollbar-hide'}`}>
-                            {displayBat.map((item, idx) => (
-                                <RapidSectionCard 
-                                    key={idx} 
-                                    item={item} 
-                                    type="batiment" 
-                                    user={user}
-                                    variant={showAllBatiment ? 'horizontal' : 'square'}
-                                />
-                            ))}
-                            {filteredIntervBat.length === 0 && <p className="text-gray-400 text-xs italic p-4">Aucun résultat.</p>}
-                        </div>
-                    </div>
-                    
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center px-1">
-                            <div className="bg-[#f97316] px-4 py-1.5 rounded-full shadow-md">
-                                <h2 className="text-[13px] font-bold text-white uppercase tracking-tight">
-                                    Service location équipement rapide
-                                </h2>
-                            </div>
-                            <button onClick={() => setShowAllLocation(!showAllLocation)} className="text-orange-600 text-sm font-black uppercase hover:opacity-80 active:scale-95 transition-all">{showAllLocation ? 'Moins' : 'Plus'}</button>
-                        </div>
-                        <div className={`${showAllLocation ? 'grid grid-cols-1 gap-4' : 'flex gap-4 overflow-x-auto pb-4 scrollbar-hide'}`}>
-                            {displayLoc.map((item, idx) => (
-                                <RapidSectionCard 
-                                    key={idx} 
-                                    item={item} 
-                                    type="location" 
-                                    user={user}
-                                    variant={showAllLocation ? 'horizontal' : 'square'}
-                                />
-                            ))}
-                            {filteredIntervLoc.length === 0 && <p className="text-gray-400 text-xs italic p-4">Aucun résultat.</p>}
-                        </div>
-                    </div>
-                </main>
-            </div>
-        );
-    }
-
     return (
-        <div className="flex flex-col min-h-screen bg-orange-500 font-sans animate-in fade-in duration-300">
-            <header className="flex items-center p-4 bg-orange-600 shadow-md sticky top-0 z-20">
-                <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-orange-700 text-white transition-colors">
-                    <BackIcon />
-                </button>
-                <div className="ml-3 flex items-center gap-2 flex-1 text-white">
-                    <img src="https://i.supaimg.com/5cd01a23-e101-4415-9e28-ff02a617cd11.png" alt="Logo" className="w-9 h-9 object-contain" referrerPolicy="no-referrer" />
-                    <div>
-                        <h1 className="text-xl font-extrabold leading-tight">{getTitle()}</h1>
-                        <p className="text-[10px] opacity-90 uppercase tracking-wider font-bold">FILANT°225</p>
+        <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-white z-[500] flex flex-col font-sans overflow-hidden"
+        >
+            <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden scrollbar-hide">
+                
+                {/* Header Image Section - Matching EmbeddedForm */}
+                <motion.div 
+                    initial={{ y: -50, opacity: 0, scale: 1.1 }}
+                    animate={{ y: 0, opacity: 1, scale: 1 }}
+                    transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+                    className="relative h-[220px] w-full flex-shrink-0"
+                >
+                    <img 
+                        src={headerImage} 
+                        alt="header" 
+                        className="w-full h-full object-cover grayscale-[0.2]" 
+                        referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-black/40"></div>
+                    <button 
+                        onClick={onBack} 
+                        className="absolute top-4 left-4 p-2 bg-white/20 backdrop-blur-md rounded-full text-white active:scale-90 z-20"
+                    >
+                        <BackIcon />
+                    </button>
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+                        <span className="text-white font-black text-xl tracking-tighter uppercase drop-shadow-lg">FILANT°225</span>
                     </div>
-                </div>
-            </header>
+                </motion.div>
 
-            <main className="flex-1 p-4 overflow-y-auto bg-gray-50 rounded-t-3xl mt-2 shadow-inner">
-                <div className="relative mb-6 mt-2">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><SearchIcon className="h-5 w-5 text-gray-400" /></div>
-                    <input type="text" placeholder="Rechercher..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 bg-white border border-gray-200 rounded-full p-3 text-black shadow-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all placeholder-gray-400" />
-                </div>
+                {/* Content Container - Matching EmbeddedForm */}
+                <motion.div 
+                    initial={{ y: "100%" }}
+                    animate={{ y: 0 }}
+                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                    className="flex-1 bg-white rounded-t-[3rem] -mt-12 relative z-10 p-6 flex flex-col"
+                >
+                    <div className="w-16 h-1.5 bg-gray-100 rounded-full mb-6 self-center"></div>
+                    
+                    <div className="mb-6 flex flex-col items-center">
+                        <h2 className="text-xl font-black text-black uppercase tracking-tight text-center">{getTitle()}</h2>
+                        <div className="h-1 w-20 bg-orange-500 mt-1 rounded-full"></div>
+                    </div>
 
-                <div className="grid grid-cols-2 gap-4 pb-24">
-                    {filteredClassic.map((item, index) => (
-                        <ClassicCard 
-                            key={index}
-                            item={item}
-                            user={user}
-                            category={category}
+                    {/* Search Bar */}
+                    <div className="relative mb-6">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <SearchIcon className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input 
+                            type="text" 
+                            placeholder="Rechercher..." 
+                            value={searchTerm} 
+                            onChange={e => setSearchTerm(e.target.value)} 
+                            className="w-full pl-10 bg-gray-100 border border-transparent rounded-full p-3 text-black shadow-inner focus:ring-2 focus:ring-orange-500 outline-none transition-all placeholder-gray-400 font-bold text-sm" 
                         />
-                    ))}
-                </div>
-                {filteredClassic.length === 0 && <div className="text-center py-10 text-gray-500"><p className="font-bold">Aucun résultat.</p></div>}
-            </main>
-        </div>
+                    </div>
+
+                    {isInterventionView ? (
+                        <div className="space-y-10 pb-24">
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center px-1">
+                                    <div className="bg-[#f97316] px-4 py-1.5 rounded-full shadow-md">
+                                        <h2 className="text-[13px] font-bold text-white uppercase tracking-tight">
+                                            Service du bâtiment maison rapide
+                                        </h2>
+                                    </div>
+                                    <button onClick={() => setShowAllBatiment(!showAllBatiment)} className="text-orange-600 text-sm font-black uppercase hover:opacity-80 active:scale-95 transition-all">{showAllBatiment ? 'Moins' : 'Plus'}</button>
+                                </div>
+                                <div className={`${showAllBatiment ? 'grid grid-cols-1 gap-4' : 'flex gap-4 overflow-x-auto pb-4 scrollbar-hide'}`}>
+                                    {displayBat.map((item, idx) => (
+                                        <RapidSectionCard 
+                                            key={idx} 
+                                            item={item} 
+                                            type="batiment" 
+                                            user={user}
+                                            variant={showAllBatiment ? 'horizontal' : 'square'}
+                                            onOpenForm={onOpenForm}
+                                        />
+                                    ))}
+                                    {filteredIntervBat.length === 0 && <p className="text-gray-400 text-xs italic p-4">Aucun résultat.</p>}
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center px-1">
+                                    <div className="bg-[#f97316] px-4 py-1.5 rounded-full shadow-md">
+                                        <h2 className="text-[13px] font-bold text-white uppercase tracking-tight">
+                                            Service location équipement rapide
+                                        </h2>
+                                    </div>
+                                    <button onClick={() => setShowAllLocation(!showAllLocation)} className="text-orange-600 text-sm font-black uppercase hover:opacity-80 active:scale-95 transition-all">{showAllLocation ? 'Moins' : 'Plus'}</button>
+                                </div>
+                                <div className={`${showAllLocation ? 'grid grid-cols-1 gap-4' : 'flex gap-4 overflow-x-auto pb-4 scrollbar-hide'}`}>
+                                    {displayLoc.map((item, idx) => (
+                                        <RapidSectionCard 
+                                            key={idx} 
+                                            item={item} 
+                                            type="location" 
+                                            user={user}
+                                            variant={showAllLocation ? 'horizontal' : 'square'}
+                                            onOpenForm={onOpenForm}
+                                        />
+                                    ))}
+                                    {filteredIntervLoc.length === 0 && <p className="text-gray-400 text-xs italic p-4">Aucun résultat.</p>}
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-4 pb-24">
+                            {filteredClassic.map((item, index) => (
+                                <ClassicCard 
+                                    key={index}
+                                    item={item}
+                                    user={user}
+                                    category={category}
+                                    onOpenForm={onOpenForm}
+                                />
+                            ))}
+                            {filteredClassic.length === 0 && <div className="col-span-2 text-center py-10 text-gray-500"><p className="font-bold">Aucun résultat.</p></div>}
+                        </div>
+                    )}
+                </motion.div>
+            </div>
+        </motion.div>
     );
 };
 

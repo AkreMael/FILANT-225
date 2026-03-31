@@ -235,6 +235,7 @@ const App: React.FC = () => {
   const [registrationType, setRegistrationType] = useState<string>('Travailleur');
   const [tallyFormUrl, setTallyFormUrl] = useState<string | null>(null);
   const [scheduleServiceUrl, setScheduleServiceUrl] = useState<string | null>(null);
+  const [scheduleServiceTitle, setScheduleServiceTitle] = useState<string>("Service FILANT°225");
   const [interactiveModalContext, setInteractiveModalContext] = useState<InteractiveModalContext | null>(null);
   
   const [offerSubView, setOfferSubView] = useState<'main' | 'shop'>('main');
@@ -250,6 +251,30 @@ const App: React.FC = () => {
       onConfirm: () => {},
       onCancel: () => {}
   });
+
+  const FULL_SCREEN_MENU_VIEWS = [
+    'registration_hub', 
+    'registration_info', 
+    'custom_registration', 
+    'tally_form', 
+    'emergency_form', 
+    'location_propose_form', 
+    'schedule_service_form',
+    'worker_list',
+    'location_hub',
+    'location_map',
+    'notifications',
+    'assistant_qr',
+    'my_worker',
+    'admin_sms',
+    'admin_connections',
+    'admin_active_contacts',
+    'admin_associations'
+  ];
+
+  const isFullScreenView = (activeTab === Tab.Menu && FULL_SCREEN_MENU_VIEWS.includes(menuView)) || 
+                           (activeTab === Tab.Offer && offerSubView === 'shop') ||
+                           activeTab === Tab.Emergency;
 
   // --- DERIVED USER INFO ---
   const roleFromSelection = localStorage.getItem('filant_selected_pro_role');
@@ -714,11 +739,13 @@ const App: React.FC = () => {
           activeScreen = <WorkerListScreen 
             onBack={() => setMenuView('hub')} 
             user={displayUser}
-            onScheduleService={(url) => {
-                setScheduleServiceUrl(url || null);
+            onScheduleService={(url, title) => {
+                setScheduleServiceUrl(url || "https://tally.so/r/wQZVJY");
+                setScheduleServiceTitle(title || "Demande de Service");
                 setMenuView('schedule_service_form');
             }}
             onOpenSiteWorkers={handleOpenSiteWorkers}
+            onOpenForm={(context) => setInteractiveModalContext(context)}
           />;
           break;
         case 'registration_hub':
@@ -758,7 +785,7 @@ const App: React.FC = () => {
         case 'schedule_service_form':
           activeScreen = <TallyFormScreen 
             formUrl={scheduleServiceUrl || "https://tally.so/r/wQZVJY"}
-            formTitle="Demande de Service"
+            formTitle={scheduleServiceTitle}
             onBack={() => {
                 setMenuView('worker_list');
                 setScheduleServiceUrl(null);
@@ -773,16 +800,18 @@ const App: React.FC = () => {
             onBack={() => setMenuView('hub')} 
             user={displayUser}
             initialCategory={locationInitialTab}
-            onPropose={(url) => {
+            onPropose={(url, title) => {
                 setScheduleServiceUrl(url);
+                setScheduleServiceTitle(title);
                 setMenuView('location_propose_form');
             }}
+            onOpenForm={(context) => setInteractiveModalContext(context)}
           />;
           break;
         case 'location_propose_form':
           activeScreen = <TallyFormScreen 
             formUrl={scheduleServiceUrl || ""}
-            formTitle="Proposition de Location"
+            formTitle={scheduleServiceTitle}
             onBack={() => {
                 setMenuView('location_hub');
                 setScheduleServiceUrl(null);
@@ -840,6 +869,7 @@ const App: React.FC = () => {
                 category={shopCategory}
                 user={displayUser}
                 onBack={() => setOfferSubView('main')} 
+                onOpenForm={(context) => setInteractiveModalContext(context)}
             />;
         } else {
             activeScreen = <OfferScreen 
@@ -958,9 +988,23 @@ const App: React.FC = () => {
 
           <main className="flex-1 flex flex-col overflow-hidden relative">
             <div ref={scrollContainerRef} className="absolute inset-0 scroll-container pb-20 scrollbar-hide">
-              {activeScreen}
+              {!isFullScreenView && activeScreen}
             </div>
           </main>
+          
+          {/* Full Screen Forms Overlay */}
+          <AnimatePresence>
+            {isFullScreenView && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="absolute inset-0 z-[800] bg-white"
+              >
+                {activeScreen}
+              </motion.div>
+            )}
+          </AnimatePresence>
           
           <ChatWidget 
             userPhone={displayUser.phone} 
@@ -1019,7 +1063,7 @@ const App: React.FC = () => {
 
           <AnimatePresence>
             {interactiveModalContext && (
-              <div className="absolute inset-0 z-[500]">
+              <div className="absolute inset-0 z-[800]">
                 <InteractiveModal
                     title={interactiveModalContext.title}
                     formType={interactiveModalContext.formType}

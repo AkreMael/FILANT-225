@@ -215,7 +215,7 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
 
     if (isSuccess) {
         return (
-            <div className="min-h-full w-full bg-slate-900 flex flex-col items-center justify-center p-6 animate-in slide-in-from-bottom-full duration-1000 ease-out">
+            <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center p-6 animate-in slide-in-from-bottom-full duration-1000 ease-out z-[700]">
                 <div className="bg-white rounded-[3rem] p-10 max-w-sm w-full text-center shadow-2xl border border-white/10">
                     <div className="bg-green-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
                         <CheckIcon />
@@ -252,75 +252,90 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-orange-500 z-[600] flex flex-col font-sans overflow-hidden"
+            className="absolute inset-0 bg-white z-[600] flex flex-col font-sans overflow-hidden"
         >
             <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden scrollbar-hide">
-                <div className="p-6 flex flex-col items-center">
-                    <button onClick={onBack} className="self-start p-2 bg-white/20 backdrop-blur-md rounded-full text-white active:scale-90 mb-4">
+                
+                <motion.div 
+                  initial={{ y: -50, opacity: 0, scale: 1.1 }}
+                  animate={{ y: 0, opacity: 1, scale: 1 }}
+                  transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+                  className="relative h-[200px] w-full flex-shrink-0"
+                >
+                    <img 
+                      src={headerImage} 
+                      alt="header" 
+                      className="w-full h-full object-cover grayscale-[0.2]" 
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-black/40"></div>
+                    <button onClick={onBack} className="absolute top-4 left-4 p-2 bg-white/20 backdrop-blur-md rounded-full text-white active:scale-90 z-20">
                         <BackIcon />
                     </button>
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+                        <span className="text-white font-black text-xl tracking-tighter uppercase drop-shadow-lg">FILANT°225</span>
+                    </div>
+                </motion.div>
+
+                <motion.div 
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                  className="flex-1 bg-white rounded-t-[3rem] -mt-12 relative z-10 p-6 flex flex-col items-center"
+                >
+                    <div className="w-16 h-1.5 bg-gray-100 rounded-full mb-6"></div>
                     
-                    <div className="flex flex-col items-center gap-2 mb-8">
-                        <img 
-                            src="https://i.supaimg.com/5cd01a23-e101-4415-9e28-ff02a617cd11.png" 
-                            alt="Logo" 
-                            className="w-20 h-20 object-contain drop-shadow-xl"
-                            referrerPolicy="no-referrer"
-                        />
-                        <span className="text-white font-black text-2xl tracking-tighter uppercase drop-shadow-lg">FILANT°225</span>
+                    <div className="mb-8 flex flex-col items-center">
+                        <h2 className="text-2xl font-black text-black uppercase tracking-tight text-center">{config.title}</h2>
+                        <div className="h-1.5 w-20 bg-orange-500 mt-1 rounded-full"></div>
                     </div>
 
-                    <div className="w-full max-w-md mx-auto bg-white/10 backdrop-blur-md rounded-[3rem] p-8 shadow-2xl border border-white/20">
-                        <div className="mb-8 flex flex-col items-center">
-                            <h2 className="text-2xl font-black text-white uppercase tracking-tight text-center">{config.title}</h2>
-                            <div className="h-1.5 w-24 bg-white mt-2 rounded-full shadow-sm"></div>
-                        </div>
-
+                    <div className="w-full max-w-md mx-auto">
                         {showVideo ? (
                             <div className="p-4 h-full min-h-[500px]">
                                 <InlineVideoPlayer onBack={() => setShowVideo(false)} />
                             </div>
                         ) : (
-                            <form onSubmit={handleSubmit} className="space-y-6">
-                                {error && <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-xl text-sm font-medium animate-pulse text-center">{error}</div>}
+                            <form onSubmit={handleSubmit} className="space-y-6 pb-12">
+                                {error && <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-2xl text-sm font-bold animate-pulse text-center">{error}</div>}
 
                                 <div className="space-y-5">
                                     <div className="space-y-1.5">
-                                        <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">{config.labelTitre}</label>
-                                        <input name="titre" value={formData.titre} onChange={handleChange} type="text" placeholder={config.placeholderTitre} className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{config.labelTitre}</label>
+                                        <input name="titre" value={formData.titre} onChange={handleChange} type="text" placeholder={config.placeholderTitre} className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" required />
                                     </div>
 
                                     {config.labelNom && (
                                         <div className="space-y-1.5">
-                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">{config.labelNom}</label>
-                                            <input name="nomPrenom" value={formData.nomPrenom} onChange={handleChange} type="text" placeholder={config.placeholderNom || "Nom complet"} className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{config.labelNom}</label>
+                                            <input name="nomPrenom" value={formData.nomPrenom} onChange={handleChange} type="text" placeholder={config.placeholderNom || "Nom complet"} className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" required />
                                         </div>
                                     )}
 
                                     <div className="space-y-1.5">
-                                        <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">{config.labelVille || "Ville *"}</label>
-                                        <input name="ville" value={formData.ville} onChange={handleChange} type="text" placeholder={config.placeholderVille || "Ex: Abidjan"} className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{config.labelVille || "Ville *"}</label>
+                                        <input name="ville" value={formData.ville} onChange={handleChange} type="text" placeholder={config.placeholderVille || "Ex: Abidjan"} className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" required />
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
-                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">Téléphone *</label>
-                                            <input name="telephone" value={formData.telephone} onChange={handleChange} type="tel" placeholder="🇨🇮 SIM1" className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Téléphone *</label>
+                                            <input name="telephone" value={formData.telephone} onChange={handleChange} type="tel" placeholder="🇨🇮 SIM1" className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" required />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">WhatsApp *</label>
-                                            <input name="whatsapp" value={formData.whatsapp} onChange={handleChange} type="tel" placeholder="🇨🇮 WhatsApp" className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">WhatsApp *</label>
+                                            <input name="whatsapp" value={formData.whatsapp} onChange={handleChange} type="tel" placeholder="🇨🇮 WhatsApp" className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" required />
                                         </div>
                                     </div>
 
                                     {config.labelRadio && (
                                         <div className="space-y-1.5">
-                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">{config.labelRadio}</label>
-                                            <div className="flex flex-wrap gap-3 mt-1">
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{config.labelRadio}</label>
+                                            <div className="grid grid-cols-2 gap-2 mt-1">
                                                 {config.radioOpts?.map((opt: string) => (
-                                                    <label key={opt} className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl cursor-pointer transition-all shadow-md ${formData.formation === opt ? 'bg-white text-orange-600 ring-4 ring-white/30' : 'bg-white/20 text-white border border-white/30'}`}>
+                                                    <label key={opt} className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl cursor-pointer transition-all border-2 ${formData.formation === opt ? 'bg-orange-50 border-orange-500 text-orange-700 shadow-sm' : 'bg-gray-50 border-gray-100 text-gray-600'}`}>
                                                         <input type="radio" name="formation" value={opt} checked={formData.formation === opt} onChange={handleChange} className="hidden" />
-                                                        <span className="text-[11px] font-black uppercase">{opt}</span>
+                                                        <span className="text-[10px] font-black uppercase text-center">{opt}</span>
                                                     </label>
                                                 ))}
                                             </div>
@@ -329,12 +344,12 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
 
                                     {config.labelWorkMode && (
                                         <div className="space-y-1.5">
-                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">{config.labelWorkMode}</label>
-                                            <div className="grid grid-cols-2 gap-3 mt-1">
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{config.labelWorkMode}</label>
+                                            <div className="grid grid-cols-2 gap-2 mt-1">
                                                 {config.workModeOpts?.map((opt: string) => (
-                                                    <label key={opt} className={`flex items-center justify-center gap-2 p-4 rounded-2xl cursor-pointer transition-all shadow-md ${formData.local === opt ? 'bg-white text-orange-600 ring-4 ring-white/30' : 'bg-white/20 text-white border border-white/30'}`}>
+                                                    <label key={opt} className={`flex items-center justify-center gap-2 p-4 rounded-2xl cursor-pointer transition-all border-2 ${formData.local === opt ? 'bg-orange-50 border-orange-500 text-orange-700 shadow-sm' : 'bg-gray-50 border-gray-100 text-gray-600'}`}>
                                                         <input type="radio" name="local" value={opt} checked={formData.local === opt} onChange={handleChange} className="hidden" />
-                                                        <span className="text-[11px] font-black uppercase">{opt}</span>
+                                                        <span className="text-[10px] font-black uppercase text-center">{opt}</span>
                                                     </label>
                                                 ))}
                                             </div>
@@ -343,42 +358,42 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
 
                                     {config.showPrix && (
                                         <div className="space-y-1.5">
-                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">{config.labelPrix}</label>
-                                            <input name="prix" value={formData.prix} onChange={handleChange} type="text" placeholder="Ex: 5000 FCFA" className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{config.labelPrix}</label>
+                                            <input name="prix" value={formData.prix} onChange={handleChange} type="text" placeholder="Ex: 5000 FCFA" className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" required />
                                         </div>
                                     )}
 
                                     {config.showBirthDate && (
                                         <div className="space-y-1.5">
-                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">Date de naissance *</label>
-                                            <input name="naissance" value={formData.naissance} onChange={handleChange} type="date" className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Date de naissance *</label>
+                                            <input name="naissance" value={formData.naissance} onChange={handleChange} type="date" className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 text-gray-800 font-bold focus:border-orange-500 outline-none transition-all" required />
                                         </div>
                                     )}
 
                                     {config.showEmail && (
                                         <div className="space-y-1.5">
-                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">{config.labelEmail || "Email *"}</label>
-                                            <input name="gmail" value={formData.gmail} onChange={handleChange} type="email" placeholder="votre@email.com" className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" required />
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{config.labelEmail || "Email *"}</label>
+                                            <input name="gmail" value={formData.gmail} onChange={handleChange} type="email" placeholder="votre@email.com" className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" required />
                                         </div>
                                     )}
 
                                     {config.showZones && (
                                         <div className="space-y-1.5">
-                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">{config.labelZones}</label>
-                                            <input name="zones" value={formData.zones} onChange={handleChange} type="text" placeholder="Ex: Cocody, Plateau..." className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md" />
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{config.labelZones}</label>
+                                            <input name="zones" value={formData.zones} onChange={handleChange} type="text" placeholder="Ex: Cocody, Plateau..." className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" />
                                         </div>
                                     )}
 
                                     {config.showDescription && (
                                         <div className="space-y-1.5">
-                                            <label className="block text-[11px] font-black text-black uppercase tracking-widest ml-1">Description (facultatif)</label>
-                                            <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Plus de détails..." className="w-full bg-white border-none rounded-2xl p-4 text-green-600 font-bold placeholder-gray-300 focus:ring-4 focus:ring-white/50 outline-none transition-all shadow-md min-h-[100px] resize-none" />
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Description (facultatif)</label>
+                                            <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Plus de détails..." className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all min-h-[100px] resize-none" />
                                         </div>
                                     )}
                                 </div>
 
                                 <div className="pt-6">
-                                    <button type="submit" disabled={isSubmitting} className="w-full bg-black hover:bg-slate-900 text-white font-black py-5 rounded-3xl shadow-2xl transition-all transform active:scale-95 disabled:opacity-80 uppercase tracking-widest text-sm min-h-[60px] flex items-center justify-center gap-3">
+                                    <button type="submit" disabled={isSubmitting} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-5 rounded-3xl shadow-xl transition-all transform active:scale-95 disabled:opacity-80 uppercase tracking-widest text-sm min-h-[60px] flex items-center justify-center gap-3">
                                         {isSubmitting ? <Spinner /> : (
                                             <>
                                                 <span>Valider l'inscription 🚀</span>
@@ -387,15 +402,15 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
                                     </button>
                                 </div>
 
-                                <div className="mt-8 pt-6 border-t border-white/10">
-                                    <p className="text-[10px] text-white/60 italic leading-tight text-center px-4">
+                                <div className="mt-8 pt-6 border-t border-gray-100">
+                                    <p className="text-[10px] text-gray-400 italic leading-tight text-center px-4">
                                         Rejoignez le réseau Filan 225 dès maintenant ! Donnez de la visibilité à vos compétences ou services et accédez à des opportunités garanties en un clic. Votre avenir professionnel commence ici.
                                     </p>
                                 </div>
                             </form>
                         )}
                     </div>
-                </div>
+                </motion.div>
             </div>
         </motion.div>
     );

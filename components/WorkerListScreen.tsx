@@ -131,7 +131,8 @@ const workerTallyLinks: Record<string, string> = {
 interface WorkerCardProps {
   worker: Worker;
   user: User;
-  onScheduleService: (url?: string) => void;
+  onScheduleService: (url?: string, title?: string) => void;
+  onOpenForm: (context: { formType: 'worker' | 'location' | 'night_service' | 'rapid_building_service', title: string, imageUrl?: string, description?: string }) => void;
 }
 
 const VerifiedBadge = () => (
@@ -142,8 +143,7 @@ const VerifiedBadge = () => (
   </div>
 );
 
-const WorkerCard: React.FC<WorkerCardProps> = ({ worker, user, onScheduleService }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+const WorkerCard: React.FC<WorkerCardProps> = ({ worker, user, onScheduleService, onOpenForm }) => {
   const isDisponible = worker.category === 'Disponible';
   const imageSrc = getSynchronizedWorkerImage(worker.name);
   
@@ -152,13 +152,20 @@ const WorkerCard: React.FC<WorkerCardProps> = ({ worker, user, onScheduleService
 
   const handleExigeClick = () => {
       const url = workerTallyLinks[worker.name];
-      onScheduleService(url);
+      onScheduleService(url, displayName);
   };
 
-  const toggleForm = () => setIsExpanded(!isExpanded);
+  const handleDemandeClick = () => {
+    onOpenForm({
+      formType: 'worker',
+      title: displayName,
+      imageUrl: imageSrc,
+      description: worker.description
+    });
+  };
 
   return (
-    <div className={`bg-white rounded-[2.5rem] p-5 flex flex-col transition-all relative overflow-hidden animate-in zoom-in-95 duration-300 ${isExpanded ? 'shadow-2xl' : 'shadow-xl'}`}>
+    <div className={`bg-white rounded-[2.5rem] p-5 flex flex-col transition-all relative overflow-hidden animate-in zoom-in-95 duration-300 shadow-xl`}>
       <div className="flex gap-4">
         {/* Profile Image - Large Rounded Rectangle */}
         <div className="w-24 h-24 rounded-3xl border-2 border-orange-500 overflow-hidden flex-shrink-0 relative bg-gray-50 shadow-inner">
@@ -199,13 +206,13 @@ const WorkerCard: React.FC<WorkerCardProps> = ({ worker, user, onScheduleService
           <PersonIcon />
         </button>
 
-        {/* Demander - Send/Plane Icon (Orange Outline) - Toggles Deployment */}
+        {/* Demander - Send/Plane Icon (Orange Outline) */}
         <button
-          onClick={toggleForm}
-          className={`w-11 h-11 rounded-full border-2 flex items-center justify-center transition-all shadow-md active:scale-90 animate-demande-signal ${isExpanded ? 'bg-orange-500 border-orange-600 text-white' : 'bg-white border-orange-500 text-orange-500'}`}
+          onClick={handleDemandeClick}
+          className={`w-11 h-11 rounded-full border-2 flex items-center justify-center transition-all shadow-md active:scale-90 animate-demande-signal bg-white border-orange-500 text-orange-500`}
           title="Demander"
         >
-          {isExpanded ? <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg> : <SendIcon />}
+          <SendIcon />
         </button>
 
         {/* Appel - Phone Icon (Orange Outline) */}
@@ -217,18 +224,6 @@ const WorkerCard: React.FC<WorkerCardProps> = ({ worker, user, onScheduleService
           <PhoneIcon />
         </a>
       </div>
-
-      {/* DEPLOYED FORM */}
-      {isExpanded && (
-          <EmbeddedForm 
-              title={displayName} 
-              formType="worker" 
-              user={user} 
-              description={worker.description}
-              imageUrl={imageSrc}
-              onClose={() => setIsExpanded(false)} 
-          />
-      )}
       
       {/* Decorative Status Dot */}
       <div className="absolute top-4 right-4 flex items-center gap-1.5">
@@ -242,11 +237,12 @@ const WorkerCard: React.FC<WorkerCardProps> = ({ worker, user, onScheduleService
 interface WorkerListScreenProps {
   onBack: () => void;
   user: User;
-  onScheduleService: (url?: string) => void;
+  onScheduleService: (url?: string, title?: string) => void;
   onOpenSiteWorkers: () => void;
+  onOpenForm: (context: { formType: 'worker' | 'location' | 'night_service' | 'rapid_building_service', title: string, imageUrl?: string, description?: string }) => void;
 }
 
-const WorkerListScreen: React.FC<WorkerListScreenProps> = ({ onBack, user, onScheduleService, onOpenSiteWorkers }) => {
+const WorkerListScreen: React.FC<WorkerListScreenProps> = ({ onBack, user, onScheduleService, onOpenSiteWorkers, onOpenForm }) => {
   const [allWorkers, setAllWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -371,6 +367,7 @@ const WorkerListScreen: React.FC<WorkerListScreenProps> = ({ onBack, user, onSch
                         worker={worker} 
                         user={user}
                         onScheduleService={onScheduleService}
+                        onOpenForm={onOpenForm}
                     />
                 ))}
                 {filteredWorkers.length === 0 && (

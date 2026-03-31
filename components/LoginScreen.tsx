@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { databaseService } from '../services/databaseService';
@@ -97,138 +96,158 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-orange-500 to-indigo-900 p-4">
-      <div className="w-full max-w-md mx-auto bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl p-8 space-y-6 text-white border border-white/20">
-        <div className="text-center">
-          <div className="mx-auto w-24 h-24 mb-4 bg-white rounded-full flex items-center justify-center shadow-lg">
-            <svg
-              viewBox="0 0 100 100"
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-20 h-20 text-orange-500"
-              aria-label="Icône animée d'un travailleur qui cherche"
-            >
-              <g fill="currentColor">
-                <circle cx="50" cy="35" r="15" />
-                <path d="M20,90 C20,70 80,70 80,90 Z" fillRule="nonzero" />
-              </g>
-              <g
-                className="animate-worker-search text-green-500"
-                stroke="currentColor"
-                strokeWidth="6"
-                fill="none"
-                strokeLinecap="round"
-              >
-                <circle cx="65" cy="65" r="12" />
-                <line x1="75" y1="75" x2="88" y2="88" />
-              </g>
-            </svg>
+    <div className="flex flex-col min-h-screen bg-white font-sans overflow-hidden">
+      <div className="relative h-[220px] w-full flex-shrink-0">
+        <img 
+          src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&q=80&w=1000" 
+          alt="header" 
+          className="w-full h-full object-cover grayscale-[0.2]" 
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute inset-0 bg-orange-600/40"></div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl mb-2">
+            <img 
+              src="https://i.supaimg.com/5cd01a23-e101-4415-9e28-ff02a617cd11.png" 
+              alt="Logo" 
+              className="w-14 h-14 object-contain"
+              referrerPolicy="no-referrer"
+            />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">FILANT°225</h1>
-          {isAdminRole ? (
-              <p className="text-sm font-bold mt-2 px-4 uppercase text-white bg-red-600 inline-block py-1 rounded">
-                Connexion Administrateur
-              </p>
-          ) : isRegisterView ? (
-              <div className="text-sm text-white/90 mt-2 px-4 font-medium">
+          <h1 className="text-white font-black text-2xl tracking-tighter uppercase drop-shadow-lg">FILANT°225</h1>
+        </div>
+      </div>
+
+      <div className="flex-1 bg-white rounded-t-[3rem] -mt-12 relative z-10 p-8 flex flex-col items-center overflow-y-auto scrollbar-hide">
+        <div className="w-16 h-1.5 bg-gray-100 rounded-full mb-8"></div>
+        
+        <div className="w-full max-w-md space-y-8">
+          <div className="text-center space-y-2">
+            <h2 className="text-2xl font-black text-black uppercase tracking-tight">
+              {isAdminRole ? "Administration" : (isRegisterView ? "Inscription" : "Connexion")}
+            </h2>
+            <div className="h-1.5 w-20 bg-orange-500 mx-auto rounded-full"></div>
+            
+            <div className="text-sm text-gray-500 font-medium pt-4 px-4">
+              {isAdminRole ? (
+                <span className="text-red-600 font-black">Accès Restreint</span>
+              ) : isRegisterView ? (
                 <Typewriter text="Inscrivez-vous pour profiter pleinement de nos services sur FILANT°225." speed={20} delay={500} />
-              </div>
-          ) : (
-              <div className="text-sm text-white/90 mt-1 px-4 font-medium">
+              ) : (
                 <Typewriter text="Connectez-vous avec votre nom et numéro WhatsApp." speed={20} delay={500} />
+              )}
+            </div>
+          </div>
+          
+          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-5">
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Votre Nom *</label>
+              <div className="relative">
+                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input 
+                    type="text" 
+                    placeholder="Ex: Filant Mael" 
+                    value={name} 
+                    onChange={(e) => setName(e.target.value)} 
+                    className="w-full pl-12 pr-12 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" 
+                    required 
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <SpeakerIcon text="Entrez votre nom" className="text-orange-500" />
+                </div>
+              </div>
+            </div>
+            
+            {isRegisterView && !isAdminRole && (
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Votre Ville *</label>
+                <div className="relative">
+                  <CityIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Ex: Abidjan" 
+                    value={city} 
+                    onChange={(e) => setCity(e.target.value)} 
+                    className="w-full pl-12 pr-12 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" 
+                    required 
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <SpeakerIcon text="Entrez votre ville" className="text-orange-500" />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Numéro WhatsApp *</label>
+              <div className="relative">
+                <PhoneIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <div className="absolute left-11 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm select-none">
+                    +225
+                </div>
+                <input 
+                    type="tel" 
+                    placeholder="0102030405" 
+                    value={phone} 
+                    onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setPhone(val);
+                    }} 
+                    className="w-full pl-[4.5rem] pr-12 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" 
+                    required 
+                    pattern="\d{10}"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <SpeakerIcon text="Entrez votre numéro WhatsApp à 10 chiffres" className="text-orange-500" />
+                </div>
+              </div>
+            </div>
+
+            {isAdminRole && (
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Code Admin *</label>
+                <div className="relative">
+                  <KeyIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={adminCode} 
+                    onChange={(e) => setAdminCode(e.target.value)} 
+                    className="w-full pl-12 pr-12 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" 
+                    required 
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <SpeakerIcon text="Entrez votre code administrateur" className="text-orange-500" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="pt-6">
+              <button 
+                  type="submit" 
+                  disabled={isLoading} 
+                  className="w-full py-5 px-4 rounded-3xl shadow-xl flex items-center justify-center font-black text-white transition-all transform active:scale-95 bg-orange-500 hover:bg-orange-600 disabled:opacity-80 disabled:cursor-not-allowed min-h-[64px] uppercase tracking-widest text-sm"
+              >
+                  {isLoading ? <Spinner /> : (isRegisterView && !isAdminRole ? 'S\'inscrire maintenant' : (isAdminRole ? 'Connexion Admin' : 'Se connecter'))}
+              </button>
+            </div>
+          </form>
+          
+          {!isAdminRole && (
+              <div className="text-center pt-4">
+                <button onClick={() => { setIsRegisterView(!isRegisterView); }} className="text-xs font-black text-gray-400 hover:text-orange-500 uppercase tracking-widest transition-colors">
+                    {isRegisterView ? 'Déjà un compte ? Se connecter' : 'Pas de compte ? S\'inscrire'}
+                </button>
               </div>
           )}
         </div>
-        
-        <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-4">
-          <div className="relative">
-            <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-200" />
-            <input 
-                type="text" 
-                placeholder="Nom" 
-                value={name} 
-                onChange={(e) => setName(e.target.value)} 
-                className="w-full pl-10 pr-10 py-3 bg-white/20 border border-white/30 rounded-lg placeholder-gray-200 text-white focus:outline-none focus:bg-white/30 transition-colors" 
-                required 
-            />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                <SpeakerIcon text="Entrez votre nom" className="text-white" />
-            </div>
-          </div>
-          
-          {isRegisterView && !isAdminRole && (
-            <div className="relative">
-              <CityIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-200" />
-              <input 
-                type="text" 
-                placeholder="Ville" 
-                value={city} 
-                onChange={(e) => setCity(e.target.value)} 
-                className="w-full pl-10 pr-10 py-3 bg-white/20 border border-white/30 rounded-lg placeholder-gray-200 text-white focus:outline-none focus:bg-white/30 transition-colors" 
-                required 
-              />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                  <SpeakerIcon text="Entrez votre ville" className="text-white" />
-              </div>
-            </div>
-          )}
-          
-          <div className="relative">
-            <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-200" />
-            <div className="absolute left-10 top-1/2 -translate-y-1/2 text-gray-200 font-semibold select-none">
-                +225
-            </div>
-            <input 
-                type="tel" 
-                placeholder="0102030405" 
-                value={phone} 
-                onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                    setPhone(val);
-                }} 
-                className="w-full pl-[4.5rem] pr-10 py-3 bg-white/20 border border-white/30 rounded-lg placeholder-gray-200 text-white focus:outline-none focus:bg-white/30 transition-colors" 
-                required 
-                pattern="\d{10}"
-            />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                <SpeakerIcon text="Entrez votre numéro WhatsApp à 10 chiffres" className="text-white" />
-            </div>
-          </div>
 
-          {isAdminRole && (
-            <div className="relative">
-              <KeyIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-200" />
-              <input 
-                type="password" 
-                placeholder="Code Administrateur" 
-                value={adminCode} 
-                onChange={(e) => setAdminCode(e.target.value)} 
-                className="w-full pl-10 pr-10 py-3 bg-white/20 border border-white/30 rounded-lg placeholder-gray-200 text-white focus:outline-none focus:bg-white/30 transition-colors" 
-                required 
-              />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                  <SpeakerIcon text="Entrez votre code administrateur" className="text-white" />
-              </div>
-            </div>
-          )}
-
-          <div className="pt-4">
-            <button 
-                type="submit" 
-                disabled={isLoading} 
-                className="w-full py-3 px-4 rounded-xl shadow-lg flex items-center justify-center font-bold text-white transition-transform transform active:scale-95 bg-green-600 hover:bg-green-700 disabled:opacity-80 disabled:cursor-not-allowed min-h-[52px]"
-            >
-                {isLoading ? <Spinner /> : (isRegisterView && !isAdminRole ? 'S\'inscrire' : (isAdminRole ? 'Connexion Admin' : 'Se connecter'))}
-            </button>
-          </div>
-        </form>
-        
-        {!isAdminRole && (
-            <div className="text-center mt-4">
-            <button onClick={() => { setIsRegisterView(!isRegisterView); }} className="text-sm font-medium text-white hover:text-gray-200 hover:underline transition-colors">
-                {isRegisterView ? 'Déjà un compte ? Se connecter' : 'Pas de compte ? S\'inscrire'}
-            </button>
-            </div>
-        )}
+        <div className="mt-12 pt-8 border-t border-gray-100 w-full max-w-md">
+          <p className="text-[10px] text-gray-400 italic leading-tight text-center px-4">
+            FILANT°225 est votre partenaire de confiance pour trouver des professionnels qualifiés en Côte d'Ivoire.
+          </p>
+        </div>
       </div>
     </div>
   );

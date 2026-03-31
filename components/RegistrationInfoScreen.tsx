@@ -70,7 +70,7 @@ const RegistrationInfoScreen: React.FC<RegistrationInfoScreenProps> = ({ type, o
     const isCompany = type === 'Entreprise';
 
     return (
-        <div className="min-h-full w-full bg-orange-500 flex flex-col font-sans animate-in slide-in-from-bottom-full duration-1000 ease-out overflow-hidden">
+        <div className="absolute inset-0 bg-orange-500 flex flex-col font-sans animate-in slide-in-from-bottom-full duration-1000 ease-out overflow-hidden">
             {/* Header Branding */}
             <header className="p-6 flex flex-col items-center flex-shrink-0">
                 <button onClick={onBack} className="self-start p-2 bg-white/20 backdrop-blur-md rounded-full text-white active:scale-90 mb-4">

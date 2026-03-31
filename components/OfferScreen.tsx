@@ -106,7 +106,7 @@ const carouselItems = [
     { title: "Technicien (sonorisation)", name: "Fenrir", city: "Korhogo", description: "Assistance quotidienne à domicile", price: "30 000 F", img: INTERV_IMAGES.aide_domicile },
 ];
 
-const InterventionCard: React.FC<{ item: typeof carouselItems[0], onClick: () => void, isFullWidth?: boolean }> = ({ item, onClick, isFullWidth }) => {
+const InterventionCard: React.FC<{ item: typeof carouselItems[0], onClick: () => void }> = ({ item, onClick }) => {
     const [isCopying, setIsCopying] = useState(false);
     const pressTimer = useRef<number | null>(null);
     const startPos = useRef<{x: number, y: number} | null>(null);
@@ -150,7 +150,7 @@ const InterventionCard: React.FC<{ item: typeof carouselItems[0], onClick: () =>
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             onTouchMove={handleTouchMove}
-            className={`flex-shrink-0 ${isFullWidth ? 'w-full' : 'w-[150px]'} bg-white rounded-3xl overflow-hidden shadow-md flex flex-col transform active:scale-95 transition-all relative`}
+            className="flex-shrink-0 w-[150px] bg-white rounded-3xl overflow-hidden shadow-md flex flex-col transform active:scale-95 transition-all relative"
         >
             {isCopying && (
                 <div className="absolute inset-0 z-50 bg-black/70 flex items-center justify-center p-2 text-center animate-in fade-in duration-200">
@@ -216,7 +216,6 @@ interface OfferScreenProps {
 
 const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTab, onOpenIntervention, onOpenCategory, onSelectItem }) => {
   const mainRef = useRef<HTMLElement>(null);
-  const [isVerticalMode, setIsVerticalMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
@@ -391,12 +390,17 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
 
              <div className="px-5 mb-6 relative z-20">
                 <div className="flex justify-between items-baseline mb-1">
-                    <h2 className="text-white font-black text-2xl uppercase tracking-tighter">DEMANDE D'EMBAUCHE</h2>
+                    <h2 
+                        onClick={() => onOpenCategory('travailleurs')}
+                        className="text-white font-black text-2xl uppercase tracking-tighter cursor-pointer active:opacity-70"
+                    >
+                        DEMANDE D'EMBAUCHE
+                    </h2>
                     <button 
-                        onClick={() => setIsVerticalMode(!isVerticalMode)}
+                        onClick={() => onOpenCategory('travailleurs')}
                         className="text-white font-bold text-base bg-white/10 px-3 py-1 rounded-full active:scale-95 transition-all"
                     >
-                        {isVerticalMode ? 'Moins' : 'Plus'}
+                        Plus
                     </button>
                 </div>
                 <p className="font-bold text-base leading-snug max-w-[90%]">
@@ -406,13 +410,12 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
                 </p>
              </div>
 
-             <div className={`${isVerticalMode ? 'grid grid-cols-2 gap-4 px-4' : 'flex gap-4 overflow-x-auto px-4 scrollbar-hide'} pb-2 transition-all duration-500 relative z-20`}>
+             <div className="flex gap-4 overflow-x-auto px-4 scrollbar-hide pb-2 transition-all duration-500 relative z-20">
                 {carouselItems.map((item, idx) => (
                     <InterventionCard 
                         key={idx} 
                         item={item} 
                         onClick={() => onSelectItem(item.title, 'worker', item.img, true, item.description, item.price)} 
-                        isFullWidth={isVerticalMode}
                     />
                 ))}
              </div>
