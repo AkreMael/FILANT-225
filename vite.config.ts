@@ -28,16 +28,22 @@ export default defineConfig(({ mode }) => {
             orientation: 'portrait',
             icons: [
               {
-                src: 'icon.svg',
-                sizes: '512x512',
-                type: 'image/svg+xml',
-                purpose: 'any maskable'
+                src: 'https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/343956e5-aaed-4531-85f6-a07422df385b.png',
+                sizes: '192x192',
+                type: 'image/png',
+                purpose: 'any'
               },
               {
-                src: 'https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/bb222ca1-e4b6-42a2-b18b-be04ce812843.webp',
+                src: 'https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/343956e5-aaed-4531-85f6-a07422df385b.png',
                 sizes: '512x512',
-                type: 'image/webp',
+                type: 'image/png',
                 purpose: 'any'
+              },
+              {
+                src: 'https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/343956e5-aaed-4531-85f6-a07422df385b.png',
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'maskable'
               }
             ]
           }

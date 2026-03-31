@@ -18,6 +18,8 @@ interface ProfileScreenProps {
   onToggleClientMode: (active: boolean, selectedMode?: string) => void;
   setActiveTab: (tab: Tab) => void;
   onShowPopup: (msg: string, type: 'alert' | 'confirm', onConfirm?: (close: () => void) => void) => void; 
+  deferredPrompt: any;
+  onInstallPWA: () => void;
 }
 
 // --- CONSTANTS ---
@@ -274,7 +276,7 @@ const FavoriteDetailView: React.FC<{ fav: FavoriteRequest, onBack: () => void }>
 };
 
 // --- PROFILE SCREEN COMPONENT ---
-const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, onReset, isClientModeActive, onToggleClientMode, setActiveTab, onShowPopup }) => {
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, onReset, isClientModeActive, onToggleClientMode, setActiveTab, onShowPopup, deferredPrompt, onInstallPWA }) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -482,27 +484,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
     </div>
   );
 
-    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-
-    useEffect(() => {
-        const handleBeforeInstallPrompt = (e: any) => {
-            e.preventDefault();
-            setDeferredPrompt(e);
-        };
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    }, []);
-
-    const handleInstallPWA = async () => {
-        if (!deferredPrompt) {
-            onShowPopup("Pour installer l'application sur Android :\n1. Appuyez sur les 3 points (⋮) en haut à droite du navigateur.\n2. Sélectionnez 'Installer l'application' ou 'Ajouter à l'écran d'accueil'.", "alert");
-            return;
-        }
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-            setDeferredPrompt(null);
-        }
+    const handleInstallPWA = () => {
+        onInstallPWA();
     };
 
     const handleDownloadAPK = () => {

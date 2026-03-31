@@ -1710,7 +1710,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                               </button>
                           )}
                           <div className="flex items-center gap-2">
-                               <img src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/bb222ca1-e4b6-42a2-b18b-be04ce812843.webp" alt="Logo" className="w-12 h-12 object-contain" referrerPolicy="no-referrer" />
+                               <img src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/343956e5-aaed-4531-85f6-a07422df385b.png" alt="Logo" className="w-12 h-12 object-contain" referrerPolicy="no-referrer" />
                                <h2 className="text-xl font-black text-white uppercase tracking-tighter">Administration</h2>
                           </div>
                       </div>
@@ -1720,7 +1720,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                       <div className="flex flex-col items-center">
                           <h1 className="text-5xl sm:text-6xl font-black tracking-tighter flex items-center justify-center flex-nowrap whitespace-nowrap">
                               <img 
-                                  src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/bb222ca1-e4b6-42a2-b18b-be04ce812843.webp" 
+                                  src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/343956e5-aaed-4531-85f6-a07422df385b.png" 
                                   alt="Logo" 
                                   className="w-14 h-14 sm:w-20 sm:h-20 object-contain mr-3"
                                   referrerPolicy="no-referrer"

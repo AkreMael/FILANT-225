@@ -154,6 +154,28 @@ const App: React.FC = () => {
   });
 
   const [unreadChatCount, setUnreadChatCount] = useState(0);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (!deferredPrompt) {
+        showPopup("Pour installer l'application sur Android :\n1. Appuyez sur les 3 points (⋮) en haut à droite du navigateur.\n2. Sélectionnez 'Installer l'application' ou 'Ajouter à l'écran d'accueil'.", "alert");
+        return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+    }
+  };
 
   // Authentification anonyme pour Firestore
   useEffect(() => {
@@ -859,6 +881,8 @@ const App: React.FC = () => {
             onShowPopup={showPopup}
             onRegisterDirectly={handleRegisterDirectly}
             unreadChatCount={unreadChatCount}
+            deferredPrompt={deferredPrompt}
+            onInstallPWA={handleInstallPWA}
           />;
           break;
       }

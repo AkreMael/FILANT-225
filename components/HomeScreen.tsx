@@ -190,9 +190,24 @@ interface HomeScreenProps {
   onRegisterDirectly?: (type: string) => void;
   onTriggerClosedNotification?: () => void;
   unreadChatCount?: number;
+  deferredPrompt: any;
+  onInstallPWA: () => void;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab, onOpenNightService, onOpenBuildingService, onRestrictedAccess, onOpenFavorites, onShowPopup, onRegisterDirectly, unreadChatCount = 0 }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ 
+  onNavigate, 
+  user, 
+  setActiveTab, 
+  onOpenNightService, 
+  onOpenBuildingService, 
+  onRestrictedAccess, 
+  onOpenFavorites, 
+  onShowPopup, 
+  onRegisterDirectly, 
+  unreadChatCount = 0,
+  deferredPrompt,
+  onInstallPWA
+}) => {
   const isMainServiceOpen = true;
   const isNightServiceOpen = true;
 
@@ -535,7 +550,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
 
                             {isAdmin(user) && (
                                 <div className="flex items-center gap-2">
-                                     <img src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/bb222ca1-e4b6-42a2-b18b-be04ce812843.webp" alt="Logo" className="w-12 h-12 object-contain" referrerPolicy="no-referrer" />
+                                     <img src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/343956e5-aaed-4531-85f6-a07422df385b.png" alt="Logo" className="w-12 h-12 object-contain" referrerPolicy="no-referrer" />
                                      <h2 className="text-xl font-black text-white uppercase tracking-tighter">Administration</h2>
                                 </div>
                             )}
@@ -583,7 +598,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
                 <div className="flex flex-col items-center">
                     <h1 className="text-5xl sm:text-6xl font-black tracking-tighter flex items-center justify-center flex-nowrap whitespace-nowrap">
                         <img 
-                            src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/bb222ca1-e4b6-42a2-b18b-be04ce812843.webp" 
+                            src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/343956e5-aaed-4531-85f6-a07422df385b.png" 
                             alt="Logo" 
                             className="w-14 h-14 sm:w-20 sm:h-20 object-contain mr-3"
                             referrerPolicy="no-referrer"
@@ -683,6 +698,35 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, setActiveTab,
         </header>
 
         <main className="w-full p-4 flex flex-col gap-0 pb-12">
+            {/* PWA Install Banner */}
+            {deferredPrompt && (
+                <div className="mb-6 animate-in slide-in-from-top duration-500">
+                    <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-[2rem] p-5 shadow-xl border-4 border-white/20 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:scale-110 transition-transform duration-700"></div>
+                        <div className="relative z-10 flex items-center gap-4">
+                            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg transform -rotate-6 group-hover:rotate-0 transition-transform duration-300">
+                                <img 
+                                    src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/343956e5-aaed-4531-85f6-a07422df385b.png" 
+                                    alt="Logo" 
+                                    className="w-10 h-10 object-contain"
+                                    referrerPolicy="no-referrer"
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-white font-black text-lg uppercase leading-tight tracking-tighter">Installer l'application</h3>
+                                <p className="text-white/90 text-[10px] font-bold uppercase tracking-widest mt-0.5">Accès rapide & Notifications</p>
+                            </div>
+                            <button 
+                                onClick={onInstallPWA}
+                                className="bg-white text-orange-600 px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-90 transition-all hover:bg-orange-50"
+                            >
+                                Installer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="flex flex-col">
                 {isAdmin(user) ? (
                     <div className="grid grid-cols-2 gap-6 py-6 animate-in fade-in duration-500">
