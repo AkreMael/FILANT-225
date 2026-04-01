@@ -105,87 +105,83 @@ const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({
   const [isManualMode] = useState(initialAmount === "custom");
   const [isValidated, setIsValidated] = useState(initialAmount !== "custom");
 
-  const handlePay = () => {
-      setIsProcessing(true);
-      
-      // Logique spécifique pour l'activation/renouvellement de la mise en relation
-      if (title.includes("Mise en Relation") || title.includes("Carte FILANT")) {
-          const cardType = getCardType(user.role);
-          if (paymentType === "Activation" || title.includes("Carte FILANT")) {
-              const currentCard = databaseService.getCardData(user.phone, cardType);
-              const newCard: any = { 
-                  ...(currentCard || {}),
-                  uploadTimestamp: Date.now(), 
-                  hasPaidInitial: true 
-              };
-              databaseService.saveCardData(user.phone, newCard, cardType);
-          } else if (paymentType === "Renouvellement") {
-              const currentCard = databaseService.getCardData(user.phone, cardType);
-              const updatedCard = { 
-                  ...(currentCard || {}), 
-                  uploadTimestamp: Date.now(), 
-                  isRegularized: true 
-              };
-              databaseService.saveCardData(user.phone, updatedCard, cardType);
-          }
-      }
+    const handlePay = () => {
+        if (isProcessing) return;
+        setIsProcessing(true);
+        
+        const finalLink = isManualMode ? `${waveLink}${currentAmount}` : waveLink;
+        const amountToSave = isManualMode ? currentAmount : initialAmount;
 
-      // Save to RTDB
-      databaseService.savePaymentToRTDB({
-        userId: user.phone.replace(/\D/g, ''),
-        userName: user.name,
-        phone: user.phone,
-        city: user.city,
-        amount: currentAmount,
-        title: title,
-        serviceType: title, // Adding serviceType for compatibility with admin dashboard
-        paymentType: paymentType,
-        timestamp: Date.now()
-      });
+        // 1. Redirection immédiate pour éviter les bloqueurs de pop-up
+        // On tente d'ouvrir dans un nouvel onglet pour que l'app reste visible avec l'état "Paiement en cours"
+        const paymentWindow = window.open(finalLink, '_blank');
+        
+        // Si window.open est bloqué (retourne null), on redirige l'onglet actuel
+        if (!paymentWindow) {
+            window.location.href = finalLink;
+        }
 
-      // Save to History (Favorites) if form data exists
-      if (formData) {
-          databaseService.saveFavorite(user.phone, {
-              title: formData.formTitle,
-              date: new Date().toISOString(),
-              formType: formData.formType as any,
-              answers: formData.data,
-              userInfo: user,
-              totalPrice: parseInt(currentAmount)
-          });
-          
-          // Also save to Firestore for admin visibility
-          databaseService.saveFormSubmission({
-              userPhone: user.phone,
-              formType: formData.formType,
-              formTitle: formData.formTitle,
-              data: formData.data,
-              whatsappMessage: formData.whatsappMessage
-          });
-      }
+        // 2. Sauvegardes en arrière-plan (non bloquantes pour la redirection)
+        const saveProcess = async () => {
+            try {
+                if (title.includes("Mise en Relation") || title.includes("Carte FILANT")) {
+                    const cardType = getCardType(user.role);
+                    if (paymentType === "Activation" || title.includes("Carte FILANT")) {
+                        const currentCard = databaseService.getCardData(user.phone, cardType);
+                        const newCard: any = { 
+                            ...(currentCard || {}),
+                            uploadTimestamp: Date.now(), 
+                            hasPaidInitial: true 
+                        };
+                        databaseService.saveCardData(user.phone, newCard, cardType);
+                    } else if (paymentType === "Renouvellement") {
+                        const currentCard = databaseService.getCardData(user.phone, cardType);
+                        const updatedCard = { 
+                            ...(currentCard || {}), 
+                            uploadTimestamp: Date.now(), 
+                            isRegularized: true 
+                        };
+                        databaseService.saveCardData(user.phone, updatedCard, cardType);
+                    }
+                }
 
-      // Simulation de succès pour une meilleure expérience "intégrée"
-      setTimeout(() => {
-          setIsProcessing(false);
-          setIsSuccess(true);
-          
-          setTimeout(() => {
-              const finalLink = isManualMode ? `${waveLink}${currentAmount}` : waveLink;
-              window.open(finalLink, '_blank');
-              
-              if (onSuccess) {
-                  onSuccess();
-              }
+                databaseService.savePaymentToRTDB({
+                  userId: user.phone.replace(/\D/g, ''),
+                  userName: user.name,
+                  phone: user.phone,
+                  city: user.city,
+                  amount: amountToSave,
+                  title: title,
+                  serviceType: title,
+                  paymentType: paymentType,
+                  timestamp: Date.now()
+                });
 
-              if (title.includes("Mise en Relation") || title.includes("Carte FILANT")) {
-                  // On recharge pour refléter le changement de statut
-                  window.location.reload();
-              } else {
-                  onBack();
-              }
-          }, 1500);
-      }, 2000);
-  };
+                if (formData) {
+                    databaseService.saveFavorite(user.phone, {
+                        title: formData.formTitle,
+                        date: new Date().toISOString(),
+                        formType: formData.formType as any,
+                        answers: formData.data,
+                        userInfo: user,
+                        totalPrice: parseInt(amountToSave)
+                    });
+                    
+                    databaseService.saveFormSubmission({
+                        userPhone: user.phone,
+                        formType: formData.formType,
+                        formTitle: formData.formTitle,
+                        data: formData.data,
+                        whatsappMessage: formData.whatsappMessage
+                    });
+                }
+            } catch (error) {
+                console.error("Erreur lors de la sauvegarde du paiement:", error);
+            }
+        };
+
+        saveProcess();
+    };
 
   const handleManualValueChange = (val: string) => {
       setCurrentAmount(val);
@@ -249,7 +245,7 @@ const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({
                 {isProcessing ? (
                     <div className="flex items-center gap-3">
                         <div className="w-5 h-5 border-3 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
-                        <span className="text-blue-500 text-lg">Traitement...</span>
+                        <span className="text-blue-500 text-lg">Paiement en cours...</span>
                     </div>
                 ) : isSuccess ? (
                     <div className="flex items-center gap-3 animate-in zoom-in duration-300">
