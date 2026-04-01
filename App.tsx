@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { App as CapApp } from '@capacitor/app';
 import { Tab, User } from './types';
 import BottomNav from './components/Sidebar';
 import HomeScreen from './components/HomeScreen';
@@ -513,6 +514,55 @@ const App: React.FC = () => {
   const handleToggleProfile = () => {
     setIsProfileOpen(prev => !prev);
   };
+
+  const handleBack = useCallback(() => {
+    if (isProfileOpen) {
+      setIsProfileOpen(false);
+      return;
+    }
+
+    if (showScannerGlobal) {
+      setShowScannerGlobal(false);
+      return;
+    }
+
+    if (activeTab === Tab.Menu) {
+      if (menuView === 'hub') {
+        showPopup(
+          "Voulez-vous quitter l’application ?",
+          "confirm",
+          (close) => {
+            CapApp.exitApp();
+            close();
+          },
+          "Oui",
+          "Non"
+        );
+      } else {
+        setMenuView('hub');
+      }
+    } else if (activeTab === Tab.Offer) {
+      if (offerSubView === 'shop') {
+        setOfferSubView('main');
+      } else {
+        setActiveTab(Tab.Menu);
+      }
+    } else if (activeTab === Tab.Emergency) {
+      setActiveTab(Tab.Menu);
+    } else {
+      setActiveTab(Tab.Menu);
+    }
+  }, [activeTab, menuView, isProfileOpen, showScannerGlobal, offerSubView, showPopup]);
+
+  useEffect(() => {
+    const backListener = CapApp.addListener('backButton', () => {
+      handleBack();
+    });
+
+    return () => {
+      backListener.then(l => l.remove());
+    };
+  }, [handleBack]);
 
   const handleTabChange = (tab: Tab) => {
     const role = displayUser.role;

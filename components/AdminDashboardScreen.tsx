@@ -11,7 +11,7 @@ const IconWrapper: React.FC<{ children: React.ReactNode; className?: string }> =
     </div>
 );
 
-const BackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>;
+const BackIcon: React.FC<{className?: string}> = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-6 w-6"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>;
 const StorageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" /></svg>;
 const ActivationIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H4a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>;
 const AssociationIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
@@ -467,8 +467,8 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
   const renderUserMessagesView = () => (
       <div className="flex-1 flex flex-col h-full bg-slate-900 animate-unfold-in text-left">
           <header className="p-4 flex items-center justify-between border-b border-slate-800 bg-slate-900 sticky top-0 z-20">
-                <button onClick={() => setView('grid')} className="p-2 -ml-2 rounded-full hover:bg-slate-800 text-white">
-                    <BackIcon />
+                <button onClick={() => setView('grid')} className="p-2.5 bg-slate-800/50 backdrop-blur-md rounded-full shadow-md hover:bg-slate-800/70 transition-all active:scale-95 flex-shrink-0 border border-slate-700 mr-4">
+                    <BackIcon className="h-6 w-6 text-white" />
                 </button>
                 <h2 className="text-sm font-black text-white uppercase tracking-widest flex-1 text-center">Messages Utilisateurs</h2>
                 <div className="w-10"></div>

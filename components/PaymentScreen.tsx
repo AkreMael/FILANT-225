@@ -36,8 +36,8 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({ onBack }) => {
     return (
         <div className="flex flex-col h-full bg-cyan-400 dark:bg-cyan-800 text-gray-800 dark:text-white font-sans">
             <header className="flex items-center p-4 bg-cyan-500/50 dark:bg-cyan-900/50 backdrop-blur-sm sticky top-0 z-10 shadow-md">
-                <button onClick={onBack} className="p-2 rounded-full text-white hover:bg-white/20 transition-colors">
-                    <BackIcon />
+                <button onClick={onBack} className="p-2.5 bg-white/20 backdrop-blur-md rounded-full shadow-md hover:bg-white/30 transition-all active:scale-95 flex-shrink-0 border border-white/30">
+                    <BackIcon className="h-6 w-6 text-white" />
                 </button>
                 <div className="flex items-center gap-2 ml-4">
                     <h1 className="text-xl font-bold text-white">Paiement</h1>

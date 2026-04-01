@@ -237,8 +237,8 @@ const FavoriteDetailView: React.FC<{ fav: FavoriteRequest, onBack: () => void }>
     return (
         <div className="absolute inset-0 bg-orange-500 z-[300] flex flex-col h-full w-full">
             <div className="p-4 flex items-center">
-                <button onClick={onBack} className="p-2 -ml-2 text-black active:scale-90 transition-transform">
-                    <BackIcon className="w-8 h-8" />
+                <button onClick={onBack} className="p-2.5 bg-white/20 backdrop-blur-md rounded-full shadow-md hover:bg-white/30 transition-all active:scale-95 flex-shrink-0 border border-white/30">
+                    <BackIcon className="w-8 h-8 text-black" />
                 </button>
                 <h2 className="flex-1 text-center font-black uppercase text-base mr-10">Détails de la demande</h2>
             </div>

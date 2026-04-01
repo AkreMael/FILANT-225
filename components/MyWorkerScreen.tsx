@@ -223,8 +223,8 @@ const MyWorkerScreen: React.FC<MyWorkerScreenProps> = ({ onBack, user }) => {
     <div className="flex flex-col h-full bg-white text-slate-900 relative font-sans overflow-hidden">
       
       <header className="flex items-center justify-between p-4 border-b border-gray-100 bg-white sticky top-0 z-10">
-        <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-gray-100 active:scale-90 transition-all text-slate-900">
-            <BackIcon className="h-7 w-7" />
+        <button onClick={onBack} className="p-2.5 bg-white dark:bg-slate-700 rounded-full shadow-md hover:bg-gray-100 dark:hover:bg-slate-600 transition-all active:scale-95 flex-shrink-0 border border-gray-200 dark:border-slate-600">
+            <BackIcon className="h-7 w-7 text-gray-800 dark:text-white" />
         </button>
         
         <h1 className="text-sm font-black text-slate-900 uppercase tracking-widest text-center flex-1">

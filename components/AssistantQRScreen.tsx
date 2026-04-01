@@ -59,8 +59,8 @@ const AssistantQRScreen: React.FC<AssistantQRScreenProps> = ({ onBack, user, onS
   return (
     <div className="flex flex-col h-full bg-[#F3F3F3] animate-in slide-in-from-right duration-300">
       <header className="p-4 flex items-center bg-white shadow-sm border-b border-gray-100 sticky top-0 z-10">
-        <button onClick={onBack} className="p-2 -ml-2 active:scale-90 transition-transform">
-          <BackIcon />
+        <button onClick={onBack} className="p-2.5 bg-white dark:bg-slate-700 rounded-full shadow-md hover:bg-gray-100 dark:hover:bg-slate-600 transition-all active:scale-95 flex-shrink-0 border border-gray-200 dark:border-slate-600">
+          <BackIcon className="h-6 w-6 text-gray-800 dark:text-white" />
         </button>
         <h1 className="flex-1 text-center font-black uppercase text-base tracking-tight mr-10 text-gray-900">ASSISTANCE QR</h1>
         {contacts.length > 0 && (

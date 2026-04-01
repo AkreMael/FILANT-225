@@ -45,8 +45,8 @@ const WavePaymentScreen: React.FC<WavePaymentScreenProps> = ({ onBack }) => {
     return (
         <div className="flex flex-col h-full bg-[#0a0f1d] text-white font-sans overflow-hidden">
             <header className="flex items-center p-4 bg-[#0a0f1d] border-b border-slate-800">
-                <button onClick={onBack} className="p-2 rounded-full hover:bg-slate-800 transition-colors">
-                    <BackIcon />
+                <button onClick={onBack} className="p-2.5 bg-slate-800/50 backdrop-blur-md rounded-full shadow-md hover:bg-slate-800/70 transition-all active:scale-95 flex-shrink-0 border border-slate-700">
+                    <BackIcon className="h-6 w-6 text-white" />
                 </button>
                 <div className="flex items-center gap-2 ml-4">
                     <h1 className="text-xl font-bold">Autre Paiement</h1>

@@ -74,7 +74,7 @@ const EmergencyFormScreen: React.FC<EmergencyFormScreenProps> = ({ onBack, user 
         >
             <img src="https://images.unsplash.com/photo-1582139329536-e7284fece509?auto=format&fit=crop&q=80&w=1000" alt="emergency" className="w-full h-full object-cover grayscale-[0.3]" referrerPolicy="no-referrer" />
             <div className="absolute inset-0 bg-red-900/40"></div>
-            <button onClick={onBack} className="absolute top-4 left-4 p-2 bg-white/20 backdrop-blur-md rounded-full text-white active:scale-90 z-20">
+            <button onClick={onBack} className="absolute top-4 left-4 p-2.5 bg-white/30 backdrop-blur-md rounded-full text-white shadow-lg active:scale-95 z-20 border border-white/40">
                 <BackIcon />
             </button>
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
