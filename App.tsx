@@ -126,6 +126,12 @@ const GlobalModeLoading = ({ message }: { message: string }) => (
     </div>
 );
 
+interface NavigationPoint {
+  activeTab: Tab;
+  menuView: string;
+  offerSubView: 'main' | 'shop';
+}
+
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [showSplash, setShowSplash] = useState(false);
@@ -134,6 +140,27 @@ const App: React.FC = () => {
   });
 
   const [activeTab, setActiveTab] = useState<Tab>(Tab.Menu);
+  const [menuView, setMenuView] = useState<'hub' | 'worker_list' | 'registration_hub' | 'registration_info' | 'tally_form' | 'custom_registration' | 'my_worker' | 'location_hub' | 'schedule_service_form' | 'location_propose_form' | 'admin_sms' | 'location_hub' | 'location_map' | 'notifications' | 'emergency_form' | 'assistant_qr' | 'admin_connections' | 'admin_active_contacts' | 'admin_associations'>('hub');
+  const [offerSubView, setOfferSubView] = useState<'main' | 'shop'>('main');
+  
+  const [navHistory, setNavHistory] = useState<NavigationPoint[]>([]);
+
+  const navigateTo = useCallback((updates: Partial<NavigationPoint>) => {
+    const currentState: NavigationPoint = { activeTab, menuView, offerSubView };
+    
+    const willChange = 
+      (updates.activeTab !== undefined && updates.activeTab !== activeTab) ||
+      (updates.menuView !== undefined && updates.menuView !== menuView) ||
+      (updates.offerSubView !== undefined && updates.offerSubView !== offerSubView);
+
+    if (willChange) {
+      setNavHistory(prev => [...prev, currentState]);
+      if (updates.activeTab !== undefined) setActiveTab(updates.activeTab);
+      if (updates.menuView !== undefined) setMenuView(updates.menuView as any);
+      if (updates.offerSubView !== undefined) setOfferSubView(updates.offerSubView);
+    }
+  }, [activeTab, menuView, offerSubView]);
+
   const [chatTargetUser, setChatTargetUser] = useState<User | undefined>(undefined);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showScannerGlobal, setShowScannerGlobal] = useState(false);
@@ -253,15 +280,12 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, [currentUser?.phone, currentUser?.name]);
 
-  const [menuView, setMenuView] = useState<'hub' | 'worker_list' | 'registration_hub' | 'registration_info' | 'tally_form' | 'custom_registration' | 'my_worker' | 'location_hub' | 'schedule_service_form' | 'location_propose_form' | 'admin_sms' | 'location_hub' | 'location_map' | 'notifications' | 'emergency_form' | 'assistant_qr' | 'admin_connections' | 'admin_active_contacts' | 'admin_associations'>('hub');
   const [locationInitialTab, setLocationInitialTab] = useState<'appartement' | 'equipement'>('appartement');
   const [registrationType, setRegistrationType] = useState<string>('Travailleur');
   const [tallyFormUrl, setTallyFormUrl] = useState<string | null>(null);
   const [scheduleServiceUrl, setScheduleServiceUrl] = useState<string | null>(null);
   const [scheduleServiceTitle, setScheduleServiceTitle] = useState<string>("Service FILANT°225");
   const [interactiveModalContext, setInteractiveModalContext] = useState<InteractiveModalContext | null>(null);
-  
-  const [offerSubView, setOfferSubView] = useState<'main' | 'shop'>('main');
   const [shopCategory, setShopCategory] = useState<'intervention' | 'immobilier' | 'equipement' | 'travailleurs'>('intervention');
 
   const [showRestrictedToast, setShowRestrictedToast] = useState(false);
@@ -380,7 +404,7 @@ const App: React.FC = () => {
 
         // Redirection automatique si admin
         if (isAdmin(userData)) {
-          setActiveTab(Tab.AdminDashboard);
+          navigateTo({ activeTab: Tab.AdminDashboard });
         }
       } else {
         localStorage.removeItem('filant_currentUserPhone');
@@ -431,7 +455,7 @@ const App: React.FC = () => {
 
     // Redirection automatique si admin
     if (isAdmin(user)) {
-      setActiveTab(Tab.AdminDashboard);
+      navigateTo({ activeTab: Tab.AdminDashboard });
     }
   };
 
@@ -458,6 +482,7 @@ const App: React.FC = () => {
     localStorage.removeItem('filant_user_role');
     localStorage.removeItem('filant_selected_pro_role');
     localStorage.removeItem('filant_has_selected_profile');
+    setNavHistory([]);
     setActiveTab(Tab.Menu);
     setMenuView('hub');
   }, []);
@@ -467,6 +492,7 @@ const App: React.FC = () => {
     setHasCompletedFirstLaunch(false);
     localStorage.removeItem('filant_has_selected_profile');
     localStorage.removeItem('filant_selected_pro_role');
+    setNavHistory([]);
     setMenuView('hub');
     setActiveTab(Tab.Menu);
   }, []);
@@ -480,6 +506,7 @@ const App: React.FC = () => {
             localStorage.setItem('filant_selected_pro_role', selectedProMode);
             localStorage.setItem('filant_user_role', selectedProMode);
             setIsClientModeActive(false);
+            setNavHistory([]);
             setActiveTab(Tab.Menu);
             setMenuView('hub');
             setIsProfileOpen(false);
@@ -505,6 +532,7 @@ const App: React.FC = () => {
             databaseService.syncUserToFirestore(updatedUser);
         }
         
+        setNavHistory([]);
         setActiveTab(Tab.Menu);
         setMenuView('hub');
         setIsProfileOpen(false);
@@ -526,33 +554,30 @@ const App: React.FC = () => {
       return;
     }
 
-    if (activeTab === Tab.Menu) {
-      if (menuView === 'hub') {
-        showPopup(
-          "Voulez-vous quitter l’application ?",
-          "confirm",
-          (close) => {
-            CapApp.exitApp();
-            close();
-          },
-          "Oui",
-          "Non"
-        );
-      } else {
-        setMenuView('hub');
-      }
-    } else if (activeTab === Tab.Offer) {
-      if (offerSubView === 'shop') {
-        setOfferSubView('main');
-      } else {
-        setActiveTab(Tab.Menu);
-      }
-    } else if (activeTab === Tab.Emergency) {
-      setActiveTab(Tab.Menu);
-    } else {
-      setActiveTab(Tab.Menu);
+    if (navHistory.length > 0) {
+      const lastPoint = navHistory[navHistory.length - 1];
+      setNavHistory(prev => prev.slice(0, -1));
+      setActiveTab(lastPoint.activeTab);
+      setMenuView(lastPoint.menuView as any);
+      setOfferSubView(lastPoint.offerSubView);
+      return;
     }
-  }, [activeTab, menuView, isProfileOpen, showScannerGlobal, offerSubView, showPopup]);
+
+    if (activeTab === Tab.Menu && menuView === 'hub') {
+      showPopup(
+        "Voulez-vous quitter l’application ?",
+        "confirm",
+        (close) => {
+          CapApp.exitApp();
+          close();
+        },
+        "Oui",
+        "Non"
+      );
+    } else {
+      navigateTo({ activeTab: Tab.Menu, menuView: 'hub' });
+    }
+  }, [activeTab, menuView, isProfileOpen, showScannerGlobal, navHistory, showPopup, navigateTo]);
 
   useEffect(() => {
     const backListener = CapApp.addListener('backButton', () => {
@@ -585,12 +610,12 @@ const App: React.FC = () => {
     }
 
     if (tab !== Tab.Menu && activeTab === Tab.Menu) {
-        setMenuView('hub');
+        navigateTo({ activeTab: tab, menuView: 'hub' });
+    } else if (tab === Tab.Offer) {
+        navigateTo({ activeTab: tab, offerSubView: 'main' });
+    } else {
+        navigateTo({ activeTab: tab });
     }
-    if (tab === Tab.Offer) {
-        setOfferSubView('main');
-    }
-    setActiveTab(tab);
   };
 
   const handleFirstLaunchComplete = () => {
@@ -611,8 +636,7 @@ const App: React.FC = () => {
   };
 
   const handleNavigateFromOffer = (view: 'worker_list' | 'location_hub') => {
-      setActiveTab(Tab.Menu);
-      setMenuView(view);
+      navigateTo({ activeTab: Tab.Menu, menuView: view });
   };
 
   const startRegistration = (type: string) => {
@@ -620,29 +644,27 @@ const App: React.FC = () => {
     setRegistrationType(type);
     if (url) {
       setTallyFormUrl(url);
-      setMenuView('tally_form');
+      navigateTo({ menuView: 'tally_form' });
     } else {
-      setMenuView('custom_registration');
+      navigateTo({ menuView: 'custom_registration' });
     }
   };
 
   const handleOpenSiteWorkers = useCallback(() => {
-    setMenuView('hub');
     setShopCategory('travailleurs');
-    setOfferSubView('shop');
-    setActiveTab(Tab.Offer);
+    navigateTo({ activeTab: Tab.Offer, offerSubView: 'shop', menuView: 'hub' });
   }, []);
 
   const handleHomeNavigate = (view: any, category?: 'appartement' | 'equipement') => {
       if (view === 'location_hub' && category) {
           setLocationInitialTab(category);
       }
-      setMenuView(view);
+      navigateTo({ menuView: view });
   };
 
   const handleRegisterDirectly = (type: string) => {
       setRegistrationType(type);
-      setMenuView('registration_info');
+      navigateTo({ menuView: 'registration_info' });
   };
 
   const handleScanResultGlobal = (data: string) => {
@@ -684,8 +706,7 @@ const App: React.FC = () => {
         showPopup("Information validée et intégrée dans l'Assistance QR !", "alert");
         
         // Redirection automatique vers l'Assistance QR
-        setActiveTab(Tab.Menu);
-        setMenuView('assistant_qr');
+        navigateTo({ activeTab: Tab.Menu, menuView: 'assistant_qr' });
     } else {
         showPopup("Le format du code QR n'a pas pu être structuré automatiquement.", "alert");
     }
@@ -701,8 +722,7 @@ const App: React.FC = () => {
     
     setCurrentUser(selectedUser);
     localStorage.setItem('filant_currentUserPhone', selectedUser.phone);
-    setActiveTab(Tab.Menu);
-    setMenuView('hub');
+    navigateTo({ activeTab: Tab.Menu, menuView: 'hub' });
     setIsProfileOpen(true);
   }, []);
 
@@ -769,7 +789,7 @@ const App: React.FC = () => {
                     currentUser={currentUser || maelUser} 
                     targetUser={chatTargetUser}
                     isAdmin={true}
-                    onBack={() => setActiveTab(Tab.AdminDashboard)}
+                    onBack={handleBack}
                   />
                 ) : (
                   <AdminDashboardScreen 
@@ -777,7 +797,7 @@ const App: React.FC = () => {
                     onSelectUser={handleAdminSelectUser} 
                     onOpenChat={(user) => {
                       setChatTargetUser(user);
-                      setActiveTab(Tab.AdminChat);
+                      navigateTo({ activeTab: Tab.AdminChat });
                     }}
                     onLogout={handleLogout} // We'll add this prop to AdminDashboardScreen
                   />
@@ -809,12 +829,12 @@ const App: React.FC = () => {
       switch (menuView) {
         case 'worker_list':
           activeScreen = <WorkerListScreen 
-            onBack={() => setMenuView('hub')} 
+            onBack={handleBack} 
             user={displayUser}
             onScheduleService={(url, title) => {
                 setScheduleServiceUrl(url || "https://tally.so/r/wQZVJY");
                 setScheduleServiceTitle(title || "Demande de Service");
-                setMenuView('schedule_service_form');
+                navigateTo({ menuView: 'schedule_service_form' });
             }}
             onOpenSiteWorkers={handleOpenSiteWorkers}
             onOpenForm={(context) => setInteractiveModalContext(context)}
@@ -822,35 +842,26 @@ const App: React.FC = () => {
           break;
         case 'registration_hub':
           activeScreen = <RegistrationHubScreen 
-            onBack={() => setMenuView('hub')} 
+            onBack={handleBack} 
             onSelectType={(type) => {
               setRegistrationType(type);
-              setMenuView('registration_info');
+              navigateTo({ menuView: 'registration_info' });
             }} 
           />;
           break;
         case 'registration_info':
           activeScreen = <RegistrationInfoScreen 
             type={registrationType} 
-            onBack={() => {
-                if (displayUser.role === 'Client') setMenuView('hub');
-                else setMenuView('registration_hub');
-            }} 
+            onBack={handleBack} 
             onNext={() => startRegistration(registrationType)}
           />;
           break;
         case 'custom_registration':
-          activeScreen = <RegistrationFormScreen registrationType={registrationType} onBack={() => setMenuView('registration_hub')} />;
+          activeScreen = <RegistrationFormScreen registrationType={registrationType} onBack={handleBack} />;
           break;
         case 'tally_form':
           activeScreen = registrationType && tallyFormUrl && <TallyFormScreen formUrl={tallyFormUrl} formTitle={registrationType} onBack={() => {
-            if (displayUser.role === 'Client') {
-                setMenuView('hub');
-            } else if (Object.values(REGISTRATION_URLS).includes(tallyFormUrl)) {
-              setMenuView('registration_hub');
-            } else {
-              setMenuView('hub');
-            }
+            handleBack();
             setTallyFormUrl(null);
           }} />;
           break;
@@ -859,23 +870,23 @@ const App: React.FC = () => {
             formUrl={scheduleServiceUrl || "https://tally.so/r/wQZVJY"}
             formTitle={scheduleServiceTitle}
             onBack={() => {
-                setMenuView('worker_list');
+                handleBack();
                 setScheduleServiceUrl(null);
             }}
           />;
           break;
         case 'my_worker':
-          activeScreen = <MyWorkerScreen onBack={() => setMenuView('hub')} user={currentUser} />;
+          activeScreen = <MyWorkerScreen onBack={handleBack} user={currentUser} />;
           break;
         case 'location_hub':
           activeScreen = <LocationScreen 
-            onBack={() => setMenuView('hub')} 
+            onBack={handleBack} 
             user={displayUser}
             initialCategory={locationInitialTab}
             onPropose={(url, title) => {
                 setScheduleServiceUrl(url);
                 setScheduleServiceTitle(title);
-                setMenuView('location_propose_form');
+                navigateTo({ menuView: 'location_propose_form' });
             }}
             onOpenForm={(context) => setInteractiveModalContext(context)}
           />;
@@ -885,34 +896,34 @@ const App: React.FC = () => {
             formUrl={scheduleServiceUrl || ""}
             formTitle={scheduleServiceTitle}
             onBack={() => {
-                setMenuView('location_hub');
+                handleBack();
                 setScheduleServiceUrl(null);
             }}
           />;
           break;
         case 'admin_sms':
-            activeScreen = <AdminDashboardScreen initialView="sms" onBack={() => setMenuView('hub')} />;
+            activeScreen = <AdminDashboardScreen initialView="sms" onBack={handleBack} />;
             break;
         case 'admin_connections':
-            activeScreen = <AdminDashboardScreen initialView="connections" onBack={() => setMenuView('hub')} onSelectUser={handleAdminSelectUser} />;
+            activeScreen = <AdminDashboardScreen initialView="connections" onBack={handleBack} onSelectUser={handleAdminSelectUser} />;
             break;
         case 'admin_active_contacts':
-            activeScreen = <AdminDashboardScreen initialView="active-contacts" onBack={() => setMenuView('hub')} />;
+            activeScreen = <AdminDashboardScreen initialView="active-contacts" onBack={handleBack} />;
             break;
         case 'admin_associations':
-            activeScreen = <AdminDashboardScreen initialView="associations" onBack={() => setMenuView('hub')} />;
+            activeScreen = <AdminDashboardScreen initialView="associations" onBack={handleBack} />;
             break;
         case 'location_map':
-            activeScreen = <LocationMapScreen onBack={() => setMenuView('hub')} />;
+            activeScreen = <LocationMapScreen onBack={handleBack} />;
             break;
         case 'notifications':
-            activeScreen = <NotificationsScreen onBack={() => setMenuView('hub')} user={displayUser} />;
+            activeScreen = <NotificationsScreen onBack={handleBack} user={displayUser} />;
             break;
         case 'emergency_form':
-            activeScreen = <EmergencyFormScreen onBack={() => setMenuView('hub')} user={displayUser} />;
+            activeScreen = <EmergencyFormScreen onBack={handleBack} user={displayUser} />;
             break;
         case 'assistant_qr':
-            activeScreen = <AssistantQRScreen onBack={() => setMenuView('hub')} user={displayUser} onShowPopup={showPopup} />;
+            activeScreen = <AssistantQRScreen onBack={handleBack} user={displayUser} onShowPopup={showPopup} />;
             break;
         case 'hub':
         default:
@@ -942,7 +953,7 @@ const App: React.FC = () => {
             activeScreen = <InterventionShopScreen 
                 category={shopCategory}
                 user={displayUser}
-                onBack={() => setOfferSubView('main')} 
+                onBack={handleBack} 
                 onOpenForm={(context) => setInteractiveModalContext(context)}
             />;
         } else {
@@ -951,11 +962,11 @@ const App: React.FC = () => {
                 setActiveTab={handleTabChange} 
                 onOpenIntervention={() => {
                     setShopCategory('intervention');
-                    setOfferSubView('shop');
+                    navigateTo({ offerSubView: 'shop' });
                 }}
                 onOpenCategory={(category) => {
                     setShopCategory(category);
-                    setOfferSubView('shop');
+                    navigateTo({ offerSubView: 'shop' });
                 }}
                 onSelectItem={(item, type, img, isBlurred, desc, price) => setInteractiveModalContext({ 
                   formType: type, 
@@ -972,37 +983,37 @@ const App: React.FC = () => {
       activeScreen = <TallyFormScreen 
         formUrl="https://tally.so/r/nPY5eQ"
         formTitle="Urgence"
-        onBack={() => handleTabChange(Tab.Menu)}
+        onBack={handleBack}
         hideVideoButton={true}
       />;
       break;
     case Tab.WavePayment:
-      activeScreen = <WavePaymentScreen onBack={() => handleTabChange(Tab.Menu)} />;
+      activeScreen = <WavePaymentScreen onBack={handleBack} />;
       break;
     case Tab.Card:
       activeScreen = <ProfessionalCardScreen 
         user={displayUser} 
-        onBack={() => handleTabChange(Tab.Menu)} 
+        onBack={handleBack} 
         onShowPopup={showPopup}
       />;
       break;
     case Tab.Payment:
-      activeScreen = <PaymentScreen onBack={() => setActiveTab(Tab.Menu)} />;
+      activeScreen = <PaymentScreen onBack={handleBack} />;
       break;
     case Tab.AdminLogin:
       activeScreen = <AdminLoginScreen 
-        onSuccess={() => setActiveTab(Tab.AdminDashboard)} 
-        onBack={() => setActiveTab(Tab.Menu)}
+        onSuccess={() => navigateTo({ activeTab: Tab.AdminDashboard })} 
+        onBack={handleBack}
         onShowPopup={showPopup}
       />;
       break;
     case Tab.AdminDashboard:
       activeScreen = <AdminDashboardScreen 
-        onBack={() => setActiveTab(Tab.Menu)} 
+        onBack={handleBack} 
         onSelectUser={handleAdminSelectUser} 
         onOpenChat={(user) => {
           setChatTargetUser(user);
-          setActiveTab(Tab.AdminChat);
+          navigateTo({ activeTab: Tab.AdminChat });
         }}
       />;
       break;
@@ -1012,7 +1023,7 @@ const App: React.FC = () => {
           currentUser={currentUser || maelUser} 
           targetUser={chatTargetUser}
           isAdmin={true}
-          onBack={() => setActiveTab(Tab.AdminDashboard)}
+          onBack={handleBack}
         />
       );
       break;
@@ -1021,15 +1032,15 @@ const App: React.FC = () => {
         <ChatScreen 
           currentUser={currentUser || maelUser} 
           isAdmin={false}
-          onBack={() => setActiveTab(Tab.Menu)}
+          onBack={handleBack}
         />
       );
       break;
     case Tab.AvailabilityCalendar:
-      activeScreen = <AvailabilityCalendar user={displayUser} onBack={() => setActiveTab(Tab.Menu)} />;
+      activeScreen = <AvailabilityCalendar user={displayUser} onBack={handleBack} />;
       break;
     case Tab.Reviews:
-      activeScreen = <ReviewSystem user={displayUser} onBack={() => setActiveTab(Tab.Menu)} />;
+      activeScreen = <ReviewSystem user={displayUser} onBack={handleBack} />;
       break;
     default:
       activeScreen = <HomeScreen 
