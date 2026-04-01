@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { chatService } from '../services/chatService';
 import { databaseService, StoredChatMessage } from '../services/databaseService';
 import { audioService } from '../services/audioService';
@@ -156,13 +156,18 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
     databaseService.saveChatMessage(userPhone, welcomeMsg);
   };
 
+  const displayMessages = useMemo(() => {
+    const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+    return messages.filter(msg => (msg.timestamp || Date.now()) > twentyFourHoursAgo);
+  }, [messages]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isOpen]);
+  }, [displayMessages, isOpen]);
 
   useEffect(() => {
     const handleTrigger = (event: CustomEvent<string | { message: string, phone?: string, name?: string }>) => {
@@ -485,7 +490,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
 
           {/* Zone de messages */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50 dark:bg-slate-950 scrollbar-hide">
-            {messages.map((msg) => (
+            {displayMessages.map((msg) => (
                 <div key={msg.id} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'} group animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                   <div className={`max-w-[90%] p-5 rounded-3xl text-[14px] leading-relaxed relative shadow-sm ${msg.sender === 'user' ? 'bg-orange-500 text-white rounded-tr-none' : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100 rounded-tl-none border border-gray-100 dark:border-slate-700'}`}>
                     {msg.text}

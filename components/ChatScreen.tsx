@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { User } from '../types';
 import { databaseService } from '../services/databaseService';
 
@@ -74,9 +74,15 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
     };
   }, [chatUserId]);
 
+  const displayMessages = useMemo(() => {
+    if (isAdmin) return messages;
+    const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+    return messages.filter(msg => msg.timestamp > twentyFourHoursAgo);
+  }, [messages, isAdmin]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [displayMessages]);
 
   const handleSendMessage = async (textOverride?: any) => {
     const textToSend = (typeof textOverride === 'string' ? textOverride : inputText).trim();
@@ -144,7 +150,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
             <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chargement des messages...</p>
           </div>
-        ) : messages.length === 0 ? (
+        ) : displayMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8 space-y-4">
             <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
@@ -156,7 +162,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
             </p>
           </div>
         ) : (
-          messages.map((msg, idx) => {
+          displayMessages.map((msg, idx) => {
             const isMe = (isAdmin && msg.sender === 'admin') || (!isAdmin && msg.sender === 'user');
             const messageId = msg.id || `msg_${idx}`;
             return (
