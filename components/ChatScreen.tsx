@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { User } from '../types';
 import { databaseService } from '../services/databaseService';
+import { Linkify } from '../utils/textUtils';
 
 interface ChatMessage {
   id?: string;
@@ -167,12 +168,14 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
             const messageId = msg.id || `msg_${idx}`;
             return (
               <div key={messageId} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300 group`}>
-                <div className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm relative select-text touch-auto ${
+                <div className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm relative select-text touch-auto overflow-hidden ${
                   isMe 
                     ? 'bg-orange-500 text-white rounded-tr-none' 
                     : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'
                 }`}>
-                  <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">{msg.text}</p>
+                  <div className="text-sm leading-relaxed break-words whitespace-pre-wrap">
+                    <Linkify text={msg.text} />
+                  </div>
                   <div className="flex items-center justify-between mt-1.5 gap-4">
                     <p className={`text-[9px] font-bold uppercase tracking-widest ${isMe ? 'text-white/60' : 'text-slate-400'}`}>
                       {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

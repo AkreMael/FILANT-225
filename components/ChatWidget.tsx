@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { chatService } from '../services/chatService';
 import { databaseService, StoredChatMessage } from '../services/databaseService';
 import { audioService } from '../services/audioService';
+import { Linkify } from '../utils/textUtils';
 import { Tab } from '../types';
 import SpeakerIcon from './common/SpeakerIcon';
 
@@ -492,8 +493,10 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
           <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50 dark:bg-slate-950 scrollbar-hide overscroll-contain">
             {displayMessages.map((msg) => (
                 <div key={msg.id} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'} group animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-                  <div className={`max-w-[90%] p-5 rounded-3xl text-[14px] leading-relaxed relative shadow-sm select-text touch-auto ${msg.sender === 'user' ? 'bg-orange-500 text-white rounded-tr-none' : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100 rounded-tl-none border border-gray-100 dark:border-slate-700'}`}>
-                    <div className="break-words whitespace-pre-wrap">{msg.text}</div>
+                  <div className={`max-w-[90%] p-5 rounded-3xl text-[14px] leading-relaxed relative shadow-sm select-text touch-auto overflow-hidden ${msg.sender === 'user' ? 'bg-orange-500 text-white rounded-tr-none' : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100 rounded-tl-none border border-gray-100 dark:border-slate-700'}`}>
+                    <div className="break-words whitespace-pre-wrap">
+                      <Linkify text={msg.text} />
+                    </div>
                     
                     <div className="flex items-center justify-between mt-3 gap-4">
                         <div className="flex items-center gap-2">
