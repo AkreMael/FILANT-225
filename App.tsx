@@ -796,7 +796,7 @@ const App: React.FC = () => {
     return (
       <GlobalRippleEffect>
         <div className="flex justify-center bg-slate-950 w-full min-h-[100dvh]">
-          <div className="w-full max-w-[480px] h-[100dvh] relative flex flex-col bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-200 shadow-2xl overflow-hidden">
+          <div className="w-full h-[100dvh] relative flex flex-col bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-200 shadow-2xl overflow-hidden admin-layout">
             
             {/* Status Bar Area */}
             <div className="w-full bg-blue-600 flex-shrink-0 z-[999] h-[env(safe-area-inset-top,24px)] min-h-[24px]" />
@@ -1081,10 +1081,12 @@ const App: React.FC = () => {
       break;
   }
 
+  const isAdminView = activeTab === Tab.AdminDashboard || activeTab === Tab.AdminChat || isUserAdmin || (activeTab === Tab.Menu && menuView.startsWith('admin_'));
+
   return (
     <GlobalRippleEffect>
       <div className="flex justify-center bg-slate-950 w-full min-h-[100dvh]">
-        <div className="w-full max-w-[480px] h-[100dvh] relative flex flex-col bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-200 shadow-2xl overflow-hidden">
+        <div className={`w-full ${isAdminView ? 'admin-layout' : 'max-w-[480px]'} h-[100dvh] relative flex flex-col bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-200 shadow-2xl overflow-hidden`}>
           
           {/* Status Bar Area */}
           <div className="w-full bg-blue-600 flex-shrink-0 z-[999] h-[env(safe-area-inset-top,24px)] min-h-[24px]" />

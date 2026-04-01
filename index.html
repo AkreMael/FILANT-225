@@ -164,6 +164,22 @@
       opacity: 0;
     }
   }
+
+  /* Forced landscape for admin dashboard on mobile */
+  @media screen and (max-width: 1024px) and (orientation: portrait) {
+    .admin-layout {
+      transform: rotate(90deg);
+      transform-origin: center;
+      width: 100vh !important;
+      height: 100vw !important;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      margin-top: -50vw;
+      margin-left: -50vh;
+      z-index: 9999;
+    }
+  }
 </style>
 <link rel="stylesheet" href="/index.css">
 </head>
