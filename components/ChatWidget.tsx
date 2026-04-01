@@ -4,6 +4,7 @@ import { chatService } from '../services/chatService';
 import { databaseService, StoredChatMessage } from '../services/databaseService';
 import { audioService } from '../services/audioService';
 import { Tab } from '../types';
+import SpeakerIcon from './common/SpeakerIcon';
 
 const MessageIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -443,43 +444,76 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
       )}
 
       {isOpen && (
-        <div className="absolute bottom-20 left-4 right-4 z-50 h-[500px] max-h-[70vh] flex flex-col bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-orange-500/30 overflow-hidden animate-in slide-in-from-bottom-10">
-          <div className="bg-orange-500 p-4 flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-               <MessageIcon className="w-5 h-5 text-white" />
-               <h3 className="font-bold text-white uppercase text-sm">Assistant FILANT°225</h3>
+        <div className="absolute inset-0 z-[2100] flex flex-col bg-white dark:bg-slate-900 overflow-hidden animate-in slide-in-from-bottom-10 duration-500">
+          {/* Header Professionnel */}
+          <div className="bg-orange-500 p-5 flex justify-between items-center shadow-lg relative z-10">
+            <div className="flex items-center space-x-3">
+               <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                  <img src={ASSISTANT_IMAGE_URL} alt="Assistant" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
+               </div>
+               <div>
+                  <h3 className="font-black text-white uppercase text-sm tracking-tight">Assistant FILANT°225</h3>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                    <span className="text-[10px] text-white/80 font-bold uppercase tracking-widest">En ligne</span>
+                  </div>
+               </div>
             </div>
-            <div className="flex gap-2">
-                <button onClick={() => { databaseService.clearChatHistory(userPhone); setMessages([]); resetChatWithWelcome(); }} className="text-white/80 p-1"><TrashIcon className="w-5 h-5" /></button>
-                <button onClick={() => setIsOpen(false)} className="text-white/80 p-1"><CloseIcon className="w-6 h-6" /></button>
+            <div className="flex gap-3">
+                <button 
+                  onClick={() => { 
+                    if (window.confirm("Voulez-vous vraiment effacer l'historique ?")) {
+                      databaseService.clearChatHistory(userPhone); 
+                      setMessages([]); 
+                      resetChatWithWelcome(); 
+                    }
+                  }} 
+                  className="text-white/80 p-2 hover:bg-white/10 rounded-full transition-colors"
+                  title="Effacer l'historique"
+                >
+                  <TrashIcon className="w-5 h-5" />
+                </button>
+                <button 
+                  onClick={() => setIsOpen(false)} 
+                  className="bg-white/20 text-white p-2 rounded-full hover:bg-white/30 transition-all active:scale-90"
+                  title="Fermer"
+                >
+                  <CloseIcon className="w-6 h-6" />
+                </button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 scrollbar-hide">
+          {/* Zone de messages */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50 dark:bg-slate-950 scrollbar-hide">
             {messages.map((msg) => (
-                <div key={msg.id} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'} group`}>
-                  <div className={`max-w-[85%] p-4 rounded-2xl text-[13px] relative ${msg.sender === 'user' ? 'bg-orange-500 text-white rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none shadow-sm border border-gray-200'}`}>
+                <div key={msg.id} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'} group animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+                  <div className={`max-w-[90%] p-5 rounded-3xl text-[14px] leading-relaxed relative shadow-sm ${msg.sender === 'user' ? 'bg-orange-500 text-white rounded-tr-none' : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100 rounded-tl-none border border-gray-100 dark:border-slate-700'}`}>
                     {msg.text}
                     
-                    <div className="flex items-center justify-between mt-2 gap-4">
-                        <span className={`text-[9px] font-bold uppercase tracking-widest ${msg.sender === 'user' ? 'text-white/60' : 'text-slate-400'}`}>
-                            {new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                    <div className="flex items-center justify-between mt-3 gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-bold uppercase tracking-widest ${msg.sender === 'user' ? 'text-white/60' : 'text-slate-400'}`}>
+                                {new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {msg.sender === 'ai' && (
+                                <SpeakerIcon text={msg.text} className="p-1" />
+                            )}
+                        </div>
                         <button 
                             onClick={() => setDeleteConfirm({show: true, messageId: msg.id || ''})}
-                            className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-black/10 ${msg.sender === 'user' ? 'text-white/40' : 'text-slate-300'}`}
+                            className={`opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 ${msg.sender === 'user' ? 'text-white/40' : 'text-slate-300'}`}
                             title="Supprimer ce message"
                         >
-                            <TrashIcon className="h-3 w-3" />
+                            <TrashIcon className="h-3.5 w-3.5" />
                         </button>
                     </div>
 
                     {msg.sender === 'ai' && (msg.paymentInfo || msg.whatsAppPayload) && (
-                        <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+                        <div className="mt-5 pt-5 border-t border-gray-100 dark:border-slate-700 space-y-4">
                             {msg.paymentInfo && (
                                 <button 
                                     onClick={() => handleOpenPaymentView(msg.paymentInfo!, msg.text)}
-                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 px-4 rounded-xl shadow-lg flex items-center justify-center gap-3 transition-all active:scale-95"
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4.5 px-4 rounded-2xl shadow-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
                                 >
                                     <img 
                                         src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/756a216c-cba5-487d-8e2f-aa9312795945.png" 
@@ -496,7 +530,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
                             {msg.whatsAppPayload && (
                                 <button 
                                     onClick={() => handleWhatsAppRedirect(msg.whatsAppPayload!)} 
-                                    className="w-full bg-[#16a34a] hover:bg-[#15803d] text-white font-black py-4 px-4 rounded-xl shadow-lg flex items-center justify-center gap-3 transition-all active:scale-95"
+                                    className="w-full bg-[#16a34a] hover:bg-[#15803d] text-white font-black py-4.5 px-4 rounded-2xl shadow-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
                                 >
                                     <WhatsAppIcon className="w-5 h-5" />
                                     <span className="uppercase tracking-widest text-[12px]">WhatsApp (Conseiller)</span>
@@ -507,14 +541,41 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ userPhone, userId, userName, ac
                   </div>
                 </div>
             ))}
-            {isTyping && <div className="flex justify-start"><div className="bg-white p-3 rounded-2xl shadow-sm"><div className="flex space-x-1"><div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div><div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div><div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div></div></div></div>}
+            {isTyping && (
+              <div className="flex justify-start animate-in fade-in duration-300">
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700">
+                  <div className="flex space-x-1.5">
+                    <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce delay-150"></div>
+                    <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce delay-300"></div>
+                  </div>
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
-          <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="p-3 bg-white border-t flex items-center gap-2">
-            <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Votre demande ou montant..." className="flex-1 p-3 bg-gray-50 rounded-xl outline-none text-sm" />
-            <button type="submit" className="p-3 bg-orange-500 text-white rounded-xl shadow-lg active:scale-95"><SendIcon className="w-6 h-6" /></button>
-          </form>
+          {/* Input Professionnel */}
+          <div className="p-5 bg-white dark:bg-slate-900 border-t dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+            <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-center gap-3">
+              <div className="flex-1 bg-gray-100 dark:bg-slate-800 rounded-2xl flex items-center px-4 border-2 border-transparent focus-within:border-orange-500/30 transition-all">
+                <input 
+                  type="text" 
+                  value={input} 
+                  onChange={(e) => setInput(e.target.value)} 
+                  placeholder="Écrivez votre message..." 
+                  className="flex-1 py-4 bg-transparent outline-none text-sm font-medium dark:text-white" 
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={!input.trim()}
+                className="w-14 h-14 bg-orange-500 text-white rounded-2xl shadow-lg shadow-orange-500/30 flex items-center justify-center active:scale-90 transition-all disabled:opacity-50 disabled:active:scale-100"
+              >
+                <SendIcon className="w-7 h-7" />
+              </button>
+            </form>
+          </div>
 
           {/* Modal de confirmation de suppression */}
           {deleteConfirm.show && (
