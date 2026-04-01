@@ -144,7 +144,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide bg-slate-50/50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide bg-slate-50/50 overscroll-contain">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-full space-y-4">
             <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
@@ -167,12 +167,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
             const messageId = msg.id || `msg_${idx}`;
             return (
               <div key={messageId} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300 group`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm relative ${
+                <div className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm relative select-text touch-auto ${
                   isMe 
                     ? 'bg-orange-500 text-white rounded-tr-none' 
                     : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'
                 }`}>
-                  <p className="text-sm leading-relaxed">{msg.text}</p>
+                  <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">{msg.text}</p>
                   <div className="flex items-center justify-between mt-1.5 gap-4">
                     <p className={`text-[9px] font-bold uppercase tracking-widest ${isMe ? 'text-white/60' : 'text-slate-400'}`}>
                       {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
