@@ -730,8 +730,13 @@ const App: React.FC = () => {
       return (
         <GlobalRippleEffect>
           <div className="flex justify-center bg-slate-950 w-full h-full min-h-[100dvh]">
-            <div className="w-full max-w-[480px] h-[100dvh] relative overflow-hidden bg-slate-900 shadow-2xl">
-              <FirstLaunchScreen onComplete={handleFirstLaunchComplete} />
+            <div className="w-full max-w-[480px] h-[100dvh] relative flex flex-col overflow-hidden bg-slate-900 shadow-2xl">
+              {/* Status Bar Area */}
+              <div className="w-full bg-blue-600 flex-shrink-0 z-[999] h-[env(safe-area-inset-top,24px)] min-h-[24px]" />
+              
+              <div className="flex-1 relative overflow-hidden">
+                <FirstLaunchScreen onComplete={handleFirstLaunchComplete} />
+              </div>
             </div>
           </div>
         </GlobalRippleEffect>
@@ -744,19 +749,24 @@ const App: React.FC = () => {
     return (
         <GlobalRippleEffect>
           <div className="flex justify-center bg-slate-950 w-full h-full min-h-[100dvh]">
-            <div className="w-full max-w-[480px] h-[100dvh] relative overflow-hidden bg-slate-900 shadow-2xl">
-              <LoginScreen onLoginSuccess={handleLogin} onShowPopup={showPopup} />
-              {popup.show && (
-                  <GlobalPopup 
-                      message={popup.message} 
-                      type={popup.type} 
-                      onConfirm={popup.onConfirm} 
-                      onCancel={popup.onCancel}
-                      confirmLabel={popup.confirmLabel}
-                      cancelLabel={popup.cancelLabel}
-                      isConfirmLoading={popup.isConfirmLoading}
-                  />
-              )}
+            <div className="w-full max-w-[480px] h-[100dvh] relative flex flex-col overflow-hidden bg-slate-900 shadow-2xl">
+              {/* Status Bar Area */}
+              <div className="w-full bg-blue-600 flex-shrink-0 z-[999] h-[env(safe-area-inset-top,24px)] min-h-[24px]" />
+              
+              <div className="flex-1 relative overflow-hidden">
+                <LoginScreen onLoginSuccess={handleLogin} onShowPopup={showPopup} />
+                {popup.show && (
+                    <GlobalPopup 
+                        message={popup.message} 
+                        type={popup.type} 
+                        onConfirm={popup.onConfirm} 
+                        onCancel={popup.onCancel}
+                        confirmLabel={popup.confirmLabel}
+                        cancelLabel={popup.cancelLabel}
+                        isConfirmLoading={popup.isConfirmLoading}
+                    />
+                )}
+              </div>
             </div>
           </div>
         </GlobalRippleEffect>
@@ -766,11 +776,16 @@ const App: React.FC = () => {
   if (showSplash) {
       return (
           <div className="flex justify-center bg-slate-950 w-full h-full min-h-[100dvh]">
-            <div className="w-full max-w-[480px] h-[100dvh] relative overflow-hidden bg-slate-900 shadow-2xl">
-              <SplashScreen 
-                userName={currentUser.name} 
-                onFinish={() => setShowSplash(false)} 
-              />
+            <div className="w-full max-w-[480px] h-[100dvh] relative flex flex-col overflow-hidden bg-slate-900 shadow-2xl">
+              {/* Status Bar Area */}
+              <div className="w-full bg-blue-600 flex-shrink-0 z-[999] h-[env(safe-area-inset-top,24px)] min-h-[24px]" />
+              
+              <div className="flex-1 relative overflow-hidden">
+                <SplashScreen 
+                  userName={currentUser.name} 
+                  onFinish={() => setShowSplash(false)} 
+                />
+              </div>
             </div>
           </div>
       );
@@ -782,6 +797,10 @@ const App: React.FC = () => {
       <GlobalRippleEffect>
         <div className="flex justify-center bg-slate-950 w-full min-h-[100dvh]">
           <div className="w-full max-w-[480px] h-[100dvh] relative flex flex-col bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-200 shadow-2xl overflow-hidden">
+            
+            {/* Status Bar Area */}
+            <div className="w-full bg-blue-600 flex-shrink-0 z-[999] h-[env(safe-area-inset-top,24px)] min-h-[24px]" />
+            
             <main className="flex-1 flex flex-col overflow-hidden relative">
               <div className="absolute inset-0 scroll-container scrollbar-hide">
                 {activeTab === Tab.AdminChat && chatTargetUser ? (
@@ -1067,101 +1086,109 @@ const App: React.FC = () => {
       <div className="flex justify-center bg-slate-950 w-full min-h-[100dvh]">
         <div className="w-full max-w-[480px] h-[100dvh] relative flex flex-col bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-200 shadow-2xl overflow-hidden">
           
-          <RestrictedNotification show={showRestrictedToast} message={restrictedMessage} />
-
-          {isTransitioning && <GlobalModeLoading message={transitionMessage} />}
-
-          <main className="flex-1 flex flex-col overflow-hidden relative">
-            <div ref={scrollContainerRef} className="absolute inset-0 scroll-container pb-20 scrollbar-hide">
-              {!isFullScreenView && activeScreen}
-            </div>
-          </main>
+          {/* Status Bar Area */}
+          <div className="w-full bg-blue-600 flex-shrink-0 z-[999] h-[env(safe-area-inset-top,24px)] min-h-[24px]" />
           
-          {/* Full Screen Forms Overlay */}
-          <AnimatePresence>
-            {isFullScreenView && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                className="absolute inset-0 z-[800] bg-white"
-              >
-                {activeScreen}
-              </motion.div>
-            )}
-          </AnimatePresence>
-          
-          <ChatWidget 
-            userPhone={displayUser.phone} 
-            userId={currentUser?.userId || currentUser?.id}
-            userName={displayUser.name}
-            activeTab={activeTab} 
-            currentMenuView={menuView}
-            unreadChatCount={unreadChatCount}
-          />
-          
-          {popup.show && (
-              <GlobalPopup 
-                message={popup.message} 
-                type={popup.type} 
-                onConfirm={popup.onConfirm} 
-                onCancel={popup.onCancel}
-                confirmLabel={popup.confirmLabel}
-                cancelLabel={popup.cancelLabel}
-                isConfirmLoading={popup.isConfirmLoading}
-              />
-          )}
+          {/* App Content Area */}
+          <div className="flex-1 relative flex flex-col overflow-hidden">
+            <RestrictedNotification show={showRestrictedToast} message={restrictedMessage} />
 
-          {isProfileOpen && (
-            <div className="absolute inset-0 z-[500] pointer-events-none">
-              <div className="pointer-events-auto h-full w-full">
-                <ProfileScreen 
-                    user={currentUser} 
-                    onClose={() => setIsProfileOpen(false)}
-                    onLogout={handleLogout}
-                    onReset={handleReset}
-                    isClientModeActive={isClientModeActive}
-                    onToggleClientMode={handleToggleClientMode}
-                    setActiveTab={handleTabChange}
-                    onShowPopup={showPopup}
-                />
+            {isTransitioning && <GlobalModeLoading message={transitionMessage} />}
+
+            <main className="flex-1 flex flex-col overflow-hidden relative">
+              <div ref={scrollContainerRef} className="absolute inset-0 scroll-container pb-20 scrollbar-hide">
+                {!isFullScreenView && activeScreen}
               </div>
-            </div>
-          )}
+            </main>
+            
+            {/* Full Screen Forms Overlay */}
+            <AnimatePresence>
+              {isFullScreenView && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  className="absolute inset-0 z-[800] bg-white"
+                >
+                  {activeScreen}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-          {showScannerGlobal && (
-              <ScannerOverlay 
-                onScan={handleScanResultGlobal}
-                onClose={() => setShowScannerGlobal(false)}
-              />
-          )}
+            <ChatWidget 
+              userPhone={displayUser.phone} 
+              userId={currentUser?.userId || currentUser?.id}
+              userName={displayUser.name}
+              activeTab={activeTab} 
+              currentMenuView={menuView}
+              unreadChatCount={unreadChatCount}
+            />
+            
+            {popup.show && (
+                <GlobalPopup 
+                  message={popup.message} 
+                  type={popup.type} 
+                  onConfirm={popup.onConfirm} 
+                  onCancel={popup.onCancel}
+                  confirmLabel={popup.confirmLabel}
+                  cancelLabel={popup.cancelLabel}
+                  isConfirmLoading={popup.isConfirmLoading}
+                />
+            )}
 
-          {paymentConfirmationContext && (
-              <div className="absolute inset-0 z-[1000]">
-                  <PaymentConfirmationScreen 
-                    {...paymentConfirmationContext}
-                    user={displayUser}
-                    onBack={() => setPaymentConfirmationContext(null)}
+            {isProfileOpen && (
+              <div className="absolute inset-0 z-[500] pointer-events-none">
+                <div className="pointer-events-auto h-full w-full">
+                  <ProfileScreen 
+                      user={currentUser} 
+                      onClose={() => setIsProfileOpen(false)}
+                      onLogout={handleLogout}
+                      onReset={handleReset}
+                      isClientModeActive={isClientModeActive}
+                      onToggleClientMode={handleToggleClientMode}
+                      setActiveTab={handleTabChange}
+                      onShowPopup={showPopup}
+                      deferredPrompt={deferredPrompt}
+                      onInstallPWA={handleInstallPWA}
                   />
-              </div>
-          )}
-
-          <AnimatePresence>
-            {interactiveModalContext && (
-              <div className="absolute inset-0 z-[800]">
-                <InteractiveModal
-                    title={interactiveModalContext.title}
-                    formType={interactiveModalContext.formType}
-                    user={displayUser}
-                    imageUrl={interactiveModalContext.imageUrl}
-                    isBlurredImage={interactiveModalContext.isBlurredImage}
-                    description={interactiveModalContext.description}
-                    price={interactiveModalContext.price}
-                    onClose={() => setInteractiveModalContext(null)}
-                />
+                </div>
               </div>
             )}
-          </AnimatePresence>
+
+            {showScannerGlobal && (
+                <ScannerOverlay 
+                  onScan={handleScanResultGlobal}
+                  onClose={() => setShowScannerGlobal(false)}
+                />
+            )}
+
+            {paymentConfirmationContext && (
+                <div className="absolute inset-0 z-[1000]">
+                    <PaymentConfirmationScreen 
+                      {...paymentConfirmationContext}
+                      user={displayUser}
+                      onBack={() => setPaymentConfirmationContext(null)}
+                    />
+                </div>
+            )}
+
+            <AnimatePresence>
+              {interactiveModalContext && (
+                <div className="absolute inset-0 z-[800]">
+                  <InteractiveModal
+                      title={interactiveModalContext.title}
+                      formType={interactiveModalContext.formType}
+                      user={displayUser}
+                      imageUrl={interactiveModalContext.imageUrl}
+                      isBlurredImage={interactiveModalContext.isBlurredImage}
+                      description={interactiveModalContext.description}
+                      price={interactiveModalContext.price}
+                      onClose={() => setInteractiveModalContext(null)}
+                  />
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
 
           <BottomNav 
             activeTab={activeTab} 
