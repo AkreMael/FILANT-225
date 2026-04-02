@@ -26,6 +26,9 @@ const WaveIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-
 const AssistantIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
 const QRIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7V5a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m0 10v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2m7-10h4m-4 4h4m-4 4h4M7 7h.01M7 11h.01M7 15h.01" /></svg>;
 const SyncIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>;
+const VerifiedIcon = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+const BlockedIcon = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>;
+const ExportIcon = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>;
 const WhatsAppIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor">
         <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.886-.001 2.269.655 4.288 1.902 5.941l-1.442 5.253 5.354-1.405z" />
@@ -250,6 +253,8 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterRole, setFilterRole] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<any | null>(null);
   const [editingContact, setEditingContact] = useState<AdminContact | null>(null);
@@ -294,15 +299,14 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
   useEffect(() => {
       // Use a small delay to allow the UI to update immediately when switching views
       const timer = setTimeout(() => {
-          if (view === 'contacts' && adminContacts.length === 0) setAdminContacts(databaseService.getAdminContacts());
-          if (view === 'associations' && associations.length === 0) setAssociations(databaseService.getAssociations());
-          if (view === 'firestore-users' && firestoreUsers.length === 0) {
+          if ((view === 'contacts' || view === 'firestore-users') && firestoreUsers.length === 0) {
               setIsSyncing(true);
               databaseService.getUsersFromFirestore().then(users => {
                   setFirestoreUsers(users);
                   setIsSyncing(false);
               });
           }
+          if (view === 'associations' && associations.length === 0) setAssociations(databaseService.getAssociations());
           if (view === 'wave-payments' && wavePayments.length === 0) {
               setIsSyncing(true);
               databaseService.getWavePaymentsFromRTDB().then(payments => {
@@ -451,6 +455,50 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
       databaseService.saveActiveContacts(updated);
   };
 
+  const handleToggleVerify = async (user: User) => {
+    if (!user.phone) return;
+    const newStatus = !user.isVerified;
+    try {
+      await databaseService.updateUserInFirestore(user.phone, { isVerified: newStatus });
+      setFirestoreUsers(prev => prev.map(u => u.phone === user.phone ? { ...u, isVerified: newStatus } : u));
+    } catch (error) {
+      console.error("Error toggling verification:", error);
+    }
+  };
+
+  const handleToggleBlock = async (user: User) => {
+    if (!user.phone) return;
+    const newStatus = !user.isBlocked;
+    try {
+      await databaseService.updateUserInFirestore(user.phone, { isBlocked: newStatus, status: newStatus ? 'blocked' : 'active' });
+      setFirestoreUsers(prev => prev.map(u => u.phone === user.phone ? { ...u, isBlocked: newStatus, status: newStatus ? 'blocked' : 'active' } : u));
+    } catch (error) {
+      console.error("Error toggling block:", error);
+    }
+  };
+
+  const handleExportCSV = () => {
+    const headers = ['Nom', 'Téléphone', 'Ville', 'Rôle', 'Vérifié', 'Bloqué'];
+    const rows = firestoreUsers.map(u => [
+      u.name || 'N/A',
+      u.phone || 'N/A',
+      u.city || 'N/A',
+      u.role || 'Client',
+      u.isVerified ? 'Oui' : 'Non',
+      u.isBlocked ? 'Oui' : 'Non'
+    ]);
+    
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `contacts_filant225_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleDelete = async (id: string) => {
       if (!id) return;
       try {
@@ -473,6 +521,9 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
           } else if (view === 'user-messages' && itemToDelete) {
               await databaseService.deleteAdminConversation(itemToDelete.userId);
               setConversations(prev => prev.filter(c => c.userId !== itemToDelete.userId));
+          } else if ((view === 'contacts' || view === 'firestore-users') && itemToDelete) {
+              await databaseService.deleteUserFromFirestore(itemToDelete.phone);
+              setFirestoreUsers(prev => prev.filter(u => u.phone !== itemToDelete.phone));
           }
           setDeleteId(null);
           setItemToDelete(null);
@@ -706,66 +757,156 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
         </div>
     </div>
   );
-  const renderContactStorageView = () => (
-    <div className="flex-1 flex flex-col h-full bg-[#ff802b] font-sans text-left overflow-hidden">
-        <header className="p-4 bg-white text-center sticky top-0 z-20 shadow-md">
-            <h2 className="text-sm font-black text-black uppercase tracking-[0.3em]">Stockage des contacts</h2>
-        </header>
-
-        <div className="px-4 mt-4">
-            <div className="bg-black rounded-full p-1.5 flex items-center justify-center">
-                <span className="text-[9px] font-black text-white uppercase tracking-widest">recherche</span>
-            </div>
-        </div>
+  const renderContactStorageView = () => {
+    const filteredUsers = firestoreUsers.filter(u => {
+        const matchesSearch = 
+            (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+            (u.phone || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (u.city || '').toLowerCase().includes(searchTerm.toLowerCase());
         
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
-            {adminContacts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-white/50">
-                    <p className="font-black uppercase text-xs tracking-widest">
-                        {isSyncing ? 'Chargement...' : 'Aucun contact enregistré'}
-                    </p>
+        const matchesRole = filterRole === 'all' || u.role === filterRole;
+        const matchesStatus = filterStatus === 'all' || 
+            (filterStatus === 'active' && !u.isBlocked) || 
+            (filterStatus === 'blocked' && u.isBlocked) ||
+            (filterStatus === 'verified' && u.isVerified);
+
+        return matchesSearch && matchesRole && matchesStatus;
+    });
+
+    return (
+        <div className="flex-1 flex flex-col h-full bg-[#ff802b] font-sans text-left overflow-hidden">
+            <header className="p-4 bg-white flex items-center justify-between sticky top-0 z-20 shadow-md">
+                <h2 className="text-sm font-black text-black uppercase tracking-[0.3em]">Stockage des contacts</h2>
+                <button 
+                    onClick={handleExportCSV}
+                    className="p-2 bg-black text-white rounded-xl hover:bg-black/80 transition-all active:scale-90 flex items-center gap-2"
+                    title="Exporter en CSV"
+                >
+                    <ExportIcon className="w-4 h-4" />
+                    <span className="text-[8px] font-black uppercase tracking-widest hidden sm:inline">Exporter</span>
+                </button>
+            </header>
+
+            <div className="p-4 space-y-3 bg-black/5">
+                {/* Search Bar */}
+                <div className="relative">
+                    <input 
+                        type="text"
+                        placeholder="Rechercher un nom, numéro, ville..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-white/10 border-2 border-white/20 rounded-2xl py-3 pl-10 pr-4 text-white placeholder:text-white/40 text-xs font-bold focus:outline-none focus:border-white/40 transition-all"
+                    />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                        <SearchIcon />
+                    </div>
                 </div>
-            ) : (
-                <div className="space-y-4">
-                    {adminContacts.filter(c => 
-                        c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                        c.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        c.job?.toLowerCase().includes(searchTerm.toLowerCase())
-                    ).map((contact, idx) => (
-                        <div key={idx} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
-                            <div className="flex justify-between items-start mb-3">
-                                <div className="flex-1">
-                                    <h4 className="font-black text-white uppercase text-xs tracking-tight mb-0.5">{contact.name}</h4>
-                                    <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">{contact.job || contact.type}</p>
+
+                {/* Filters */}
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+                    <select 
+                        value={filterRole}
+                        onChange={(e) => setFilterRole(e.target.value)}
+                        className="bg-black text-white text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border-none focus:ring-0"
+                    >
+                        <option value="all">Tous les rôles</option>
+                        <option value="Client">Clients</option>
+                        <option value="Travailleur">Travailleurs</option>
+                        <option value="Propriétaire">Propriétaires</option>
+                        <option value="Agence">Agences</option>
+                    </select>
+                    <select 
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        className="bg-black text-white text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border-none focus:ring-0"
+                    >
+                        <option value="all">Tous les statuts</option>
+                        <option value="active">Actifs</option>
+                        <option value="verified">Vérifiés</option>
+                        <option value="blocked">Bloqués</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
+                {isSyncing ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-white/50">
+                        <div className="animate-spin mb-4">
+                            <SyncIcon />
+                        </div>
+                        <p className="font-black uppercase text-[10px] tracking-widest">Synchronisation Cloud...</p>
+                    </div>
+                ) : filteredUsers.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-white/50">
+                        <p className="font-black uppercase text-xs tracking-widest">Aucun contact trouvé</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4 pb-20">
+                        {filteredUsers.map((user, idx) => (
+                            <div key={idx} className={`bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 transition-all ${user.isBlocked ? 'border-red-500/50 opacity-75' : 'border-black/10'}`}>
+                                <div className="flex justify-between items-start mb-3">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <h4 className="font-black text-white uppercase text-xs tracking-tight">{user.name || 'Utilisateur'}</h4>
+                                            {user.isVerified && <VerifiedIcon className="w-3 h-3 text-emerald-400" />}
+                                            {user.isBlocked && <BlockedIcon className="w-3 h-3 text-red-500" />}
+                                        </div>
+                                        <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">
+                                            {user.role || 'Client'} • {user.city || 'Ville inconnue'}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <AdminChatButton 
+                                            user={user} 
+                                            onOpenChat={handleOpenChat} 
+                                            className="h-8 w-8"
+                                        />
+                                        <button 
+                                            onClick={() => { setItemToDelete(user); setDeleteId(user.phone); }} 
+                                            className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all active:scale-90"
+                                        >
+                                            <TrashIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
+
+                                <div className="bg-white/5 p-2 rounded-xl border border-white/10 mb-4">
+                                    <p className="text-[7px] font-black text-white/40 uppercase tracking-widest mb-0.5">Téléphone</p>
+                                    <p className="text-[11px] font-mono font-black text-white">+225 {user.phone}</p>
+                                </div>
+
                                 <div className="flex items-center gap-2">
                                     <button 
-                                        onClick={() => handleSaveToNativeContacts(contact)}
-                                        className="p-1.5 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all active:scale-90"
-                                        title="Enregistrer dans les contacts"
+                                        onClick={() => handleToggleVerify(user)}
+                                        className={`flex-1 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 ${
+                                            user.isVerified 
+                                                ? 'bg-emerald-500 text-white' 
+                                                : 'bg-white/10 text-white/60 hover:bg-white/20'
+                                        }`}
                                     >
-                                        <StorageIcon className="w-4 h-4" />
+                                        <VerifiedIcon className="w-3 h-3" />
+                                        {user.isVerified ? 'Vérifié' : 'Vérifier'}
                                     </button>
                                     <button 
-                                        onClick={() => { setItemToDelete(contact); setDeleteId(contact.id); }} 
-                                        className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all active:scale-90"
+                                        onClick={() => handleToggleBlock(user)}
+                                        className={`flex-1 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 ${
+                                            user.isBlocked 
+                                                ? 'bg-red-500 text-white' 
+                                                : 'bg-white/10 text-white/60 hover:bg-white/20'
+                                        }`}
                                     >
-                                        <TrashIcon className="w-4 h-4" />
+                                        <BlockedIcon className="w-3 h-3" />
+                                        {user.isBlocked ? 'Débloquer' : 'Bloquer'}
                                     </button>
                                 </div>
                             </div>
-                            
-                            <div className="flex items-center justify-between mt-4">
-                                <span className="text-[8px] text-white/30 font-black uppercase tracking-widest">{contact.city}</span>
-                                <span className="text-[#ff802b] font-mono text-[9px] font-black tracking-widest uppercase">+225 {contact.phone}</span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
-    </div>
-  );
+    );
+  };
 
   const handleAddAdminContact = () => {
       if (!adminContactInputs.name || !adminContactInputs.phone) {

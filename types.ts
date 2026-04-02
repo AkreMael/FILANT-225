@@ -26,6 +26,8 @@ export interface User {
   phone: string;
   role?: string;
   isVerified?: boolean;
+  isBlocked?: boolean;
+  status?: 'active' | 'pending' | 'blocked';
 }
 
 export interface Notification {

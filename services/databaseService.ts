@@ -1349,6 +1349,26 @@ export const databaseService = {
     }
   },
 
+  updateUserInFirestore: async (phone: string, data: Partial<User>): Promise<void> => {
+    const sanitizedPhone = phone.replace(/\D/g, '');
+    const path = `users/${sanitizedPhone}`;
+    try {
+      await setDoc(doc(db, 'users', sanitizedPhone), data, { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, path);
+    }
+  },
+
+  deleteUserFromFirestore: async (phone: string): Promise<void> => {
+    const sanitizedPhone = phone.replace(/\D/g, '');
+    const path = `users/${sanitizedPhone}`;
+    try {
+      await deleteDoc(doc(db, 'users', sanitizedPhone));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, path);
+    }
+  },
+
   cleanupDuplicateUsers: async () => {
     const path = 'users';
     try {
