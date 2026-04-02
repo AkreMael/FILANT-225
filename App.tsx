@@ -571,7 +571,7 @@ const App: React.FC = () => {
       return;
     }
 
-    if (activeTab === Tab.Menu && menuView === 'hub') {
+    if ((activeTab === Tab.Menu && menuView === 'hub') || activeTab === Tab.AdminDashboard) {
       showPopup(
         "Voulez-vous quitter l’application ?",
         "confirm",
@@ -820,7 +820,7 @@ const App: React.FC = () => {
                   />
                 ) : (
                   <AdminDashboardScreen 
-                    onBack={() => {}} // Disabled in locked mode
+                    onBack={handleBack} 
                     onSelectUser={handleAdminSelectUser} 
                     onOpenChat={(user) => {
                       setChatTargetUser(user);

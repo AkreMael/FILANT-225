@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { databaseService, ConnectionLog, Association, ActiveContact, AdminContact } from '../services/databaseService';
 import { User, PrivateRegistration } from '../types';
 import Typewriter from './common/Typewriter';
@@ -51,15 +51,26 @@ const EditIcon = ({ className }: { className?: string }) => (
 
 const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
-const AdminChatButton: React.FC<{ 
+const sidebarButtons = [
+  { id: 'contacts', label: 'Stockage' },
+  { id: 'active-contacts', label: 'Activations' },
+  { id: 'associations', label: 'Associations' },
+  { id: 'user-messages', label: 'Messages' },
+  { id: 'private-registrations', label: 'Inscriptions' },
+  { id: 'firestore-users', label: 'Cloud' },
+  { id: 'wave-payments', label: 'Paiements' },
+  { id: 'assistant-requests', label: 'Assistant' },
+  { id: 'scanned-qr', label: 'QR Codes' },
+];
+
+const AdminChatButton = React.memo<{ 
     user: Partial<User>; 
     onOpenChat?: (user: User) => void;
     className?: string;
-}> = ({ user, onOpenChat, className }) => {
+}>(({ user, onOpenChat, className }) => {
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
-        // Standardize chatUserId to always use the phone number if available
         const chatUserId = (user.phone || '').replace(/\D/g, '') || user.userId || user.id || `${user.name || 'User'}_${(user.phone || '').replace(/\D/g, '')}`;
         if (!chatUserId) return;
         
@@ -106,7 +117,9 @@ const AdminChatButton: React.FC<{
             )}
         </button>
     );
-};
+});
+
+AdminChatButton.displayName = 'AdminChatButton';
 
 interface AdminDashboardScreenProps {
   onBack: () => void;
@@ -116,7 +129,7 @@ interface AdminDashboardScreenProps {
   initialView?: 'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms' | 'wave-payments' | 'assistant-requests';
 }
 
-const UserListItem: React.FC<{ user: User; onOpenChat?: (user: User) => void }> = ({ user, onOpenChat }) => {
+const UserListItem = React.memo<{ user: User; onOpenChat?: (user: User) => void }>(({ user, onOpenChat }) => {
     const [isVerified, setIsVerified] = useState(user.isVerified || false);
     const [isVerifying, setIsVerifying] = useState(false);
 
@@ -124,7 +137,6 @@ const UserListItem: React.FC<{ user: User; onOpenChat?: (user: User) => void }> 
         setIsVerifying(true);
         try {
             const newStatus = !isVerified;
-            // For general users in the dashboard, we assume they are in the 'users' collection
             await databaseService.verifyWorker(user.id || user.userId || '', 'users', newStatus);
             setIsVerified(newStatus);
         } catch (error) {
@@ -179,7 +191,9 @@ const UserListItem: React.FC<{ user: User; onOpenChat?: (user: User) => void }> 
             </div>
         </div>
     );
-};
+});
+
+UserListItem.displayName = 'UserListItem';
 
 const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onLogout, onSelectUser, onOpenChat, initialView = 'grid' }) => {
   const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'user-messages' | 'firestore-users' | 'wave-payments' | 'assistant-requests' | 'scanned-qr' | 'private-registrations'>(initialView);
@@ -196,6 +210,28 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
   const [associations, setAssociations] = useState<Association[]>([]);
   const [activeContacts, setActiveContacts] = useState<ActiveContact[]>([]);
   const [adminContacts, setAdminContacts] = useState<AdminContact[]>([]);
+
+  const sidebarButtonsMemo = useMemo(() => sidebarButtons, []);
+
+  const handleSetView = useCallback((newView: any) => {
+    setView(newView);
+  }, []);
+
+  const handleOpenChat = useCallback((user: User) => {
+    if (onOpenChat) onOpenChat(user);
+  }, [onOpenChat]);
+
+  const handleBack = useCallback(() => {
+    if (view !== 'grid') {
+      setView('grid');
+    } else {
+      onBack();
+    }
+  }, [view, onBack]);
+
+  const handleLogout = useCallback(() => {
+    if (onLogout) onLogout();
+  }, [onLogout]);
 
   const [viewedRegistrations, setViewedRegistrations] = useState<string[]>(() => {
     const saved = localStorage.getItem('viewedRegistrations');
@@ -256,68 +292,78 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
   };
 
   useEffect(() => {
-      if (view === 'contacts') setAdminContacts(databaseService.getAdminContacts());
+      // Use a small delay to allow the UI to update immediately when switching views
+      const timer = setTimeout(() => {
+          if (view === 'contacts' && adminContacts.length === 0) setAdminContacts(databaseService.getAdminContacts());
+          if (view === 'associations' && associations.length === 0) setAssociations(databaseService.getAssociations());
+          if (view === 'firestore-users' && firestoreUsers.length === 0) {
+              setIsSyncing(true);
+              databaseService.getUsersFromFirestore().then(users => {
+                  setFirestoreUsers(users);
+                  setIsSyncing(false);
+              });
+          }
+          if (view === 'wave-payments' && wavePayments.length === 0) {
+              setIsSyncing(true);
+              databaseService.getWavePaymentsFromRTDB().then(payments => {
+                  setWavePayments(payments);
+                  setIsSyncing(false);
+              });
+          }
+          if (view === 'assistant-requests' && assistantRequests.length === 0) {
+              setIsSyncing(true);
+              databaseService.getAssistantRequestsFromRTDB().then(requests => {
+                  setAssistantRequests(requests);
+                  setIsSyncing(false);
+              });
+          }
+          if (view === 'active-contacts' && activeContacts.length === 0) {
+              const list = databaseService.getActiveContacts();
+              const now = Date.now();
+              const updated: ActiveContact[] = list.map(c => {
+                  if (c.status === 'active' && c.activationTimestamp && (now - c.activationTimestamp > ONE_MONTH_MS)) {
+                      return { ...c, status: 'inactive', activationTimestamp: null } as ActiveContact;
+                  }
+                  return c;
+              });
+              setActiveContacts(updated);
+              databaseService.saveActiveContacts(updated);
+          }
+      }, 50);
+
+      let unsubscribeMessages: any;
       if (view === 'user-messages') {
-        const unsubscribe = databaseService.onAllConversationsUpdate((convs) => {
+        unsubscribeMessages = databaseService.onAllConversationsUpdate((convs) => {
           setConversations(convs);
         });
-        return () => unsubscribe();
       }
-      if (view === 'associations') setAssociations(databaseService.getAssociations());
-      if (view === 'firestore-users') {
-          setIsSyncing(true);
-          databaseService.getUsersFromFirestore().then(users => {
-              setFirestoreUsers(users);
-              setIsSyncing(false);
-          });
-      }
-      if (view === 'wave-payments') {
-          setIsSyncing(true);
-          databaseService.getWavePaymentsFromRTDB().then(payments => {
-              setWavePayments(payments);
-              setIsSyncing(false);
-          });
-      }
-      if (view === 'assistant-requests') {
-          setIsSyncing(true);
-          databaseService.getAssistantRequestsFromRTDB().then(requests => {
-              setAssistantRequests(requests);
-              setIsSyncing(false);
-          });
-      }
+
+      let unsubscribeQR: any;
       if (view === 'scanned-qr') {
           setIsSyncing(true);
-          let unsubscribe: any;
           databaseService.onScannedContactsChange((contacts) => {
               setScannedContacts(contacts);
               setIsSyncing(false);
           }).then(unsub => {
-              unsubscribe = unsub;
+              unsubscribeQR = unsub;
           });
-          return () => {
-              if (unsubscribe) unsubscribe();
-          };
       }
+
+      let unsubscribePrivate: any;
       if (view === 'private-registrations') {
           setIsSyncing(true);
-          const unsubscribe = databaseService.subscribeToPrivateRegistrations((registrations) => {
+          unsubscribePrivate = databaseService.subscribeToPrivateRegistrations((registrations) => {
               setPrivateRegistrations(registrations);
               setIsSyncing(false);
           });
-          return () => unsubscribe();
       }
-      if (view === 'active-contacts') {
-          const list = databaseService.getActiveContacts();
-          const now = Date.now();
-          const updated: ActiveContact[] = list.map(c => {
-              if (c.status === 'active' && c.activationTimestamp && (now - c.activationTimestamp > ONE_MONTH_MS)) {
-                  return { ...c, status: 'inactive', activationTimestamp: null } as ActiveContact;
-              }
-              return c;
-          });
-          setActiveContacts(updated);
-          databaseService.saveActiveContacts(updated);
-      }
+
+      return () => {
+          clearTimeout(timer);
+          if (unsubscribeMessages) unsubscribeMessages();
+          if (unsubscribeQR) unsubscribeQR();
+          if (unsubscribePrivate) unsubscribePrivate();
+      };
   }, [view]);
 
   const handleAddAssociation = () => {
@@ -476,7 +522,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                                 role: 'Client',
                                                 city: ''
                                             } as User}
-                                            onOpenChat={onOpenChat}
+                                            onOpenChat={handleOpenChat}
                                             className="h-8 w-8"
                                         />
                                         {conv.unreadCount > 0 && (
@@ -547,7 +593,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                             name: contact.name,
                                             phone: contact.phone
                                         }}
-                                        onOpenChat={onOpenChat}
+                                        onOpenChat={handleOpenChat}
                                         className="h-8 w-8"
                                     />
                                     <button 
@@ -858,7 +904,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                 <div className="flex items-center gap-2">
                                     <AdminChatButton 
                                         user={user} 
-                                        onOpenChat={onOpenChat} 
+                                        onOpenChat={handleOpenChat} 
                                         className="h-8 w-8"
                                     />
                                     <button 
@@ -933,7 +979,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                                 phone: payment.phone || inferredPhone,
                                                 city: payment.city
                                             }} 
-                                            onOpenChat={onOpenChat} 
+                                            onOpenChat={handleOpenChat} 
                                             className="h-8 w-8"
                                         />
                                         <button 
@@ -1004,7 +1050,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                             phone: req.phone,
                                             city: req.city
                                         }} 
-                                        onOpenChat={onOpenChat} 
+                                        onOpenChat={handleOpenChat} 
                                         className="h-8 w-8"
                                     />
                                     <button 
@@ -1057,7 +1103,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                             name: contact.name,
                                             phone: contact.phone
                                         }}
-                                        onOpenChat={onOpenChat}
+                                        onOpenChat={handleOpenChat}
                                         className="h-8 w-8"
                                     />
                                     <button 
@@ -1202,18 +1248,6 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
   );
 
   const renderContent = () => {
-    const sidebarButtons = [
-      { id: 'contacts', label: 'Stockage' },
-      { id: 'active-contacts', label: 'Activations' },
-      { id: 'associations', label: 'Associations' },
-      { id: 'user-messages', label: 'Messages' },
-      { id: 'private-registrations', label: 'Inscriptions' },
-      { id: 'firestore-users', label: 'Cloud' },
-      { id: 'wave-payments', label: 'Paiements' },
-      { id: 'assistant-requests', label: 'Assistant' },
-      { id: 'scanned-qr', label: 'QR Codes' },
-    ];
-
     const renderActiveView = () => {
       if (view === 'contacts') return renderContactStorageView();
       if (view === 'associations') return renderAssociationView();
@@ -1233,28 +1267,34 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
       );
     };
 
+    const activeViewContent = useMemo(() => renderActiveView(), [
+        view, firestoreUsers, privateRegistrations, wavePayments, assistantRequests, 
+        scannedContacts, conversations, associations, activeContacts, adminContacts,
+        searchTerm, isSyncing, isFormOpen, selectedRegistration, selectedQR, deleteId, itemToDelete, editingContact, selectedContacts, shareMode, viewingContact
+    ]);
+
     return (
       <div className="flex flex-col lg:flex-row h-screen w-screen overflow-hidden bg-[#00522b]">
         {/* Left Side: Grid of buttons - Hidden on mobile if a view is selected */}
         <div className={`${view !== 'grid' ? 'hidden lg:flex' : 'flex'} w-full lg:w-[60%] p-4 lg:p-10 flex flex-col h-full relative`}>
           <header className="mb-6 lg:mb-10">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+                <button onClick={handleBack} className="p-2 lg:p-3 bg-white/10 text-white rounded-xl lg:rounded-2xl hover:bg-white/20 transition-all active:scale-90">
+                    <BackIcon className="w-5 h-5 lg:w-6 lg:h-6" />
+                </button>
                 <h1 className="text-2xl sm:text-3xl lg:text-5xl font-black tracking-tighter flex flex-wrap items-center gap-2 lg:gap-4">
                     <span className="text-white">ADMINISTRATION</span>
                     <span className="text-[#ff802b]">FILANT225</span>
                 </h1>
-                <button onClick={onBack} className="p-2 lg:p-3 bg-white/10 text-white rounded-xl lg:rounded-2xl hover:bg-white/20 transition-all active:scale-90">
-                    <BackIcon className="w-5 h-5 lg:w-6 lg:h-6" />
-                </button>
             </div>
             <div className="h-0.5 lg:h-1 bg-white/20 w-full mt-4 lg:mt-6" />
           </header>
           
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 lg:gap-6 flex-1 content-start overflow-y-auto pr-2 lg:pr-4 scrollbar-hide pb-20">
-            {sidebarButtons.map(btn => (
+            {sidebarButtonsMemo.map(btn => (
               <button 
                 key={btn.id}
-                onClick={() => setView(btn.id as any)}
+                onClick={() => handleSetView(btn.id as any)}
                 className={`aspect-[16/9] rounded-2xl lg:rounded-[2rem] p-3 lg:p-6 flex flex-col items-center justify-center text-center transition-all active:scale-95 shadow-xl border-2 lg:border-4 border-transparent ${
                   view === btn.id 
                     ? 'bg-black text-[#ff802b]' 
@@ -1269,7 +1309,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
           </div>
 
           {onLogout && (
-            <button onClick={onLogout} className="absolute bottom-6 lg:bottom-8 left-4 lg:left-10 flex items-center gap-2 px-4 py-2 lg:px-6 lg:py-3 bg-red-500 text-white rounded-xl lg:rounded-2xl hover:bg-red-600 transition-all active:scale-95 text-[10px] lg:text-xs font-black uppercase tracking-widest shadow-xl">
+            <button onClick={handleLogout} className="absolute bottom-6 lg:bottom-8 left-4 lg:left-10 flex items-center gap-2 px-4 py-2 lg:px-6 lg:py-3 bg-red-500 text-white rounded-xl lg:rounded-2xl hover:bg-red-600 transition-all active:scale-95 text-[10px] lg:text-xs font-black uppercase tracking-widest shadow-xl">
               Déconnexion
             </button>
           )}
@@ -1278,14 +1318,20 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
         {/* Right Side: Content Panel - Full screen on mobile if a view is selected */}
         <div className={`${view === 'grid' ? 'hidden lg:flex' : 'flex'} w-full lg:w-[40%] bg-[#ff802b] flex flex-col h-full shadow-[-10px_0_30px_rgba(0,0,0,0.2)] lg:shadow-[-20px_0_60px_rgba(0,0,0,0.3)] relative z-10`}>
           {view !== 'grid' && (
-            <button 
-              onClick={() => setView('grid')}
-              className="lg:hidden absolute top-4 left-4 z-30 p-2 bg-white/20 text-white rounded-full backdrop-blur-md"
-            >
-              <BackIcon className="w-5 h-5" />
-            </button>
+            <div className="p-4 lg:p-6 border-b border-white/20 bg-white/5 flex items-center gap-4 z-30">
+              <button 
+                onClick={handleBack}
+                className="p-2 lg:p-3 bg-white/20 text-white rounded-xl lg:rounded-2xl hover:bg-white/30 transition-all active:scale-90 flex items-center gap-2 font-black text-[10px] lg:text-xs tracking-widest"
+              >
+                <BackIcon className="w-4 h-4 lg:w-5 lg:h-5" />
+                <span>RETOUR</span>
+              </button>
+              <h2 className="text-white font-black uppercase tracking-widest text-[10px] lg:text-sm truncate">
+                {sidebarButtonsMemo.find(b => b.id === view)?.label || view}
+              </h2>
+            </div>
           )}
-          {renderActiveView()}
+          {activeViewContent}
         </div>
 
         {/* Shared Modal for Registration Details */}
@@ -1350,7 +1396,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                     phone: selectedRegistration.phone,
                                     city: selectedRegistration.data?.ville || 'Inconnue'
                                 }} 
-                                onOpenChat={onOpenChat} 
+                                onOpenChat={handleOpenChat} 
                                 className="h-16 w-16"
                             />
                             <button 
