@@ -459,13 +459,13 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                     {conversations
                       .filter(c => c.userName.toLowerCase().includes(searchTerm.toLowerCase()) || c.userId.includes(searchTerm))
                       .map((conv) => (
-                        <div key={conv.userId} className="bg-[#2d1b0d] rounded-[2rem] p-6 shadow-xl relative overflow-hidden border-2 border-black/10">
-                            <div className="flex justify-between items-start mb-4">
+                        <div key={conv.userId} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
+                            <div className="flex justify-between items-start mb-3">
                                 <div className="flex-1">
-                                    <h4 className="font-black text-white uppercase text-sm tracking-tight mb-1">{conv.userName}</h4>
-                                    <p className="text-[11px] text-[#ff802b] font-black uppercase tracking-widest">Conversation</p>
+                                    <h4 className="font-black text-white uppercase text-xs tracking-tight mb-0.5">{conv.userName}</h4>
+                                    <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">Conversation</p>
                                 </div>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2">
                                     <div className="relative">
                                         <AdminChatButton 
                                             user={{
@@ -477,11 +477,11 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                                 city: ''
                                             } as User}
                                             onOpenChat={onOpenChat}
-                                            className="h-10 w-10"
+                                            className="h-8 w-8"
                                         />
                                         {conv.unreadCount > 0 && (
-                                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 rounded-full border-2 border-[#2d1b0d] flex items-center justify-center">
-                                                <span className="text-[10px] font-black text-white">{conv.unreadCount}</span>
+                                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 rounded-full border-2 border-[#2d1b0d] flex items-center justify-center">
+                                                <span className="text-[8px] font-black text-white">{conv.unreadCount}</span>
                                             </div>
                                         )}
                                     </div>
@@ -490,17 +490,17 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                             setDeleteId(conv.userId);
                                             setItemToDelete({ ...conv, name: conv.userName });
                                         }}
-                                        className="p-2 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500/20 transition-all active:scale-90"
+                                        className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all active:scale-90"
                                     >
-                                        <TrashIcon className="w-5 h-5" />
+                                        <TrashIcon className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>
-                            <div className="flex items-center justify-between mt-6">
-                                <span className="text-[9px] text-white/30 font-black uppercase tracking-widest">
+                            <div className="flex items-center justify-between mt-4">
+                                <span className="text-[8px] text-white/30 font-black uppercase tracking-widest">
                                     {new Date(conv.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
-                                <span className="text-[#ff802b] font-mono text-[10px] font-black tracking-widest uppercase">ID: {conv.userId.slice(-6)}</span>
+                                <span className="text-[#ff802b] font-mono text-[9px] font-black tracking-widest uppercase">ID: {conv.userId.slice(-6)}</span>
                             </div>
                         </div>
                     ))}
@@ -516,13 +516,13 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
             <h2 className="text-sm font-black text-black uppercase tracking-[0.3em]">Activation des contacts</h2>
         </header>
 
-        <div className="px-8 mt-6">
-            <div className="bg-black rounded-full p-2 flex items-center justify-center">
-                <span className="text-[10px] font-black text-white uppercase tracking-widest">recherche</span>
+        <div className="px-4 mt-4">
+            <div className="bg-black rounded-full p-1.5 flex items-center justify-center">
+                <span className="text-[9px] font-black text-white uppercase tracking-widest">recherche</span>
             </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
             {activeContacts.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-white/50">
                     <p className="font-black uppercase text-xs tracking-widest">
@@ -535,40 +535,40 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                         c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                         c.title?.toLowerCase().includes(searchTerm.toLowerCase())
                     ).map((contact, idx) => (
-                        <div key={idx} className="bg-[#2d1b0d] rounded-[2rem] p-6 shadow-xl relative overflow-hidden border-2 border-black/10">
-                            <div className="flex justify-between items-start mb-4">
+                        <div key={idx} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
+                            <div className="flex justify-between items-start mb-3">
                                 <div className="flex-1">
-                                    <h4 className="font-black text-white uppercase text-sm tracking-tight mb-1">{contact.name}</h4>
-                                    <p className="text-[11px] text-[#ff802b] font-black uppercase tracking-widest">{contact.title || 'Contact Actif'}</p>
+                                    <h4 className="font-black text-white uppercase text-xs tracking-tight mb-0.5">{contact.name}</h4>
+                                    <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">{contact.title || 'Contact Actif'}</p>
                                 </div>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2">
                                     <AdminChatButton 
                                         user={{
                                             name: contact.name,
                                             phone: contact.phone
                                         }}
                                         onOpenChat={onOpenChat}
-                                        className="h-10 w-10"
+                                        className="h-8 w-8"
                                     />
                                     <button 
                                         onClick={() => { setItemToDelete(contact); setDeleteId(contact.id); }} 
-                                        className="p-2 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500/20 transition-all active:scale-90"
+                                        className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all active:scale-90"
                                     >
-                                        <TrashIcon className="w-5 h-5" />
+                                        <TrashIcon className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>
-                            <div className="bg-white/5 p-3 rounded-2xl border border-white/10">
-                                <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Téléphone</p>
-                                <p className="text-xs font-mono font-black text-white">+225 {contact.phone}</p>
+                            <div className="bg-white/5 p-2 rounded-xl border border-white/10">
+                                <p className="text-[7px] font-black text-white/40 uppercase tracking-widest mb-0.5">Téléphone</p>
+                                <p className="text-[11px] font-mono font-black text-white">+225 {contact.phone}</p>
                             </div>
-                            <div className="mt-4 flex items-center justify-between">
-                                <span className="text-[9px] text-white/30 font-black uppercase tracking-widest">
+                            <div className="mt-3 flex items-center justify-between">
+                                <span className="text-[8px] text-white/30 font-black uppercase tracking-widest">
                                     Créé le {new Date(contact.createdAt).toLocaleDateString('fr-FR')}
                                 </span>
                                 <button 
                                   onClick={() => toggleContactStatus(contact.id)}
-                                  className={`px-4 py-2 rounded-full font-black text-[10px] uppercase tracking-widest transition-all ${
+                                  className={`px-3 py-1.5 rounded-full font-black text-[9px] uppercase tracking-widest transition-all ${
                                       contact.status === 'active' 
                                       ? 'bg-green-500 text-white' 
                                       : 'bg-white/10 text-white/40'
@@ -611,40 +611,40 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                         a.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         a.provider?.job?.toLowerCase().includes(searchTerm.toLowerCase())
                     ).map((assoc, idx) => (
-                        <div key={idx} className="bg-[#2d1b0d] rounded-[2rem] p-6 shadow-xl relative overflow-hidden border-2 border-black/10">
-                            <div className="flex justify-between items-start mb-4">
+                        <div key={idx} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
+                            <div className="flex justify-between items-start mb-3">
                                 <div className="flex-1">
-                                    <h4 className="font-black text-white uppercase text-sm tracking-tight mb-1">Association #{idx + 1}</h4>
-                                    <p className="text-[11px] text-[#ff802b] font-black uppercase tracking-widest">Prestataire & Client</p>
+                                    <h4 className="font-black text-white uppercase text-xs tracking-tight mb-0.5">Association #{idx + 1}</h4>
+                                    <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">Prestataire & Client</p>
                                 </div>
                                 <button 
                                     onClick={() => { setItemToDelete(assoc); setDeleteId(assoc.id); }} 
-                                    className="p-2 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500/20 transition-all active:scale-90"
+                                    className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all active:scale-90"
                                 >
-                                    <TrashIcon className="w-5 h-5" />
+                                    <TrashIcon className="w-4 h-4" />
                                 </button>
                             </div>
                             
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                                    <p className="text-[8px] font-black text-[#ff802b] uppercase tracking-widest mb-1">Client</p>
-                                    <p className="text-xs font-black text-white uppercase truncate">{assoc.client?.name}</p>
-                                    <p className="text-[10px] text-white/40 font-mono mt-1">+225 {assoc.client?.phone}</p>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-white/5 p-3 rounded-xl border border-white/10">
+                                    <p className="text-[7px] font-black text-[#ff802b] uppercase tracking-widest mb-0.5">Client</p>
+                                    <p className="text-[11px] font-black text-white uppercase truncate">{assoc.client?.name}</p>
+                                    <p className="text-[9px] text-white/40 font-mono mt-0.5">+225 {assoc.client?.phone}</p>
                                 </div>
-                                <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                                    <p className="text-[8px] font-black text-[#ff802b] uppercase tracking-widest mb-1">Prestataire</p>
-                                    <p className="text-xs font-black text-white uppercase truncate">{assoc.provider?.name}</p>
-                                    <p className="text-[10px] text-white/40 font-mono mt-1">+225 {assoc.provider?.phone}</p>
+                                <div className="bg-white/5 p-3 rounded-xl border border-white/10">
+                                    <p className="text-[7px] font-black text-[#ff802b] uppercase tracking-widest mb-0.5">Prestataire</p>
+                                    <p className="text-[11px] font-black text-white uppercase truncate">{assoc.provider?.name}</p>
+                                    <p className="text-[9px] text-white/40 font-mono mt-0.5">+225 {assoc.provider?.phone}</p>
                                 </div>
                             </div>
 
-                            <div className="mt-6 flex items-center justify-between">
-                                <span className="text-[9px] text-white/30 font-black uppercase tracking-widest">
+                            <div className="mt-4 flex items-center justify-between">
+                                <span className="text-[8px] text-white/30 font-black uppercase tracking-widest">
                                     {new Date(assoc.createdAt).toLocaleDateString('fr-FR')}
                                 </span>
                                 <button 
                                   onClick={() => toggleAssociationActivation(assoc.id)}
-                                  className={`px-4 py-2 rounded-full font-black text-[10px] uppercase tracking-widest transition-all ${
+                                  className={`px-3 py-1.5 rounded-full font-black text-[9px] uppercase tracking-widest transition-all ${
                                       assoc.isActivated 
                                       ? 'bg-green-500 text-white' 
                                       : 'bg-white/10 text-white/40'
@@ -666,13 +666,13 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
             <h2 className="text-sm font-black text-black uppercase tracking-[0.3em]">Stockage des contacts</h2>
         </header>
 
-        <div className="px-8 mt-6">
-            <div className="bg-black rounded-full p-2 flex items-center justify-center">
-                <span className="text-[10px] font-black text-white uppercase tracking-widest">recherche</span>
+        <div className="px-4 mt-4">
+            <div className="bg-black rounded-full p-1.5 flex items-center justify-center">
+                <span className="text-[9px] font-black text-white uppercase tracking-widest">recherche</span>
             </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
             {adminContacts.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-white/50">
                     <p className="font-black uppercase text-xs tracking-widest">
@@ -686,32 +686,32 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                         c.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         c.job?.toLowerCase().includes(searchTerm.toLowerCase())
                     ).map((contact, idx) => (
-                        <div key={idx} className="bg-[#2d1b0d] rounded-[2rem] p-6 shadow-xl relative overflow-hidden border-2 border-black/10">
-                            <div className="flex justify-between items-start mb-4">
+                        <div key={idx} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
+                            <div className="flex justify-between items-start mb-3">
                                 <div className="flex-1">
-                                    <h4 className="font-black text-white uppercase text-sm tracking-tight mb-1">{contact.name}</h4>
-                                    <p className="text-[11px] text-[#ff802b] font-black uppercase tracking-widest">{contact.job || contact.type}</p>
+                                    <h4 className="font-black text-white uppercase text-xs tracking-tight mb-0.5">{contact.name}</h4>
+                                    <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">{contact.job || contact.type}</p>
                                 </div>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2">
                                     <button 
                                         onClick={() => handleSaveToNativeContacts(contact)}
-                                        className="p-2 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-all active:scale-90"
+                                        className="p-1.5 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all active:scale-90"
                                         title="Enregistrer dans les contacts"
                                     >
-                                        <StorageIcon className="w-5 h-5" />
+                                        <StorageIcon className="w-4 h-4" />
                                     </button>
                                     <button 
                                         onClick={() => { setItemToDelete(contact); setDeleteId(contact.id); }} 
-                                        className="p-2 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500/20 transition-all active:scale-90"
+                                        className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all active:scale-90"
                                     >
-                                        <TrashIcon className="w-5 h-5" />
+                                        <TrashIcon className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>
                             
-                            <div className="flex items-center justify-between mt-6">
-                                <span className="text-[9px] text-white/30 font-black uppercase tracking-widest">{contact.city}</span>
-                                <span className="text-[#ff802b] font-mono text-[10px] font-black tracking-widest uppercase">+225 {contact.phone}</span>
+                            <div className="flex items-center justify-between mt-4">
+                                <span className="text-[8px] text-white/30 font-black uppercase tracking-widest">{contact.city}</span>
+                                <span className="text-[#ff802b] font-mono text-[9px] font-black tracking-widest uppercase">+225 {contact.phone}</span>
                             </div>
                         </div>
                     ))}
@@ -833,13 +833,13 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
             <h2 className="text-sm font-black text-black uppercase tracking-[0.3em]">Utilisateurs Cloud</h2>
         </header>
 
-        <div className="px-8 mt-6">
-            <div className="bg-black rounded-full p-2 flex items-center justify-center">
-                <span className="text-[10px] font-black text-white uppercase tracking-widest">recherche</span>
+        <div className="px-4 mt-4">
+            <div className="bg-black rounded-full p-1.5 flex items-center justify-center">
+                <span className="text-[9px] font-black text-white uppercase tracking-widest">recherche</span>
             </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
             {firestoreUsers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-white/50">
                     <p className="font-black uppercase text-xs tracking-widest">
@@ -849,29 +849,29 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
             ) : (
                 <div className="space-y-4">
                     {firestoreUsers.map((user, idx) => (
-                        <div key={idx} className="bg-[#2d1b0d] rounded-[2rem] p-6 shadow-xl relative overflow-hidden border-2 border-black/10">
-                            <div className="flex justify-between items-start mb-4">
+                        <div key={idx} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
+                            <div className="flex justify-between items-start mb-3">
                                 <div className="flex-1">
-                                    <h4 className="font-black text-white uppercase text-sm tracking-tight mb-1">{user.name || 'Utilisateur'}</h4>
-                                    <p className="text-[11px] text-[#ff802b] font-black uppercase tracking-widest">{user.city || 'Ville inconnue'}</p>
+                                    <h4 className="font-black text-white uppercase text-xs tracking-tight mb-0.5">{user.name || 'Utilisateur'}</h4>
+                                    <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">{user.city || 'Ville inconnue'}</p>
                                 </div>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2">
                                     <AdminChatButton 
                                         user={user} 
                                         onOpenChat={onOpenChat} 
-                                        className="h-10 w-10"
+                                        className="h-8 w-8"
                                     />
                                     <button 
                                         onClick={() => { setItemToDelete(user); setDeleteId(user.id); }} 
-                                        className="p-2 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500/20 transition-all active:scale-90"
+                                        className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all active:scale-90"
                                     >
-                                        <TrashIcon className="w-5 h-5" />
+                                        <TrashIcon className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>
-                            <div className="bg-white/5 p-3 rounded-2xl border border-white/10">
-                                <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Téléphone</p>
-                                <p className="text-xs font-mono font-black text-white">+225 {user.phone || user.userId}</p>
+                            <div className="bg-white/5 p-2 rounded-xl border border-white/10">
+                                <p className="text-[7px] font-black text-white/40 uppercase tracking-widest mb-0.5">Téléphone</p>
+                                <p className="text-[11px] font-mono font-black text-white">+225 {user.phone || user.userId}</p>
                             </div>
                         </div>
                     ))}
@@ -887,13 +887,13 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
             <h2 className="text-sm font-black text-black uppercase tracking-[0.3em]">Paiements Wave</h2>
         </header>
 
-        <div className="px-8 mt-6">
-            <div className="bg-black rounded-full p-2 flex items-center justify-center">
-                <span className="text-[10px] font-black text-white uppercase tracking-widest">recherche</span>
+        <div className="px-4 mt-4">
+            <div className="bg-black rounded-full p-1.5 flex items-center justify-center">
+                <span className="text-[9px] font-black text-white uppercase tracking-widest">recherche</span>
             </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
             {wavePayments.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-white/50">
                     <p className="font-black uppercase text-xs tracking-widest">
@@ -905,26 +905,26 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                     {wavePayments.map((payment, idx) => {
                         const inferredPhone = payment.userKey?.split('_').pop() || '';
                         return (
-                            <div key={idx} className="bg-[#2d1b0d] rounded-[2rem] p-6 shadow-xl relative overflow-hidden border-2 border-black/10">
-                                <div className="flex justify-between items-start mb-4">
+                            <div key={idx} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
+                                <div className="flex justify-between items-start mb-3">
                                     <div className="flex-1">
-                                        <h4 className="font-black text-white uppercase text-sm tracking-tight mb-1">{payment.userName || 'Utilisateur'}</h4>
-                                        <p className="text-[11px] text-[#ff802b] font-black uppercase tracking-widest">{payment.city || 'Ville inconnue'}</p>
+                                        <h4 className="font-black text-white uppercase text-xs tracking-tight mb-0.5">{payment.userName || 'Utilisateur'}</h4>
+                                        <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">{payment.city || 'Ville inconnue'}</p>
                                     </div>
-                                    <span className="text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-widest bg-white text-black">
+                                    <span className="text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest bg-white text-black">
                                         {payment.amount} FCFA
                                     </span>
                                 </div>
-                                <div className="space-y-2 mt-4 border-t border-white/10 pt-4">
-                                    <p className="text-[10px] text-white/60 font-black uppercase tracking-widest">Service: <span className="text-white">{payment.serviceType || payment.title || 'Inconnu'}</span></p>
-                                    <p className="text-[10px] text-white/60 font-black uppercase tracking-widest">Téléphone: <span className="text-white">+225 {payment.phone || inferredPhone || payment.userId}</span></p>
-                                    <p className="text-[10px] text-white/60 font-black uppercase tracking-widest">Transaction: <span className="text-white font-mono">{payment.transactionId || 'N/A'}</span></p>
+                                <div className="space-y-1.5 mt-3 border-t border-white/10 pt-3">
+                                    <p className="text-[9px] text-white/60 font-black uppercase tracking-widest">Service: <span className="text-white">{payment.serviceType || payment.title || 'Inconnu'}</span></p>
+                                    <p className="text-[9px] text-white/60 font-black uppercase tracking-widest">Téléphone: <span className="text-white">+225 {payment.phone || inferredPhone || payment.userId}</span></p>
+                                    <p className="text-[9px] text-white/60 font-black uppercase tracking-widest">Transaction: <span className="text-white font-mono">{payment.transactionId || 'N/A'}</span></p>
                                 </div>
-                                <div className="flex items-center justify-between mt-6">
-                                    <span className="text-[9px] text-white/30 font-black uppercase tracking-widest">
+                                <div className="flex items-center justify-between mt-4">
+                                    <span className="text-[8px] text-white/30 font-black uppercase tracking-widest">
                                         {payment.timestamp ? new Date(payment.timestamp).toLocaleString() : 'Date inconnue'}
                                     </span>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2">
                                         <AdminChatButton 
                                             user={{
                                                 id: payment.userId,
@@ -934,13 +934,13 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                                 city: payment.city
                                             }} 
                                             onOpenChat={onOpenChat} 
-                                            className="h-10 w-10"
+                                            className="h-8 w-8"
                                         />
                                         <button 
                                             onClick={() => { setItemToDelete(payment); setDeleteId(payment.id); }} 
-                                            className="p-2 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500/20 transition-all active:scale-90"
+                                            className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all active:scale-90"
                                         >
-                                            <TrashIcon className="w-5 h-5" />
+                                            <TrashIcon className="w-4 h-4" />
                                         </button>
                                     </div>
                                 </div>
@@ -959,13 +959,13 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
             <h2 className="text-sm font-black text-black uppercase tracking-[0.3em]">Demandes Assistant</h2>
         </header>
 
-        <div className="px-8 mt-6">
-            <div className="bg-black rounded-full p-2 flex items-center justify-center">
-                <span className="text-[10px] font-black text-white uppercase tracking-widest">recherche</span>
+        <div className="px-4 mt-4">
+            <div className="bg-black rounded-full p-1.5 flex items-center justify-center">
+                <span className="text-[9px] font-black text-white uppercase tracking-widest">recherche</span>
             </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
             {assistantRequests.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-white/50">
                     <p className="font-black uppercase text-xs tracking-widest">
@@ -975,27 +975,27 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
             ) : (
                 <div className="space-y-4">
                     {assistantRequests.map((req, idx) => (
-                        <div key={idx} className="bg-[#2d1b0d] rounded-[2rem] p-6 shadow-xl relative overflow-hidden border-2 border-black/10">
-                            <div className="flex justify-between items-start mb-4">
+                        <div key={idx} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
+                            <div className="flex justify-between items-start mb-3">
                                 <div className="flex-1">
-                                    <h4 className="font-black text-white uppercase text-sm tracking-tight mb-1">{req.userName || 'Utilisateur'}</h4>
-                                    <p className="text-[11px] text-[#ff802b] font-black uppercase tracking-widest">{req.city || 'Ville inconnue'}</p>
+                                    <h4 className="font-black text-white uppercase text-xs tracking-tight mb-0.5">{req.userName || 'Utilisateur'}</h4>
+                                    <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">{req.city || 'Ville inconnue'}</p>
                                 </div>
-                                <span className="text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest bg-white text-black">
+                                <span className="text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-white text-black">
                                     Assistant
                                 </span>
                             </div>
-                            <div className="mt-4 p-4 bg-white/5 rounded-2xl border border-white/10 italic text-xs text-white/80 leading-relaxed">
+                            <div className="mt-3 p-3 bg-white/5 rounded-xl border border-white/10 italic text-[11px] text-white/80 leading-relaxed">
                                 "{req.request || req.requestText || req.message || 'Pas de message'}"
                             </div>
-                            <div className="flex items-center justify-between mt-6">
+                            <div className="flex items-center justify-between mt-4">
                                 <div className="flex flex-col">
-                                    <a href={`tel:${req.phone || req.userId}`} className="text-[#ff802b] font-mono text-[10px] font-black tracking-widest uppercase">+225 {req.phone || req.userId}</a>
-                                    <span className="text-[9px] text-white/30 font-black uppercase tracking-widest mt-1">
+                                    <a href={`tel:${req.phone || req.userId}`} className="text-[#ff802b] font-mono text-[9px] font-black tracking-widest uppercase">+225 {req.phone || req.userId}</a>
+                                    <span className="text-[8px] text-white/30 font-black uppercase tracking-widest mt-0.5">
                                         {req.timestamp ? new Date(req.timestamp).toLocaleString() : 'Date inconnue'}
                                     </span>
                                 </div>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2">
                                     <AdminChatButton 
                                         user={{
                                             id: req.userId,
@@ -1005,13 +1005,13 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                             city: req.city
                                         }} 
                                         onOpenChat={onOpenChat} 
-                                        className="h-10 w-10"
+                                        className="h-8 w-8"
                                     />
                                     <button 
                                         onClick={() => { setItemToDelete(req); setDeleteId(req.id); }} 
-                                        className="p-2 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500/20 transition-all active:scale-90"
+                                        className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all active:scale-90"
                                     >
-                                        <TrashIcon className="w-5 h-5" />
+                                        <TrashIcon className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>
@@ -1029,13 +1029,13 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
             <h2 className="text-sm font-black text-black uppercase tracking-[0.3em]">QR Codes Scannés</h2>
         </header>
 
-        <div className="px-8 mt-6">
-            <div className="bg-black rounded-full p-2 flex items-center justify-center">
-                <span className="text-[10px] font-black text-white uppercase tracking-widest">recherche</span>
+        <div className="px-4 mt-4">
+            <div className="bg-black rounded-full p-1.5 flex items-center justify-center">
+                <span className="text-[9px] font-black text-white uppercase tracking-widest">recherche</span>
             </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
             {scannedContacts.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-white/50">
                     <p className="font-black uppercase text-xs tracking-widest">
@@ -1045,46 +1045,46 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
             ) : (
                 <div className="space-y-4">
                     {scannedContacts.map((contact, idx) => (
-                        <div key={contact.id || idx} className="bg-[#2d1b0d] rounded-[2rem] p-6 shadow-xl relative overflow-hidden border-2 border-black/10">
-                            <div className="flex justify-between items-start mb-4">
+                        <div key={contact.id || idx} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
+                            <div className="flex justify-between items-start mb-3">
                                 <div className="flex-1">
-                                    <h4 className="font-black text-white uppercase text-sm tracking-tight mb-1">{contact.name}</h4>
-                                    <p className="text-[11px] text-[#ff802b] font-black uppercase tracking-widest">{contact.title || 'Contact Scanné'}</p>
+                                    <h4 className="font-black text-white uppercase text-xs tracking-tight mb-0.5">{contact.name}</h4>
+                                    <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">{contact.title || 'Contact Scanné'}</p>
                                 </div>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2">
                                     <AdminChatButton 
                                         user={{
                                             name: contact.name,
                                             phone: contact.phone
                                         }}
                                         onOpenChat={onOpenChat}
-                                        className="h-10 w-10"
+                                        className="h-8 w-8"
                                     />
                                     <button 
                                         onClick={() => setSelectedQR(contact)}
-                                        className="p-2 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-all active:scale-90"
+                                        className="p-1.5 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all active:scale-90"
                                     >
-                                        <ViewIcon className="w-5 h-5" />
+                                        <ViewIcon className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 mb-4">
-                                <div className="bg-white/5 p-3 rounded-2xl border border-white/10">
-                                    <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Téléphone</p>
-                                    <p className="text-xs font-mono font-black text-white">+225 {contact.phone}</p>
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                <div className="bg-white/5 p-2 rounded-xl border border-white/10">
+                                    <p className="text-[7px] font-black text-white/40 uppercase tracking-widest mb-0.5">Téléphone</p>
+                                    <p className="text-[11px] font-mono font-black text-white">+225 {contact.phone}</p>
                                 </div>
-                                <div className="bg-white/5 p-3 rounded-2xl border border-white/10">
-                                    <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Ville</p>
-                                    <p className="text-xs font-black text-white uppercase">{contact.city || 'N/A'}</p>
+                                <div className="bg-white/5 p-2 rounded-xl border border-white/10">
+                                    <p className="text-[7px] font-black text-white/40 uppercase tracking-widest mb-0.5">Ville</p>
+                                    <p className="text-[11px] font-black text-white uppercase">{contact.city || 'N/A'}</p>
                                 </div>
                             </div>
 
-                            <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                                <p className="text-[9px] font-black text-[#ff802b] uppercase tracking-widest mb-2">Scanné par</p>
+                            <div className="bg-white/5 p-3 rounded-xl border border-white/10">
+                                <p className="text-[8px] font-black text-[#ff802b] uppercase tracking-widest mb-1.5">Scanné par</p>
                                 <div className="flex justify-between items-center">
-                                    <p className="text-xs font-black text-white uppercase">{contact.scannerName || 'Inconnu'}</p>
-                                    <span className="text-[9px] text-white/30 font-black uppercase tracking-widest">
+                                    <p className="text-[11px] font-black text-white uppercase">{contact.scannerName || 'Inconnu'}</p>
+                                    <span className="text-[8px] text-white/30 font-black uppercase tracking-widest">
                                         {contact.scannedAt?.toDate ? contact.scannedAt.toDate().toLocaleString() : 
                                          (contact.scannedAt && contact.scannedAt.seconds ? new Date(contact.scannedAt.seconds * 1000).toLocaleString() : 
                                          new Date(contact.scannedAt).toLocaleString())}
@@ -1162,15 +1162,15 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                     {privateRegistrations.map((reg) => {
                         const viewed = isViewed(reg.id);
                         return (
-                            <div key={reg.id} className="bg-[#2d1b0d] rounded-[2rem] p-6 shadow-xl relative overflow-hidden border-2 border-black/10">
-                                <div className="flex items-center justify-between gap-4">
+                            <div key={reg.id} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
+                                <div className="flex items-center justify-between gap-3">
                                     <div className="flex-1">
-                                        <h4 className="font-black text-white uppercase text-sm tracking-tight mb-1">{reg.title}</h4>
+                                        <h4 className="font-black text-white uppercase text-xs tracking-tight mb-0.5">{reg.title}</h4>
                                         <div className="flex flex-col gap-0.5">
-                                            <p className="text-[11px] text-[#ff802b] font-black uppercase tracking-widest">
+                                            <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">
                                                 {reg.data?.ville || 'VILLE'} • {reg.phone}
                                             </p>
-                                            <p className="text-[10px] text-white/40 font-bold uppercase tracking-tighter">
+                                            <p className="text-[9px] text-white/40 font-bold uppercase tracking-tighter">
                                                 {reg.category || reg.typeInscription || 'Inscription'}
                                             </p>
                                         </div>
@@ -1181,13 +1181,13 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                           setSelectedRegistration(reg);
                                           markAsViewed(reg.id);
                                         }}
-                                        className={`w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 shadow-lg ${
+                                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90 shadow-lg ${
                                           viewed 
                                             ? 'bg-transparent text-white border-2 border-white/20' 
                                             : 'bg-white text-black'
                                         }`}
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                         </svg>
                                     </button>
@@ -1203,15 +1203,15 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
 
   const renderContent = () => {
     const sidebarButtons = [
-      { id: 'contacts', label: 'Stockage des contacts' },
-      { id: 'active-contacts', label: 'Activation des contacts' },
-      { id: 'associations', label: 'Association de contacts' },
-      { id: 'user-messages', label: 'Messages Utilisateurs' },
-      { id: 'private-registrations', label: 'Nouvelle inscription' },
-      { id: 'firestore-users', label: 'Utilisateurs Cloud' },
-      { id: 'wave-payments', label: 'Paiements Wave' },
-      { id: 'assistant-requests', label: 'Demandes Assistant' },
-      { id: 'scanned-qr', label: 'QR Codes Scannés' },
+      { id: 'contacts', label: 'Stockage' },
+      { id: 'active-contacts', label: 'Activations' },
+      { id: 'associations', label: 'Associations' },
+      { id: 'user-messages', label: 'Messages' },
+      { id: 'private-registrations', label: 'Inscriptions' },
+      { id: 'firestore-users', label: 'Cloud' },
+      { id: 'wave-payments', label: 'Paiements' },
+      { id: 'assistant-requests', label: 'Assistant' },
+      { id: 'scanned-qr', label: 'QR Codes' },
     ];
 
     const renderActiveView = () => {
@@ -1226,42 +1226,42 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
       if (view === 'private-registrations') return renderPrivateRegistrationsView();
       
       return (
-        <div className="flex-1 flex flex-col items-center justify-center text-white/30 p-10">
-          <img src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/343956e5-aaed-4531-85f6-a07422df385b.png" alt="Logo" className="w-32 h-32 object-contain opacity-20 mb-6" referrerPolicy="no-referrer" />
-          <h3 className="text-xl font-black uppercase tracking-widest">Sélectionnez une catégorie</h3>
+        <div className="flex-1 flex flex-col items-center justify-center text-white/30 p-6">
+          <img src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/343956e5-aaed-4531-85f6-a07422df385b.png" alt="Logo" className="w-20 h-20 lg:w-32 lg:h-32 object-contain opacity-20 mb-4 lg:mb-6" referrerPolicy="no-referrer" />
+          <h3 className="text-sm lg:text-xl font-black uppercase tracking-widest text-center">Sélectionnez une catégorie</h3>
         </div>
       );
     };
 
     return (
-      <div className="flex h-screen w-screen overflow-hidden bg-[#00522b]">
-        {/* Left Side: Grid of buttons */}
-        <div className="w-[65%] p-12 flex flex-col h-full relative">
-          <header className="mb-12">
+      <div className="flex flex-col lg:flex-row h-screen w-screen overflow-hidden bg-[#00522b]">
+        {/* Left Side: Grid of buttons - Hidden on mobile if a view is selected */}
+        <div className={`${view !== 'grid' ? 'hidden lg:flex' : 'flex'} w-full lg:w-[60%] p-4 lg:p-10 flex flex-col h-full relative`}>
+          <header className="mb-6 lg:mb-10">
             <div className="flex items-center justify-between">
-                <h1 className="text-6xl font-black tracking-tighter flex items-center gap-4">
+                <h1 className="text-2xl sm:text-3xl lg:text-5xl font-black tracking-tighter flex flex-wrap items-center gap-2 lg:gap-4">
                     <span className="text-white">ADMINISTRATION</span>
                     <span className="text-[#ff802b]">FILANT225</span>
                 </h1>
-                <button onClick={onBack} className="p-3 bg-white/10 text-white rounded-2xl hover:bg-white/20 transition-all active:scale-90">
-                    <BackIcon className="w-6 h-6" />
+                <button onClick={onBack} className="p-2 lg:p-3 bg-white/10 text-white rounded-xl lg:rounded-2xl hover:bg-white/20 transition-all active:scale-90">
+                    <BackIcon className="w-5 h-5 lg:w-6 lg:h-6" />
                 </button>
             </div>
-            <div className="h-1 bg-white/20 w-full mt-8" />
+            <div className="h-0.5 lg:h-1 bg-white/20 w-full mt-4 lg:mt-6" />
           </header>
           
-          <div className="grid grid-cols-3 gap-8 flex-1 content-start overflow-y-auto pr-4 scrollbar-hide pb-20">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 lg:gap-6 flex-1 content-start overflow-y-auto pr-2 lg:pr-4 scrollbar-hide pb-20">
             {sidebarButtons.map(btn => (
               <button 
                 key={btn.id}
                 onClick={() => setView(btn.id as any)}
-                className={`aspect-[16/9] rounded-[2rem] p-8 flex flex-col items-center justify-center text-center transition-all active:scale-95 shadow-2xl border-4 border-transparent ${
+                className={`aspect-[16/9] rounded-2xl lg:rounded-[2rem] p-3 lg:p-6 flex flex-col items-center justify-center text-center transition-all active:scale-95 shadow-xl border-2 lg:border-4 border-transparent ${
                   view === btn.id 
                     ? 'bg-black text-[#ff802b]' 
                     : 'bg-white text-[#ff802b] hover:bg-white/90'
                 }`}
               >
-                <span className="text-xl font-black uppercase tracking-widest leading-tight">
+                <span className="text-[10px] sm:text-xs lg:text-sm font-black uppercase tracking-widest leading-tight">
                   {btn.label}
                 </span>
               </button>
@@ -1269,14 +1269,22 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
           </div>
 
           {onLogout && (
-            <button onClick={onLogout} className="absolute bottom-8 left-12 flex items-center gap-3 px-6 py-3 bg-red-500 text-white rounded-2xl hover:bg-red-600 transition-all active:scale-95 text-xs font-black uppercase tracking-widest shadow-xl">
+            <button onClick={onLogout} className="absolute bottom-6 lg:bottom-8 left-4 lg:left-10 flex items-center gap-2 px-4 py-2 lg:px-6 lg:py-3 bg-red-500 text-white rounded-xl lg:rounded-2xl hover:bg-red-600 transition-all active:scale-95 text-[10px] lg:text-xs font-black uppercase tracking-widest shadow-xl">
               Déconnexion
             </button>
           )}
         </div>
 
-        {/* Right Side: Content Panel */}
-        <div className="w-[35%] bg-[#ff802b] flex flex-col h-full shadow-[-20px_0_60px_rgba(0,0,0,0.3)] relative z-10">
+        {/* Right Side: Content Panel - Full screen on mobile if a view is selected */}
+        <div className={`${view === 'grid' ? 'hidden lg:flex' : 'flex'} w-full lg:w-[40%] bg-[#ff802b] flex flex-col h-full shadow-[-10px_0_30px_rgba(0,0,0,0.2)] lg:shadow-[-20px_0_60px_rgba(0,0,0,0.3)] relative z-10`}>
+          {view !== 'grid' && (
+            <button 
+              onClick={() => setView('grid')}
+              className="lg:hidden absolute top-4 left-4 z-30 p-2 bg-white/20 text-white rounded-full backdrop-blur-md"
+            >
+              <BackIcon className="w-5 h-5" />
+            </button>
+          )}
           {renderActiveView()}
         </div>
 
