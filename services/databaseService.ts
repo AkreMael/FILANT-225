@@ -33,9 +33,11 @@ interface FirestoreErrorInfo {
   }
 }
 
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+function handleFirestoreError(error: any, operationType: OperationType, path: string | null) {
+  const isQuotaExceeded = error?.code === 'resource-exhausted' || error?.message?.includes('Quota exceeded');
+  
+  const errInfo: any = {
+    error: isQuotaExceeded ? 'Quota Firestore dépassé pour aujourd\'hui. Le service reprendra demain.' : (error instanceof Error ? error.message : String(error)),
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email || undefined,
@@ -51,7 +53,12 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
     },
     operationType,
     path
+  };
+
+  if (isQuotaExceeded) {
+    console.error('CRITICAL: Firestore Quota Exceeded. The app will have limited functionality until the quota resets.');
   }
+
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }
@@ -292,22 +299,36 @@ export const databaseService = {
       const docSnap = await getDocFromServer(userRef);
       const existingData = docSnap.exists() ? docSnap.data() : {};
 
-      const userData = {
+      const userData: any = {
         userId: auth.currentUser?.uid,
         name: user.name,
         phone: sanitizedPhone,
         city: user.city,
         role: user.role || localStorage.getItem('filant_user_role') || 'Client',
         isVerified: existingData.isVerified || user.isVerified || false,
-        lastSeen: serverTimestamp(),
-        updatedAt: serverTimestamp(),
         lastConnection: new Date().toISOString(),
-        lastModeChange: serverTimestamp(),
         cardDataPro: cardDataPro || null,
         cardDataService: cardDataService || null
       };
 
-      await setDoc(userRef, userData, { merge: true });
+      // Check if meaningful data has changed before writing
+      const hasChanged = !docSnap.exists() || 
+        existingData.name !== userData.name ||
+        existingData.city !== userData.city ||
+        existingData.role !== userData.role ||
+        existingData.isVerified !== userData.isVerified ||
+        JSON.stringify(existingData.cardDataPro) !== JSON.stringify(userData.cardDataPro) ||
+        JSON.stringify(existingData.cardDataService) !== JSON.stringify(userData.cardDataService);
+
+      if (hasChanged) {
+        userData.lastSeen = serverTimestamp();
+        userData.updatedAt = serverTimestamp();
+        userData.lastModeChange = serverTimestamp();
+        await setDoc(userRef, userData, { merge: true });
+        console.log("User synced to Firestore (data changed)");
+      } else {
+        console.log("User sync skipped (no data change)");
+      }
       console.log("User synced to Firestore successfully:", user.name);
     } catch (e) {
       handleFirestoreError(e, OperationType.WRITE, path);
