@@ -2,11 +2,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { User, Tab, FavoriteRequest } from '../types';
 import ScannerOverlay, { extractQRInfo } from './ScannerOverlay';
-import SpeakerIcon from './common/SpeakerIcon';
 import { databaseService, SavedContact } from '../services/databaseService';
 import { getQuestionsForType, generateWhatsAppMessage } from './common/formDefinitions';
-import { audioService } from '../services/audioService';
-import { messagingService } from '../services/messagingService';
 
 // --- PROPS ---
 interface ProfileScreenProps {
@@ -23,7 +20,6 @@ interface ProfileScreenProps {
 }
 
 // --- CONSTANTS ---
-const WELCOME_TEXT = "Bienvenue, je suis Filant 225. Nous sommes à votre disposition. Choisissez l’option qui vous convient et nous mettrons les agences à votre disposition. Notre mission est de vous accompagner et de vous encadrer dans tous vos besoins de service. Dites-nous ce que vous recherchez. Ouvrez l’application, effectuez votre choix, remplissez le formulaire et envoyez-le à l’entreprise. Merci.";
 const ADMIN_PHONE = "0705052632";
 const PROFILE_IMAGE_KEY_PREFIX = 'filant_profile_image_';
 const PROFILE_TS_KEY_PREFIX = 'filant_profile_ts_';
@@ -279,7 +275,6 @@ const FavoriteDetailView: React.FC<{ fav: FavoriteRequest, onBack: () => void }>
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, onReset, isClientModeActive, onToggleClientMode, setActiveTab, onShowPopup, deferredPrompt, onInstallPWA }) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [view, setView] = useState<'main' | 'contacts' | 'favorites' | 'favorite-detail' | 'mode-selection'>('main');
@@ -321,11 +316,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
     return (Date.now() - ts) < ONE_MONTH_MS;
   }, [user.phone, profileImage]);
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
-  const [audioSource, setAudioSource] = useState<string | null>(null);
-  const [waveHeights, setWaveHeights] = useState(Array(30).fill(6));
-
   useEffect(() => {
     setContacts(databaseService.getContacts(user.phone));
     requestAnimationFrame(() => {
@@ -333,16 +323,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
         if (overlayRef.current) overlayRef.current.classList.remove('opacity-0');
     });
   }, [user.phone]);
-
-  useEffect(() => {
-    let interval: any;
-    if (isPlaying) {
-        interval = setInterval(() => setWaveHeights(prev => prev.map(() => Math.floor(Math.random() * 18) + 4)), 100);
-    } else {
-        setWaveHeights(Array(30).fill(6));
-    }
-    return () => clearInterval(interval);
-  }, [isPlaying]);
 
   const handleBack = () => {
     if (view === 'favorite-detail') setView('favorites');
@@ -353,41 +333,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
   const handleClose = () => {
     if (panelRef.current) panelRef.current.classList.add('translate-x-full');
     if (overlayRef.current) overlayRef.current.classList.add('opacity-0');
-    audioService.cancel();
     setTimeout(onClose, 300);
-  };
-
-  const generateAndPlayAudio = async () => {
-    if (isLoadingAudio) return;
-    if (audioSource && audioRef.current) {
-        if (isPlaying) {
-            audioRef.current.pause();
-        } else {
-            try {
-                await audioRef.current.play();
-            } catch (err) {
-                console.error("Playback failed:", err);
-            }
-        }
-        setIsPlaying(!isPlaying);
-        return;
-    }
-    setIsLoadingAudio(true);
-    try {
-        const url = await audioService.getAudioUrl(WELCOME_TEXT);
-        setAudioSource(url);
-        if (audioRef.current) {
-            audioRef.current.src = url;
-            try {
-                await audioRef.current.play();
-                setIsPlaying(true);
-            } catch (err) {
-                console.error("Playback failed:", err);
-            }
-        }
-    } catch (e) {
-        onShowPopup("Erreur audio", "alert");
-    } finally { setIsLoadingAudio(false); }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -488,13 +434,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
         onInstallPWA();
     };
 
-    const handleDownloadAPK = () => {
-        onShowPopup("L'APK peut être généré en téléchargeant le projet et en l'ouvrant dans Android Studio. Souhaitez-vous que je vous explique comment faire ?", "confirm", (close) => {
-            window.open('https://capacitorjs.com/docs/android', '_blank');
-            close();
-        });
-    };
-
     const renderMainView = () => (
     <div className="flex flex-col h-full bg-[#F3F3F3]">
         <header className="p-4 flex items-center bg-white shadow-sm border-b border-gray-100">
@@ -541,44 +480,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
                     subtitle="Version Web Installable" 
                     onClick={handleInstallPWA} 
                 />
-                <div className="h-px bg-gray-50 mx-4"></div>
-                <ProfileRow 
-                    icon={<svg className="w-10 h-10 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>} 
-                    title="Télécharger l'App (APK)" 
-                    subtitle="Version Native Android" 
-                    onClick={handleDownloadAPK} 
-                />
             </div>
-            <div className="mx-4 p-5 bg-white rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center">
-                <audio ref={audioRef} onEnded={() => setIsPlaying(false)} className="hidden" />
-                <div className="flex items-end justify-center h-8 gap-1 mb-6">{waveHeights.map((h, i) => (<div key={i} className={`w-1 rounded-full transition-all duration-100 ${isPlaying ? 'bg-orange-500' : 'bg-gray-200'}`} style={{ height: `${h}px` }}></div>))}</div>
-                <button onClick={generateAndPlayAudio} disabled={isLoadingAudio} className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-xl active:scale-90 transition-all ${isPlaying ? 'bg-orange-500' : 'bg-blue-600'}`}>{isLoadingAudio ? <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : (isPlaying ? <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> : <svg className="w-7 h-7 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>)}</button>
-                <p className="text-[10px] font-black text-gray-400 mt-4 uppercase tracking-[0.2em]">Guide Vocal Interactif</p>
-            </div>
-
-            {messagingService.getCurrentToken() && (
-                <div className="mx-4 p-5 bg-slate-900 rounded-3xl shadow-lg border border-slate-800">
-                    <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Token FCM (Debug)</h4>
-                        <button 
-                            onClick={() => {
-                                const token = messagingService.getCurrentToken();
-                                if (token) {
-                                    navigator.clipboard.writeText(token);
-                                    onShowPopup("Token copié !", "alert");
-                                }
-                            }}
-                            className="text-[10px] font-black text-white bg-white/10 px-3 py-1 rounded-full active:scale-95 transition-transform"
-                        >
-                            COPIER
-                        </button>
-                    </div>
-                    <p className="text-[10px] font-mono text-slate-400 break-all leading-relaxed bg-black/30 p-3 rounded-xl border border-white/5">
-                        {messagingService.getCurrentToken()}
-                    </p>
-                </div>
-            )}
-
             <div className="px-4 pt-6 grid grid-cols-2 gap-4">
                 <button onClick={handleModeToggleClick} className={`w-full py-4 font-black uppercase tracking-widest text-[10px] rounded-2xl shadow-sm border transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${isClientModeActive ? 'bg-orange-500 text-white border-orange-400 shadow-[0_4px_15px_rgba(249,115,22,0.4)] ring-4 ring-orange-500/20' : 'bg-white text-orange-600 border-orange-100'}`}><UsersIcon className={`w-4 h-4 ${isClientModeActive ? 'animate-pulse' : ''}`} />MODE CLIENT</button>
                 <button onClick={handleLogoutClick} className="w-full py-4 text-red-600 font-black uppercase tracking-widest text-[10px] bg-white rounded-2xl shadow-sm border border-red-50 transition-all active:scale-[0.98] active:bg-red-50 flex items-center justify-center gap-2"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>Déconnexion</button>
