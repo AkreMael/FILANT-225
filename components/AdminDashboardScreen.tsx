@@ -811,9 +811,9 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                     >
                         <option value="all">Tous les rôles</option>
                         <option value="Client">Clients</option>
-                        <option value="Travailleur">Travailleurs</option>
-                        <option value="Propriétaire">Propriétaires</option>
                         <option value="Agence">Agences</option>
+                        <option value="Travailleur">Travailleurs</option>
+                        <option value="Propriété">Équipements</option>
                     </select>
                     <select 
                         value={filterStatus}
@@ -896,7 +896,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                         }`}
                                     >
                                         <BlockedIcon className="w-3 h-3" />
-                                        {user.isBlocked ? 'Débloquer' : 'Bloquer'}
+                                        {user.isBlocked ? 'Activer' : 'Bloquer'}
                                     </button>
                                 </div>
                             </div>

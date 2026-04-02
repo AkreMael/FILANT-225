@@ -253,7 +253,15 @@ const App: React.FC = () => {
       if (snapshot.exists()) {
         const data = snapshot.data();
         const cloudRole = data.role;
+        const cloudIsBlocked = data.isBlocked;
         
+        // Sync blocked status
+        if (cloudIsBlocked !== undefined && cloudIsBlocked !== currentUser.isBlocked) {
+          console.log("Blocked status updated from cloud:", cloudIsBlocked);
+          setCurrentUser(prev => prev ? { ...prev, isBlocked: cloudIsBlocked } : null);
+        }
+
+        // Sync role
         if (cloudRole && cloudRole !== currentUser.role) {
           console.log("Role updated from cloud in real-time:", cloudRole);
           
@@ -1090,6 +1098,27 @@ const App: React.FC = () => {
   }
 
   const isAdminView = activeTab === Tab.AdminDashboard || activeTab === Tab.AdminChat || isUserAdmin || (activeTab === Tab.Menu && menuView.startsWith('admin_'));
+
+  if (currentUser?.isBlocked) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-white flex flex-col items-center justify-center p-8 text-center">
+        <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-8 animate-pulse">
+          <svg className="w-12 h-12 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-black text-slate-900 mb-4 uppercase tracking-tighter leading-tight">
+          Accès Restreint
+        </h2>
+        <p className="text-gray-600 font-bold text-lg leading-relaxed max-w-xs">
+          “Vous ne pouvez plus effectuer une demande. Veuillez patienter. Une demande d’agence va vous contacter.”
+        </p>
+        <div className="mt-12 pt-8 border-t border-gray-100 w-full max-w-xs">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">FILANT°225 • SERVICE SÉCURITÉ</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <GlobalRippleEffect>
