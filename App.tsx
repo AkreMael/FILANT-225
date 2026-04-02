@@ -245,10 +245,9 @@ const App: React.FC = () => {
     if (!currentUser || !currentUser.phone) return;
 
     const sanitizedPhone = currentUser.phone.replace(/\D/g, '');
-    const userId = `${currentUser.name}_${sanitizedPhone}`;
-    const userRef = doc(db, 'users', userId);
+    const userRef = doc(db, 'users', sanitizedPhone);
 
-    console.log("Setting up real-time role listener for:", userId);
+    console.log("Setting up real-time role listener for:", sanitizedPhone);
 
     const unsubscribe = onSnapshot(userRef, (snapshot) => {
       if (snapshot.exists()) {
@@ -414,6 +413,15 @@ const App: React.FC = () => {
       setCurrentUser(null);
     }
   }, []);
+
+  useEffect(() => {
+    if (currentUser && isAdmin(currentUser)) {
+      console.log("Admin detected, running duplicate cleanup...");
+      databaseService.cleanupDuplicateUsers().catch(err => {
+        console.error("Failed to cleanup duplicate users:", err);
+      });
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     if (currentUser) {

@@ -182,13 +182,9 @@ const UserListItem: React.FC<{ user: User; onOpenChat?: (user: User) => void }> 
 };
 
 const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onLogout, onSelectUser, onOpenChat, initialView = 'grid' }) => {
-  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'user-messages' | 'firestore-users' | 'wave-payments' | 'assistant-requests' | 'scanned-qr' | 'private-registrations' | 'registrations-travailleurs' | 'registrations-proprietaires' | 'registrations-agences' | 'registrations-entreprises'>(initialView);
+  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'user-messages' | 'firestore-users' | 'wave-payments' | 'assistant-requests' | 'scanned-qr' | 'private-registrations'>(initialView);
   const [firestoreUsers, setFirestoreUsers] = useState<User[]>([]);
   const [privateRegistrations, setPrivateRegistrations] = useState<PrivateRegistration[]>([]);
-  const [travailleurRegistrations, setTravailleurRegistrations] = useState<PrivateRegistration[]>([]);
-  const [proprietaireRegistrations, setProprietaireRegistrations] = useState<PrivateRegistration[]>([]);
-  const [agenceRegistrations, setAgenceRegistrations] = useState<PrivateRegistration[]>([]);
-  const [entrepriseRegistrations, setEntrepriseRegistrations] = useState<PrivateRegistration[]>([]);
   const [selectedRegistration, setSelectedRegistration] = useState<PrivateRegistration | null>(null);
   const [wavePayments, setWavePayments] = useState<any[]>([]);
   const [assistantRequests, setAssistantRequests] = useState<any[]>([]);
@@ -310,38 +306,6 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
           });
           return () => unsubscribe();
       }
-      if (view === 'registrations-travailleurs') {
-          setIsSyncing(true);
-          const unsubscribe = databaseService.subscribeToPrivateRegistrationsByType('Travailleur', (registrations) => {
-              setTravailleurRegistrations(registrations);
-              setIsSyncing(false);
-          });
-          return () => unsubscribe();
-      }
-      if (view === 'registrations-proprietaires') {
-          setIsSyncing(true);
-          const unsubscribe = databaseService.subscribeToPrivateRegistrationsByType('Propriétaire d’équipement', (registrations) => {
-              setProprietaireRegistrations(registrations);
-              setIsSyncing(false);
-          });
-          return () => unsubscribe();
-      }
-      if (view === 'registrations-agences') {
-          setIsSyncing(true);
-          const unsubscribe = databaseService.subscribeToPrivateRegistrationsByType('Agence immobilière', (registrations) => {
-              setAgenceRegistrations(registrations);
-              setIsSyncing(false);
-          });
-          return () => unsubscribe();
-      }
-      if (view === 'registrations-entreprises') {
-          setIsSyncing(true);
-          const unsubscribe = databaseService.subscribeToPrivateRegistrationsByType('Entreprise', (registrations) => {
-              setEntrepriseRegistrations(registrations);
-              setIsSyncing(false);
-          });
-          return () => unsubscribe();
-      }
       if (view === 'active-contacts') {
           const list = databaseService.getActiveContacts();
           const now = Date.now();
@@ -450,14 +414,6 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
               await databaseService.saveAssociations(updated);
           } else if (view === 'private-registrations' && itemToDelete) {
               await databaseService.deletePrivateRegistration(itemToDelete.typeInscription, itemToDelete.id);
-          } else if (view === 'registrations-travailleurs' && itemToDelete) {
-              await databaseService.deletePrivateRegistration('Travailleur', itemToDelete.id);
-          } else if (view === 'registrations-proprietaires' && itemToDelete) {
-              await databaseService.deletePrivateRegistration('Propriétaire d’équipement', itemToDelete.id);
-          } else if (view === 'registrations-agences' && itemToDelete) {
-              await databaseService.deletePrivateRegistration('Agence immobilière', itemToDelete.id);
-          } else if (view === 'registrations-entreprises' && itemToDelete) {
-              await databaseService.deletePrivateRegistration('Entreprise', itemToDelete.id);
           } else if (view === 'active-contacts') {
               const updated = activeContacts.filter(c => c.id !== id);
               setActiveContacts(updated);
@@ -1182,69 +1138,10 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
     </div>
   );
 
-  const renderRegistrationsByTypeView = (title: string, registrations: PrivateRegistration[]) => (
+  const renderPrivateRegistrationsView = () => (
     <div className="flex-1 flex flex-col h-full bg-[#ff802b] font-sans text-left overflow-hidden">
         <header className="p-4 bg-white text-center sticky top-0 z-20 shadow-md">
-            <h2 className="text-sm font-black text-black uppercase tracking-[0.3em]">{title}</h2>
-        </header>
-
-        <div className="px-8 mt-6">
-            <div className="bg-black rounded-full p-2 flex items-center justify-center">
-                <span className="text-[10px] font-black text-white uppercase tracking-widest">recherche</span>
-            </div>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide">
-            {registrations.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-white/50">
-                    <p className="font-black uppercase text-xs tracking-widest">
-                        {isSyncing ? 'Chargement...' : 'Aucune demande'}
-                    </p>
-                </div>
-            ) : (
-                <div className="space-y-4">
-                    {registrations.map((reg) => {
-                        const viewed = isViewed(reg.id);
-                        return (
-                            <div key={reg.id} className="bg-[#2d1b0d] rounded-[2rem] p-6 shadow-xl relative overflow-hidden border-2 border-black/10">
-                                <div className="flex items-center justify-between gap-4">
-                                    <div className="flex-1">
-                                        <h4 className="font-black text-white uppercase text-sm tracking-tight mb-1">
-                                            {reg.title} -{reg.data?.ville || 'VILLE'} -{reg.phone}
-                                        </h4>
-                                        <p className="text-[11px] text-[#ff802b] font-black uppercase tracking-widest">
-                                            Informations de l'inscription
-                                        </p>
-                                    </div>
-
-                                    <button 
-                                        onClick={() => {
-                                          setSelectedRegistration(reg);
-                                          markAsViewed(reg.id);
-                                        }}
-                                        className={`w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 shadow-lg ${
-                                          viewed 
-                                            ? 'bg-transparent text-white border-2 border-white/20' 
-                                            : 'bg-white text-black'
-                                        }`}
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-        </div>
-    </div>
-  );
-    const renderPrivateRegistrationsView = () => (
-    <div className="flex-1 flex flex-col h-full bg-[#ff802b] font-sans text-left overflow-hidden">
-        <header className="p-4 bg-white text-center sticky top-0 z-20 shadow-md">
-            <h2 className="text-sm font-black text-black uppercase tracking-[0.3em]">Inscriptions Privées</h2>
+            <h2 className="text-sm font-black text-black uppercase tracking-[0.3em]">Nouvelle inscription</h2>
         </header>
 
         <div className="px-8 mt-6">
@@ -1268,12 +1165,15 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                             <div key={reg.id} className="bg-[#2d1b0d] rounded-[2rem] p-6 shadow-xl relative overflow-hidden border-2 border-black/10">
                                 <div className="flex items-center justify-between gap-4">
                                     <div className="flex-1">
-                                        <h4 className="font-black text-white uppercase text-sm tracking-tight mb-1">
-                                            {reg.title} -{reg.data?.ville || 'VILLE'} -{reg.phone}
-                                        </h4>
-                                        <p className="text-[11px] text-[#ff802b] font-black uppercase tracking-widest">
-                                            Informations de l'inscription
-                                        </p>
+                                        <h4 className="font-black text-white uppercase text-sm tracking-tight mb-1">{reg.title}</h4>
+                                        <div className="flex flex-col gap-0.5">
+                                            <p className="text-[11px] text-[#ff802b] font-black uppercase tracking-widest">
+                                                {reg.data?.ville || 'VILLE'} • {reg.phone}
+                                            </p>
+                                            <p className="text-[10px] text-white/40 font-bold uppercase tracking-tighter">
+                                                {reg.category || reg.typeInscription || 'Inscription'}
+                                            </p>
+                                        </div>
                                     </div>
 
                                     <button 
@@ -1307,10 +1207,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
       { id: 'active-contacts', label: 'Activation des contacts' },
       { id: 'associations', label: 'Association de contacts' },
       { id: 'user-messages', label: 'Messages Utilisateurs' },
-      { id: 'registrations-entreprises', label: 'Demandes Entreprises' },
-      { id: 'registrations-travailleurs', label: 'Demandes Travailleurs' },
-      { id: 'registrations-proprietaires', label: 'Demandes Équipements' },
-      { id: 'registrations-agences', label: 'Demandes Agences' },
+      { id: 'private-registrations', label: 'Nouvelle inscription' },
       { id: 'firestore-users', label: 'Utilisateurs Cloud' },
       { id: 'wave-payments', label: 'Paiements Wave' },
       { id: 'assistant-requests', label: 'Demandes Assistant' },
@@ -1326,10 +1223,6 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
       if (view === 'wave-payments') return renderWavePaymentsView();
       if (view === 'assistant-requests') return renderAssistantRequestsView();
       if (view === 'scanned-qr') return renderScannedQRView();
-      if (view === 'registrations-travailleurs') return renderRegistrationsByTypeView('Demandes Travailleurs', travailleurRegistrations);
-      if (view === 'registrations-proprietaires') return renderRegistrationsByTypeView('Demandes Équipements', proprietaireRegistrations);
-      if (view === 'registrations-agences') return renderRegistrationsByTypeView('Demandes Agences', agenceRegistrations);
-      if (view === 'registrations-entreprises') return renderRegistrationsByTypeView('Demandes Entreprises', entrepriseRegistrations);
       if (view === 'private-registrations') return renderPrivateRegistrationsView();
       
       return (

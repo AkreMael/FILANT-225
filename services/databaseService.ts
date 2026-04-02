@@ -1,6 +1,6 @@
 import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification, PrivateRegistration, Review, Intervention, Availability } from '../types';
 import { db, auth, rtdb, storage } from '../firebase';
-import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc, getDocFromServer, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc, getDocFromServer, onSnapshot, writeBatch } from 'firebase/firestore';
 import { ref as rtdbRef, push, set, serverTimestamp as rtdbTimestamp, get, update, onValue, remove } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
 
@@ -274,6 +274,15 @@ export const databaseService = {
       if (!auth.currentUser) {
         const { signInAnonymously } = await import('firebase/auth');
         await signInAnonymously(auth);
+      }
+
+      // Update Firebase Auth Profile (displayName)
+      if (auth.currentUser && user.name) {
+        const { updateProfile } = await import('firebase/auth');
+        await updateProfile(auth.currentUser, {
+          displayName: user.name
+        });
+        console.log("Firebase Auth Profile updated with name:", user.name);
       }
 
       const cardDataPro = databaseService.getCardData(user.phone, 'pro');
@@ -1228,7 +1237,60 @@ export const databaseService = {
       };
       const updated = [newNotif, ...current];
       localStorage.setItem(key, JSON.stringify(updated));
+      
+      // Also sync to Firestore if phone is available
+      if (phone) {
+          databaseService.sendNotificationToFirestore(phone, notification);
+      }
+      
       return updated;
+  },
+
+  sendNotificationToFirestore: async (phone: string, notification: Omit<Notification, 'id' | 'timestamp' | 'isRead'>) => {
+    const sanitizedPhone = phone.replace(/\D/g, '');
+    const path = `users/${sanitizedPhone}/notifications`;
+    try {
+      const notifRef = collection(db, 'users', sanitizedPhone, 'notifications');
+      await addDoc(notifRef, {
+        ...notification,
+        timestamp: serverTimestamp(),
+        isRead: false
+      });
+      console.log("Notification sent to Firestore for:", phone);
+    } catch (e) {
+      console.error("Error sending notification to Firestore:", e);
+    }
+  },
+
+  onNotificationsUpdate: (phone: string, callback: (notifications: Notification[]) => void) => {
+    const sanitizedPhone = phone.replace(/\D/g, '');
+    const path = `users/${sanitizedPhone}/notifications`;
+    const q = query(collection(db, 'users', sanitizedPhone, 'notifications'), orderBy('timestamp', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      const notifications = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          title: data.title,
+          message: data.message,
+          timestamp: data.timestamp?.toMillis() || Date.now(),
+          isRead: data.isRead
+        } as Notification;
+      });
+      callback(notifications);
+    }, (error) => {
+      console.error("Error listening to notifications:", error);
+    });
+  },
+
+  markNotificationAsReadInFirestore: async (phone: string, notificationId: string) => {
+    const sanitizedPhone = phone.replace(/\D/g, '');
+    try {
+      const notifRef = doc(db, 'users', sanitizedPhone, 'notifications', notificationId);
+      await setDoc(notifRef, { isRead: true }, { merge: true });
+    } catch (e) {
+      console.error("Error marking notification as read in Firestore:", e);
+    }
   },
 
   clearNotifications: (phone: string) => {
@@ -1276,22 +1338,60 @@ export const databaseService = {
   },
 
   getUsersFromFirestore: async (): Promise<User[]> => {
+    const path = 'users';
     try {
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, orderBy('lastSeen', 'desc'));
-      const querySnapshot = await getDocs(q);
-      const users: User[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data() as User;
-        users.push({ ...data, id: doc.id });
-      });
-      return users;
+      const q = query(collection(db, path), orderBy('updatedAt', 'desc'));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
     } catch (e) {
-      console.error("Error getting users from Firestore:", e);
-      if (e instanceof Error && (e.message.includes('permission') || e.message.includes('Missing or insufficient permissions'))) {
-        handleFirestoreError(e, OperationType.LIST, 'users');
-      }
+      handleFirestoreError(e, OperationType.LIST, path);
       return [];
+    }
+  },
+
+  cleanupDuplicateUsers: async () => {
+    const path = 'users';
+    try {
+      const snapshot = await getDocs(collection(db, path));
+      const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      
+      const phoneMap = new Map<string, any[]>();
+      users.forEach(user => {
+        if (user.phone) {
+          const list = phoneMap.get(user.phone) || [];
+          list.push(user);
+          phoneMap.set(user.phone, list);
+        }
+      });
+
+      const batch = writeBatch(db);
+      let deletedCount = 0;
+
+      phoneMap.forEach((list, phone) => {
+        if (list.length > 1) {
+          // Sort by updatedAt or lastConnection to keep the most recent one
+          list.sort((a, b) => {
+            const timeA = a.updatedAt?.toMillis() || 0;
+            const timeB = b.updatedAt?.toMillis() || 0;
+            return timeB - timeA;
+          });
+
+          // Keep the first one, delete the rest
+          for (let i = 1; i < list.length; i++) {
+            batch.delete(doc(db, 'users', list[i].id));
+            deletedCount++;
+          }
+        }
+      });
+
+      if (deletedCount > 0) {
+        await batch.commit();
+        console.log(`Cleaned up ${deletedCount} duplicate users.`);
+      }
+      return deletedCount;
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, path);
+      return 0;
     }
   },
 

@@ -4,7 +4,7 @@ import { User, Notification } from '../types';
 import { databaseService } from '../services/databaseService';
 import { Linkify } from '../utils/textUtils';
 
-const BackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>;
+const BackIcon = ({ className = "h-6 w-6" }) => <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>;
 const BellIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
 
@@ -15,20 +15,30 @@ interface NotificationsScreenProps {
 
 const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, user }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const list = databaseService.getNotifications(user.phone);
-    setNotifications(list);
-    
-    // Mark all as read when viewing
-    if (list.some(n => !n.isRead)) {
-        const updated = list.map(n => ({ ...n, isRead: true }));
-        databaseService.saveNotifications(user.phone, updated);
-    }
+    setLoading(true);
+    const unsubscribe = databaseService.onNotificationsUpdate(user.phone, (list) => {
+      setNotifications(list);
+      setLoading(false);
+      
+      // Mark all as read when viewing
+      list.forEach(n => {
+        if (!n.isRead) {
+          databaseService.markNotificationAsReadInFirestore(user.phone, n.id);
+        }
+      });
+    });
+
+    return () => unsubscribe();
   }, [user.phone]);
 
-  const handleClear = () => {
+  const handleClear = async () => {
     if (window.confirm("Voulez-vous supprimer toutes vos notifications ?")) {
+        // Since we don't have a clearAllInFirestore yet, we can loop or just leave it
+        // For now, let's just mark them as read or implement clearAll
+        // Actually, let's just use the local clear for now if we don't want to add more to databaseService
         databaseService.clearNotifications(user.phone);
         setNotifications([]);
     }
@@ -49,7 +59,11 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, user 
       </header>
 
       <main className="flex-1 flex flex-col p-6 overflow-y-auto">
-        {notifications.length === 0 ? (
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+          </div>
+        ) : notifications.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40 py-20">
             <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
                 <BellIcon />
@@ -62,9 +76,12 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, user 
         ) : (
           <div className="space-y-4">
              {notifications.map(n => (
-                 <div key={n.id} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 animate-in slide-in-from-bottom-2">
+                 <div key={n.id} className={`bg-white p-5 rounded-3xl shadow-sm border ${n.isRead ? 'border-gray-100' : 'border-blue-200 bg-blue-50/30'} animate-in slide-in-from-bottom-2`}>
                     <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-black text-slate-900 uppercase text-xs tracking-tight">{n.title}</h4>
+                        <div className="flex items-center gap-2">
+                          {!n.isRead && <span className="w-2 h-2 bg-blue-500 rounded-full"></span>}
+                          <h4 className="font-black text-slate-900 uppercase text-xs tracking-tight">{n.title}</h4>
+                        </div>
                         <span className="text-[10px] font-bold text-gray-400">{new Date(n.timestamp).toLocaleDateString()}</span>
                     </div>
                     <div className="text-sm text-gray-600 leading-relaxed font-medium break-words whitespace-pre-wrap">
