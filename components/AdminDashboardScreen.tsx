@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { databaseService, ConnectionLog, Association, ActiveContact, AdminContact } from '../services/databaseService';
 import { User, PrivateRegistration } from '../types';
+import { ADMIN_PHONE } from '../utils/authUtils';
 import Typewriter from './common/Typewriter';
 import MenuBackground from './common/MenuBackground';
 import { QRCodeSVG } from 'qrcode.react';
@@ -225,8 +226,26 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
   const [notificationTitle, setNotificationTitle] = useState('');
   const [notificationMessage, setNotificationMessage] = useState('');
   const [isSendingNotification, setIsSendingNotification] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   const sidebarButtonsMemo = useMemo(() => sidebarButtons, []);
+
+  const handleResetDatabase = async () => {
+    if (window.confirm("⚠️ ATTENTION : Cette action va supprimer TOUS les utilisateurs (sauf vous) et réinitialiser toutes les données de la base. Cette opération est irréversible. Voulez-vous continuer ?")) {
+      setIsResetting(true);
+      try {
+        await databaseService.resetDatabase(ADMIN_PHONE);
+        alert("✅ Base de données réinitialisée avec succès !");
+        // Re-fetch users to update UI
+        const users = await databaseService.getUsersFromFirestore();
+        setFirestoreUsers(users);
+      } catch (error) {
+        alert("❌ Erreur lors de la réinitialisation : " + (error instanceof Error ? error.message : String(error)));
+      } finally {
+        setIsResetting(false);
+      }
+    }
+  };
 
   const handleSetView = useCallback((newView: any) => {
     setView(newView);
@@ -898,14 +917,29 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
         <div className="flex-1 flex flex-col h-full bg-[#ff802b] font-sans text-left overflow-hidden">
             <header className="p-4 bg-white flex items-center justify-between sticky top-0 z-20 shadow-md">
                 <h2 className="text-sm font-black text-black uppercase tracking-[0.3em]">Stockage des contacts</h2>
-                <button 
-                    onClick={handleExportCSV}
-                    className="p-2 bg-black text-white rounded-xl hover:bg-black/80 transition-all active:scale-90 flex items-center gap-2"
-                    title="Exporter en CSV"
-                >
-                    <ExportIcon className="w-4 h-4" />
-                    <span className="text-[8px] font-black uppercase tracking-widest hidden sm:inline">Exporter</span>
-                </button>
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={handleResetDatabase}
+                        disabled={isResetting}
+                        className="p-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all active:scale-90 flex items-center gap-2 disabled:opacity-50"
+                        title="Grand Nettoyage (Reset)"
+                    >
+                        {isResetting ? (
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                            <TrashIcon />
+                        )}
+                        <span className="text-[8px] font-black uppercase tracking-widest hidden sm:inline">Nettoyage</span>
+                    </button>
+                    <button 
+                        onClick={handleExportCSV}
+                        className="p-2 bg-black text-white rounded-xl hover:bg-black/80 transition-all active:scale-90 flex items-center gap-2"
+                        title="Exporter en CSV"
+                    >
+                        <ExportIcon className="w-4 h-4" />
+                        <span className="text-[8px] font-black uppercase tracking-widest hidden sm:inline">Exporter</span>
+                    </button>
+                </div>
             </header>
 
             <div className="p-4 space-y-3 bg-black/5">

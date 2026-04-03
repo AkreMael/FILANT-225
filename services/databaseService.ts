@@ -1436,6 +1436,46 @@ export const databaseService = {
     }
   },
 
+  resetDatabase: async (adminPhone: string): Promise<void> => {
+    const sanitizedAdminPhone = adminPhone.replace(/\D/g, '');
+    try {
+      // 1. Clear Firestore Users (except Admin)
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      const userBatch = writeBatch(db);
+      let userDeletedCount = 0;
+      
+      for (const userDoc of usersSnapshot.docs) {
+        if (userDoc.id !== sanitizedAdminPhone) {
+          userBatch.delete(userDoc.ref);
+          userDeletedCount++;
+        }
+      }
+      if (userDeletedCount > 0) await userBatch.commit();
+      console.log(`Firestore: Deleted ${userDeletedCount} users.`);
+
+      // 2. Clear RTDB Data
+      await remove(rtdbRef(rtdb, 'assistant_requests'));
+      await remove(rtdbRef(rtdb, 'wave_payments'));
+      await remove(rtdbRef(rtdb, 'scanned_contacts'));
+      console.log("RTDB: Cleared requests, payments and scanned contacts.");
+
+      // 3. Clear Local Storage (except Admin)
+      const users = getUsers();
+      const filteredUsers = users.filter(u => u.phone === adminPhone);
+      saveUsers(filteredUsers);
+      
+      localStorage.removeItem(CONNECTION_LOGS_KEY);
+      localStorage.removeItem(ASSOCIATIONS_KEY);
+      localStorage.removeItem(ACTIVE_CONTACTS_KEY);
+      localStorage.removeItem(ADMIN_CONTACTS_KEY);
+      
+      console.log("Local Storage: Reset completed.");
+    } catch (e) {
+      console.error("Error during database reset:", e);
+      throw e;
+    }
+  },
+
   saveAssistantRequestToRTDB: async (requestData: any) => {
     try {
       const { userName, userId } = requestData;
