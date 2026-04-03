@@ -182,6 +182,7 @@ const App: React.FC = () => {
   });
 
   const [unreadChatCount, setUnreadChatCount] = useState(0);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
@@ -386,6 +387,8 @@ const App: React.FC = () => {
     
     const unsubscribe = databaseService.onNotificationsUpdate(currentUser.phone, (notifications) => {
       const unread = notifications.filter(n => !n.isRead);
+      setUnreadNotifCount(unread.length);
+      
       if (unread.length > 0) {
         const latest = unread[0];
         if (latest.id !== lastNotificationId) {
@@ -396,10 +399,12 @@ const App: React.FC = () => {
               `🔔 ${latest.title}\n\n${latest.message}`,
               'alert',
               (close) => {
+                // Mark as read when clicking "OK"
+                databaseService.markNotificationAsReadInFirestore(currentUser.phone, latest.id);
                 close();
-                navigateTo({ activeTab: Tab.Notifications });
+                // We stay on the current screen (Home) as requested
               },
-              'Voir'
+              'OK'
             );
           }
         }
@@ -1007,6 +1012,7 @@ const App: React.FC = () => {
             onShowPopup={showPopup}
             onRegisterDirectly={handleRegisterDirectly}
             unreadChatCount={unreadChatCount}
+            unreadNotifCount={unreadNotifCount}
             deferredPrompt={deferredPrompt}
             onInstallPWA={handleInstallPWA}
           />;

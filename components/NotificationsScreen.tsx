@@ -36,12 +36,16 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, user 
 
   const handleClear = async () => {
     if (window.confirm("Voulez-vous supprimer toutes vos notifications ?")) {
-        // Since we don't have a clearAllInFirestore yet, we can loop or just leave it
-        // For now, let's just mark them as read or implement clearAll
-        // Actually, let's just use the local clear for now if we don't want to add more to databaseService
-        databaseService.clearNotifications(user.phone);
+        setLoading(true);
+        await databaseService.clearAllNotificationsFromFirestore(user.phone);
         setNotifications([]);
+        setLoading(false);
     }
+  };
+
+  const handleDeleteOne = async (id: string) => {
+    await databaseService.deleteNotificationFromFirestore(user.phone, id);
+    setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
   return (
@@ -76,8 +80,15 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, user 
         ) : (
           <div className="space-y-4">
              {notifications.map(n => (
-                 <div key={n.id} className={`bg-white p-5 rounded-3xl shadow-sm border ${n.isRead ? 'border-gray-100' : 'border-blue-200 bg-blue-50/30'} animate-in slide-in-from-bottom-2`}>
-                    <div className="flex justify-between items-start mb-2">
+                 <div key={n.id} className={`bg-white p-5 rounded-3xl shadow-sm border ${n.isRead ? 'border-gray-100' : 'border-blue-200 bg-blue-50/30'} animate-in slide-in-from-bottom-2 relative group`}>
+                    <button 
+                       onClick={() => handleDeleteOne(n.id)}
+                       className="absolute top-4 right-4 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                       title="Supprimer"
+                    >
+                       <TrashIcon />
+                    </button>
+                    <div className="flex justify-between items-start mb-2 pr-8">
                         <div className="flex items-center gap-2">
                           {!n.isRead && <span className="w-2 h-2 bg-blue-500 rounded-full"></span>}
                           <h4 className="font-black text-slate-900 uppercase text-xs tracking-tight">{n.title}</h4>

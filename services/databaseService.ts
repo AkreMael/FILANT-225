@@ -78,6 +78,8 @@ const ADMIN_CONTACTS_KEY = 'filant_admin_contacts';
 const CARD_LIFESPAN_MS = 30 * 24 * 60 * 60 * 1000; // 1 mois
 const CHAT_RETENTION_MS = 24 * 60 * 60 * 1000; // Suppression automatique après 24 heures
 
+let workersCache: Worker[] | null = null;
+
 // --- HELPER FUNCTIONS ---
 const getScopedKey = (phone: string, prefix: string) => `${prefix}${phone.replace(/\s/g, '')}`;
 
@@ -574,13 +576,17 @@ export const databaseService = {
   },
   
   getWorkers: async (): Promise<Worker[]> => {
+    if (workersCache) return workersCache;
     try {
       const response = await fetch('/api/workers');
       if (response.ok) {
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
           const workers = await response.json();
-          if (workers && workers.length > 0) return workers;
+          if (workers && workers.length > 0) {
+            workersCache = workers;
+            return workers;
+          }
         } else {
           const text = await response.text();
           console.warn("API returned non-JSON response for workers:", text.substring(0, 100));
@@ -592,6 +598,7 @@ export const databaseService = {
       console.error("Failed to fetch workers from API, using mock data", e);
     }
     await new Promise(res => setTimeout(res, 500)); 
+    workersCache = mockWorkers;
     return mockWorkers;
   },
 
@@ -1309,8 +1316,48 @@ export const databaseService = {
     try {
       const notifRef = doc(db, 'users', sanitizedPhone, 'notifications', notificationId);
       await setDoc(notifRef, { isRead: true }, { merge: true });
+      
+      // Also update local storage to keep it in sync
+      const key = getScopedKey(phone, NOTIFICATIONS_KEY_PREFIX);
+      const current = databaseService.getNotifications(phone);
+      const updated = current.map(n => n.id === notificationId ? { ...n, isRead: true } : n);
+      localStorage.setItem(key, JSON.stringify(updated));
     } catch (e) {
       console.error("Error marking notification as read in Firestore:", e);
+    }
+  },
+
+  deleteNotificationFromFirestore: async (phone: string, notificationId: string) => {
+    const sanitizedPhone = phone.replace(/\D/g, '');
+    try {
+      const notifRef = doc(db, 'users', sanitizedPhone, 'notifications', notificationId);
+      await deleteDoc(notifRef);
+      
+      // Also update local storage
+      const key = getScopedKey(phone, NOTIFICATIONS_KEY_PREFIX);
+      const current = databaseService.getNotifications(phone);
+      const updated = current.filter(n => n.id !== notificationId);
+      localStorage.setItem(key, JSON.stringify(updated));
+    } catch (e) {
+      console.error("Error deleting notification from Firestore:", e);
+    }
+  },
+
+  clearAllNotificationsFromFirestore: async (phone: string) => {
+    const sanitizedPhone = phone.replace(/\D/g, '');
+    try {
+      const notifRef = collection(db, 'users', sanitizedPhone, 'notifications');
+      const snapshot = await getDocs(notifRef);
+      const batch = writeBatch(db);
+      snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+      
+      // Also clear local storage
+      databaseService.clearNotifications(phone);
+    } catch (e) {
+      console.error("Error clearing all notifications from Firestore:", e);
     }
   },
 

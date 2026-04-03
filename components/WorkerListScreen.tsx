@@ -147,8 +147,8 @@ const WorkerCard: React.FC<WorkerCardProps> = ({ worker, user, onScheduleService
   const isDisponible = worker.category === 'Disponible';
   const imageSrc = getSynchronizedWorkerImage(worker.name);
   
-  // Strip " Rapide" from the display name
-  const displayName = worker.name.replace(/\s+rapide/gi, '').trim();
+  // Use the full name as provided in the data
+  const displayName = worker.name;
 
   const handleExigeClick = () => {
       const url = workerTallyLinks[worker.name];
@@ -252,7 +252,10 @@ const WorkerListScreen: React.FC<WorkerListScreenProps> = ({ onBack, user, onSch
   useEffect(() => {
     const fetchWorkers = async () => {
       try {
-        setLoading(true);
+        // Only show loading if we don't have workers yet
+        if (allWorkers.length === 0) {
+          setLoading(true);
+        }
         const workers = await databaseService.getWorkers();
         setAllWorkers(workers);
         setError(null);

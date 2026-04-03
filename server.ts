@@ -61,34 +61,37 @@ async function startServer() {
   // API Routes
   app.get("/api/workers", async (req, res) => {
     try {
-      // Fetch from multiple collections to provide a comprehensive list
+      // Fetch from multiple collections in parallel to provide a comprehensive list quickly
       const collections = ["travailleurs", "agences", "proprietaires", "entreprises"];
+      
+      const snapshots = await Promise.all(
+        collections.map(col => firestore.collection(col).get())
+      );
+
       const allDocs: any[] = [];
       
-      for (const col of collections) {
-        try {
-          const snapshot = await firestore.collection(col).get();
-          snapshot.docs.forEach(doc => {
-            const data = doc.data();
-            // Map different schemas to a common Worker interface
-            allDocs.push({
-              id: doc.id,
-              name: data.fullName || data.agencyName || data.ownerName || data.companyName || data.name || "Inconnu",
-              profileImageUrl: data.profileImageUrl || "",
-              phone: data.phone || "",
-              rating: data.rating || 4.5,
-              description: data.jobTitle || data.description || data.services?.join(", ") || "Professionnel qualifié",
-              category: data.experience || data.typeInscription || "Disponible",
-              isVerified: data.isVerified || false
-            });
+      snapshots.forEach((snapshot, index) => {
+        const col = collections[index];
+        snapshot.docs.forEach(doc => {
+          const data = doc.data();
+          // Map different schemas to a common Worker interface
+          // Ensure name and description are always present and clear
+          const name = data.fullName || data.agencyName || data.ownerName || data.companyName || data.name || "Professionnel";
+          const description = data.jobTitle || data.description || data.services?.join(", ") || data.equipmentType || "Professionnel qualifié";
+          
+          allDocs.push({
+            id: doc.id,
+            name: name,
+            profileImageUrl: data.profileImageUrl || "",
+            phone: data.phone || "",
+            rating: data.rating || 4.5,
+            description: description,
+            category: data.experience || data.typeInscription || "Disponible",
+            isVerified: data.isVerified || false
           });
-        } catch (colError) {
-          console.error(`Error fetching from collection ${col}:`, colError);
-        }
-      }
+        });
+      });
 
-      // If no docs found in real collections, return empty or mock if needed
-      // But for now, just return what we have
       res.json(allDocs);
     } catch (error: any) {
       console.error("Error fetching workers:", error);

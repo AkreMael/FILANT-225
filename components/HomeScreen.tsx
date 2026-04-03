@@ -153,11 +153,11 @@ const BuildingCarousel: React.FC<{ onSelectItem: (item: any) => void }> = ({ onS
                             </div>
                         </div>
                         <div className="px-4 pb-4 flex flex-col text-left">
-                            <h4 className="text-[12px] font-black text-gray-900 uppercase leading-tight mb-1 tracking-tight truncate lowercase">{item.title}</h4>
+                            <h4 className="text-[12px] font-black text-gray-900 uppercase leading-tight mb-1 tracking-tight truncate">{item.title}</h4>
                             <p className="text-[#ef4444] font-black text-[10px] leading-tight mb-1.5 uppercase">
                                 H. Descente : <span className="text-black font-bold">18h30</span>
                             </p>
-                            <p className="text-[9px] text-gray-400 leading-snug italic line-clamp-2 mb-2 lowercase">
+                            <p className="text-[9px] text-gray-400 leading-snug italic line-clamp-2 mb-2">
                                 {item.description}
                             </p>
                             <div className="flex items-center justify-between border-t border-gray-50 pt-2">
@@ -205,6 +205,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   onShowPopup, 
   onRegisterDirectly, 
   unreadChatCount = 0,
+  unreadNotifCount = 0,
   deferredPrompt,
   onInstallPWA
 }) => {
@@ -213,7 +214,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showNoOffer, setShowNoOffer] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [showScanner, setShowScanner] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -234,23 +234,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
       }, 1000);
       return () => clearInterval(timer);
   }, []);
-
-  useEffect(() => {
-      const updateUnread = () => {
-          const currentNotifs = databaseService.getNotifications(user.phone);
-          setUnreadCount(currentNotifs.filter(n => !n.isRead).length);
-      };
-      
-      updateUnread();
-      
-      window.addEventListener('new-notification', updateUnread);
-      
-      const notifTimer = setInterval(updateUnread, 5000);
-      return () => {
-          window.removeEventListener('new-notification', updateUnread);
-          clearInterval(notifTimer);
-      };
-  }, [user.phone]);
 
   const CARD_LIFESPAN_MS = 30 * 24 * 60 * 60 * 1000; 
   const cardType = getCardType(user.role);
@@ -569,13 +552,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                             aria-label="Notifications"
                         >
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
-                                unreadCount > 0 ? 'animate-blink-red-green' : ''
+                                unreadNotifCount > 0 ? 'animate-blink-red-green' : ''
                             }`}>
                                 <NotificationIcon />
                             </div>
-                            {unreadCount > 0 && (
+                            {unreadNotifCount > 0 && (
                                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold px-1 rounded-full border border-white shadow-sm">
-                                    {unreadCount}
+                                    {unreadNotifCount}
                                 </span>
                             )}
                         </button>
@@ -888,8 +871,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                             </div>
                         )}
 
-                        {/* Nouvelles fonctionnalités : Calendrier, Avis */}
-                        <div className="grid grid-cols-2 gap-3 mb-4 px-1">
+                        {/* Nouvelles fonctionnalités : Calendrier */}
+                        <div className="grid grid-cols-1 gap-3 mb-4 px-1">
                             {isProRole && (
                                 <button 
                                     onClick={() => setActiveTab(Tab.AvailabilityCalendar)}
@@ -901,16 +884,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                                     <span className="text-[9px] font-bold text-slate-600 uppercase">Calendrier</span>
                                 </button>
                             )}
-
-                            <button 
-                                onClick={() => setActiveTab(Tab.Reviews)}
-                                className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center space-y-1 active:scale-95 transition-all"
-                            >
-                                <div className="w-10 h-10 bg-yellow-50 rounded-xl flex items-center justify-center text-yellow-600">
-                                    <LucideStar className="w-5 h-5" />
-                                </div>
-                                <span className="text-[9px] font-bold text-slate-600 uppercase">Avis</span>
-                            </button>
                         </div>
 
                         {isClient && (
