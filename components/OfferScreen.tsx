@@ -1,11 +1,12 @@
 
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Tab } from '../types';
+import { googleSheetsService, WorkerOffer } from '../services/googleSheetsService';
 
 // --- Icons ---
 const PhoneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>;
 const FacebookIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-2.2c0-.81.24-1.356 1.442-1.356h2.558v-4.148c-.443-.058-1.961-.191-3.727-.191-3.69 0-6.213 2.253-6.213 6.388v1.511z"/></svg>;
-const InstagramIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.332 3.608 1.308.975.975 1.245 2.242 1.308 3.608.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.332 2.633-1.308 3.608-.975.975-2.242 1.245-3.608 1.308-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.332-3.608-1.308-.975-.975-1.245-2.242-1.308-3.608-.058-1.266-.07-1.646-.07-4.85s.012-3.584.07-4.85c.062-1.366.332-2.633 1.308-3.608.975-.975 2.242-1.245 3.608-1.308 1.266-.058 1.646-.07 4.85-.07zm0-2.163c-3.259 0-3.667.014-4.947.072-1.277.057-2.395.26-3.236 1.079-.841.84-1.044 1.959-1.101 3.236-.058 1.28-.072 1.688-.072 4.947s.014 3.667.072 4.947c.057 1.277.26 2.395 1.079 3.236.84 1.218 1.959 1.42 3.236 1.477 1.28.058 1.688.072 4.947.072s3.667-.014 4.947-.072c1.277-.057 2.395-.26 3.236-1.079.841-.84 1.044-1.959 1.101-3.236.058-1.28.072-1.688.072-4.947s-.014-3.667-.072-4.947c-.057-1.277-.26-2.395-1.079-3.236-.84-.841-1.959-1.044-3.236-1.101-1.28-.058-1.688-.072-4.947-.072zM12 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.791-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.209-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>;
+const InstagramIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.332 3.608 1.308.975.975 1.245 2.242 1.308 3.608.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.332 2.633-1.308 3.608-.975.975-2.242 1.245-3.608 1.308-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.332-3.608-1.308-.975-.975-1.245-2.242-1.308-3.608-.058-1.266-.07-1.646-.07-4.85s.012-3.584.07-4.85c.062-1.366.332-2.633 1.308-3.608.975-.975 2.242-1.245 3.608-1.308 1.266-.058-1.646-.07 4.85-.07zm0-2.163c-3.259 0-3.667.014-4.947.072-1.277.057-2.395.26-3.236 1.079-.841.84-1.044 1.959-1.101 3.236-.058 1.28-.072 1.688-.072 4.947s.014 3.667.072 4.947c.057 1.277.26 2.395 1.079 3.236.84 1.218 1.959 1.42 3.236 1.477 1.28.058 1.688.072 4.947.072s3.667-.014 4.947-.072c1.277-.057 2.395-.26 3.236-1.079.841-.84 1.044-1.959 1.101-3.236.058-1.28.072-1.688.072-4.947s-.014-3.667-.072-4.947c-.057-1.277-.26-2.395-1.079-3.236-.84-.841-1.959-1.044-3.236-1.101-1.28-.058-1.688-.072-4.947-.072zM12 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.791-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.209-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>;
 const TikTokIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-1.13-.31-2.34-.25-3.41.33-.71.38-1.27.98-1.58 1.72-.45.91-.42 1.91-.04 2.81.37.91 1.07 1.69 1.91 2.15 1.22.69 2.72.71 3.99.14 1.1-.46 1.97-1.39 2.32-2.48.1-.34.15-.7.18-1.07.03-3.14.02-6.28.02-9.42z"/></svg>;
 
 const ArrowRightIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>;
@@ -106,7 +107,7 @@ const carouselItems = [
     { title: "Technicien (sonorisation)", name: "Fenrir", city: "Korhogo", description: "Assistance quotidienne à domicile", price: "30 000 F", img: INTERV_IMAGES.aide_domicile },
 ];
 
-const InterventionCard: React.FC<{ item: typeof carouselItems[0], onClick: () => void }> = ({ item, onClick }) => {
+const InterventionCard: React.FC<{ item: WorkerOffer, onClick: () => void }> = ({ item, onClick }) => {
     const [isCopying, setIsCopying] = useState(false);
     const pressTimer = useRef<number | null>(null);
     const startPos = useRef<{x: number, y: number} | null>(null);
@@ -158,7 +159,7 @@ const InterventionCard: React.FC<{ item: typeof carouselItems[0], onClick: () =>
                 </div>
             )}
             <div className="h-[120px] w-full relative">
-                <img src={item.img} alt={item.title} className="w-full h-full object-cover blur-[12px]" referrerPolicy="no-referrer" />
+                <img src={item.img || "https://i.supaimg.com/c3c14402-3c1f-4484-bfe1-774bcc4ac6de.png"} alt={item.title} className="w-full h-full object-cover blur-[12px]" referrerPolicy="no-referrer" />
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <span className="text-white/60 text-[11px] font-black uppercase tracking-widest text-center px-2 drop-shadow-md">masqué</span>
                 </div>
@@ -218,6 +219,24 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
   const mainRef = useRef<HTMLElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [workerOffers, setWorkerOffers] = useState<WorkerOffer[]>([]);
+  const [isLoadingOffers, setIsLoadingOffers] = useState(true);
+
+  useEffect(() => {
+    const loadOffers = async () => {
+        setIsLoadingOffers(true);
+        const offers = await googleSheetsService.fetchWorkerOffers();
+        if (offers.length > 0) {
+            setWorkerOffers(offers);
+        }
+        setIsLoadingOffers(false);
+    };
+    loadOffers();
+    
+    // Refresh every 5 minutes
+    const interval = setInterval(loadOffers, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleContact = () => {
     window.open('tel:0705052632', '_self');
@@ -411,13 +430,26 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
              </div>
 
              <div className="flex gap-4 overflow-x-auto px-4 scrollbar-hide pb-2 transition-all duration-500 relative z-20">
-                {carouselItems.map((item, idx) => (
-                    <InterventionCard 
-                        key={idx} 
-                        item={item} 
-                        onClick={() => onSelectItem(item.title, 'worker', item.img, true, item.description, item.price)} 
-                    />
-                ))}
+                {isLoadingOffers ? (
+                    Array.from({ length: 3 }).map((_, idx) => (
+                        <div key={idx} className="flex-shrink-0 w-[150px] h-[260px] bg-white/20 rounded-3xl animate-pulse flex items-center justify-center">
+                            <span className="text-white/30 text-[10px] font-black uppercase tracking-widest">Chargement...</span>
+                        </div>
+                    ))
+                ) : workerOffers.length > 0 ? (
+                    workerOffers.map((item, idx) => (
+                        <InterventionCard 
+                            key={idx} 
+                            item={item} 
+                            onClick={() => onSelectItem(item.title, 'worker', item.img, true, item.description, item.price)} 
+                        />
+                    ))
+                ) : (
+                    <div className="w-full flex flex-col items-center justify-center py-10 bg-white/10 rounded-3xl border border-white/20">
+                        <span className="text-white font-black text-xs uppercase tracking-widest">Aucune offre disponible</span>
+                        <p className="text-white/60 text-[10px] font-bold mt-2">Revenez plus tard !</p>
+                    </div>
+                )}
              </div>
           </div>
 

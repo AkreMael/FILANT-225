@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { getSynchronizedWorkerImage } from './WorkerListScreen';
 import { User } from '../types';
 import EmbeddedForm from './EmbeddedForm';
+import { googleSheetsService, WorkerOffer } from '../services/googleSheetsService';
 
 // --- ICONS ---
 const HouseIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -304,13 +305,14 @@ const ClassicCard: React.FC<ClassicCardProps> = ({ item, user, category, onOpenF
     const index = Math.floor(Math.random() * 4); // For color rotation
     const colorStyle = classicCardColors[index % classicCardColors.length];
     const isWorker = category === 'travailleurs';
-    const img = isWorker ? getSynchronizedWorkerImage(item.title) : (EQUIPMENT_IMAGES[item.title] || undefined);
+    const img = isWorker ? (item.img || getSynchronizedWorkerImage(item.title)) : (EQUIPMENT_IMAGES[item.title] || undefined);
     
     const handleOpen = () => {
         onOpenForm({
             formType: category === 'immobilier' || category === 'equipement' ? 'location' : 'worker',
             title: item.title,
             imageUrl: img,
+            isBlurredImage: isWorker,
             description: item.description,
             price: item.price
         });
@@ -324,15 +326,23 @@ const ClassicCard: React.FC<ClassicCardProps> = ({ item, user, category, onOpenF
             <div className="flex flex-col">
                 <div className={`aspect-[4/3] w-full flex items-center justify-center relative ${colorStyle.bg} ${colorStyle.border || ''} overflow-hidden`}>
                     {isWorker ? (
-                        <img src={img as string} alt="" className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        <>
+                            <img src={img as string} alt="" className="absolute inset-0 w-full h-full object-cover blur-[12px]" referrerPolicy="no-referrer" />
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <span className="text-white/60 text-[10px] font-black uppercase tracking-widest text-center px-2 drop-shadow-md">masqué</span>
+                            </div>
+                        </>
                     ) : (
                         <EquipmentVisual title={item.title} category={(item as any).category} />
                     )}
                 </div>
                 <div className="p-3 flex-1 w-full text-left relative flex flex-col justify-between min-h-[90px]">
                     <div>
-                        <span className="text-sm font-bold text-gray-900 leading-tight block mb-1">{item.title}</span>
-                        <span className="text-xs text-gray-500 leading-tight line-clamp-2">{item.description}</span>
+                        <span className="text-sm font-bold text-gray-900 leading-tight block mb-1 uppercase truncate">{item.name || item.title}</span>
+                        <span className="text-[10px] text-gray-500 leading-tight line-clamp-2 italic">{item.city ? `Ville: ${item.city}` : item.description}</span>
+                        {isWorker && item.price && (
+                            <span className="text-red-600 font-black text-[11px] block mt-1">{item.price}</span>
+                        )}
                     </div>
                     <div className="absolute bottom-2 right-2 bg-orange-100 p-1.5 rounded-full text-orange-600 shadow-sm">
                         <UserCircleIcon className="w-4 h-4" />
@@ -354,9 +364,23 @@ const InterventionShopScreen: React.FC<InterventionShopScreenProps> = ({ onBack,
     const [searchTerm, setSearchTerm] = useState('');
     const [showAllBatiment, setShowAllBatiment] = useState(false);
     const [showAllLocation, setShowAllLocation] = useState(false);
+    const [workerOffers, setWorkerOffers] = useState<WorkerOffer[]>([]);
+    const [isLoadingOffers, setIsLoadingOffers] = useState(false);
     
     const mainScrollRef = useRef<HTMLDivElement>(null);
     const isInterventionView = category === 'intervention';
+
+    useEffect(() => {
+        if (category === 'travailleurs') {
+            const loadOffers = async () => {
+                setIsLoadingOffers(true);
+                const offers = await googleSheetsService.fetchWorkerOffers();
+                setWorkerOffers(offers);
+                setIsLoadingOffers(false);
+            };
+            loadOffers();
+        }
+    }, [category]);
 
     const headerImage = useMemo(() => {
         if (category === 'intervention') return "https://i.supaimg.com/bf0970ed-7dcd-44cb-9de3-62334cdf346a.jpg";
@@ -374,11 +398,11 @@ const InterventionShopScreen: React.FC<InterventionShopScreenProps> = ({ onBack,
     [searchTerm]);
 
     const classicItems = useMemo(() => {
-        if (category === 'travailleurs') return generalWorkerDataList;
+        if (category === 'travailleurs') return workerOffers;
         if (category === 'immobilier') return generalLocationDataList.filter(l => l.category === 'appartement');
         if (category === 'equipement') return generalLocationDataList.filter(l => l.category === 'equipement');
         return [];
-    }, [category]);
+    }, [category, workerOffers]);
 
     const filteredClassic = useMemo(() => 
         classicItems.filter(i => i.title.toLowerCase().includes(searchTerm.toLowerCase())),
