@@ -260,6 +260,46 @@ async function startServer() {
     }
   });
 
+  app.post("/api/notifications/send", async (req, res) => {
+    try {
+      const { phone, title, body } = req.body;
+      if (!phone || !title || !body) {
+        return res.status(400).json({ error: "Missing phone, title or body" });
+      }
+
+      const sanitizedPhone = phone.replace(/\D/g, '');
+      const userDoc = await firestore.collection("users").doc(sanitizedPhone).get();
+      const userData = userDoc.data();
+      const fcmToken = userData?.fcmToken;
+
+      if (!fcmToken) {
+        console.warn(`No FCM token found for user ${sanitizedPhone}`);
+        return res.status(404).json({ error: "User FCM token not found" });
+      }
+
+      const message = {
+        notification: {
+          title,
+          body,
+        },
+        token: fcmToken,
+        webpush: {
+          notification: {
+            icon: '/icon.svg',
+            badge: '/icon.svg',
+          }
+        }
+      };
+
+      await admin.messaging().send(message);
+      console.log(`FCM notification sent to ${sanitizedPhone}`);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error sending FCM notification:", error);
+      res.status(500).json({ error: "Failed to send notification", details: error.message });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

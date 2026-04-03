@@ -54,6 +54,26 @@ export const messagingService = {
             message: payload.notification.body || ''
           });
           
+          // Show system notification even in foreground
+          if (Notification.permission === 'granted') {
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification(payload.notification?.title || 'Notification', {
+                  body: payload.notification?.body || '',
+                  icon: '/icon.svg',
+                  badge: '/icon.svg',
+                  tag: 'foreground-notification',
+                  renotify: true
+                });
+              });
+            } else {
+              new Notification(payload.notification?.title || 'Notification', {
+                body: payload.notification?.body || '',
+                icon: '/icon.svg',
+              });
+            }
+          }
+          
           // Trigger a custom event to notify UI components
           window.dispatchEvent(new CustomEvent('new-notification'));
         }

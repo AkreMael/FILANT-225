@@ -1278,15 +1278,37 @@ export const databaseService = {
     const sanitizedPhone = phone.replace(/\D/g, '');
     const path = `users/${sanitizedPhone}/notifications`;
     try {
+      // 1. Save to Firestore (for in-app display)
       const notifRef = collection(db, 'users', sanitizedPhone, 'notifications');
       await addDoc(notifRef, {
         ...notification,
         timestamp: serverTimestamp(),
         isRead: false
       });
-      console.log("Notification sent to Firestore for:", phone);
+      console.log("Notification saved to Firestore for:", phone);
+
+      // 2. Send Push Notification via Backend
+      try {
+        const response = await fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: sanitizedPhone,
+            title: notification.title,
+            body: notification.message
+          })
+        });
+        if (response.ok) {
+          console.log("Push notification sent successfully via backend");
+        } else {
+          const err = await response.json();
+          console.warn("Backend failed to send push notification:", err);
+        }
+      } catch (pushError) {
+        console.error("Error calling push notification API:", pushError);
+      }
     } catch (e) {
-      console.error("Error sending notification to Firestore:", e);
+      console.error("Error handling notification sending:", e);
     }
   },
 

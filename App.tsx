@@ -222,9 +222,7 @@ const App: React.FC = () => {
     };
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        signInAnonymously(auth).catch(err => console.error("Anonymous sign-in failed:", err));
-      } else {
+      if (user) {
         testConnection();
         // Set the user ID from Firebase Auth
         setCurrentUser(prev => prev ? { ...prev, userId: user.uid } : null);
