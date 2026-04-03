@@ -63,7 +63,6 @@ export const messagingService = {
                   icon: '/icon.svg',
                   badge: '/icon.svg',
                   tag: 'foreground-notification',
-                  renotify: true
                 });
               });
             } else {

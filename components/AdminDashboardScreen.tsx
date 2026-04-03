@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { ref as rtdbRef, onValue } from 'firebase/database';
+import { rtdb } from '../firebase';
 import { databaseService, ConnectionLog, Association, ActiveContact, AdminContact } from '../services/databaseService';
 import { User, PrivateRegistration } from '../types';
 import { ADMIN_PHONE } from '../utils/authUtils';
@@ -272,6 +274,21 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [viewedPayments, setViewedPayments] = useState<string[]>(() => {
+    const saved = localStorage.getItem('viewedPayments');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [viewedAssistantRequests, setViewedAssistantRequests] = useState<string[]>(() => {
+    const saved = localStorage.getItem('viewedAssistantRequests');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [viewedScannedContacts, setViewedScannedContacts] = useState<string[]>(() => {
+    const saved = localStorage.getItem('viewedScannedContacts');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const markAsViewed = (id: string) => {
     if (!viewedRegistrations.includes(id)) {
       const newList = [...viewedRegistrations, id];
@@ -280,7 +297,34 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
     }
   };
 
+  const markPaymentAsViewed = (id: string) => {
+    if (!viewedPayments.includes(id)) {
+      const newList = [...viewedPayments, id];
+      setViewedPayments(newList);
+      localStorage.setItem('viewedPayments', JSON.stringify(newList));
+    }
+  };
+
+  const markAssistantRequestAsViewed = (id: string) => {
+    if (!viewedAssistantRequests.includes(id)) {
+      const newList = [...viewedAssistantRequests, id];
+      setViewedAssistantRequests(newList);
+      localStorage.setItem('viewedAssistantRequests', JSON.stringify(newList));
+    }
+  };
+
+  const markScannedContactAsViewed = (id: string) => {
+    if (!viewedScannedContacts.includes(id)) {
+      const newList = [...viewedScannedContacts, id];
+      setViewedScannedContacts(newList);
+      localStorage.setItem('viewedScannedContacts', JSON.stringify(newList));
+    }
+  };
+
   const isViewed = (id: string) => viewedRegistrations.includes(id);
+  const isPaymentViewed = (id: string) => viewedPayments.includes(id);
+  const isAssistantRequestViewed = (id: string) => viewedAssistantRequests.includes(id);
+  const isScannedContactViewed = (id: string) => viewedScannedContacts.includes(id);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -297,6 +341,70 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
       type: 'TRAVAILLEUR',
       name: '', city: '', phone: '', job: '', equipmentName: '', userName: '', agencyName: '', description: ''
   });
+
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    // 1. Messages (RTDB)
+    const unsubMessages = databaseService.onAllConversationsUpdate((convs) => {
+      const totalUnread = convs.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+      setUnreadCounts(prev => ({ ...prev, 'user-messages': totalUnread }));
+    });
+
+    // 2. Wave Payments (RTDB)
+    const paymentsRef = rtdbRef(rtdb, 'wave_payments');
+    const unsubPayments = onValue(paymentsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        let pendingCount = 0;
+        Object.values(data).forEach((userPayments: any) => {
+          Object.values(userPayments).forEach((p: any) => {
+            if (p.status === 'pending') pendingCount++;
+          });
+        });
+        setUnreadCounts(prev => ({ ...prev, 'wave-payments': pendingCount }));
+      } else {
+        setUnreadCounts(prev => ({ ...prev, 'wave-payments': 0 }));
+      }
+    });
+
+    // 3. Assistant Requests (RTDB)
+    const assistantRef = rtdbRef(rtdb, 'assistant_requests');
+    const unsubAssistant = onValue(assistantRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        let totalCount = 0;
+        Object.values(data).forEach((userReqs: any) => {
+          totalCount += Object.keys(userReqs).length;
+        });
+        setUnreadCounts(prev => ({ ...prev, 'assistant-requests': totalCount }));
+      } else {
+        setUnreadCounts(prev => ({ ...prev, 'assistant-requests': 0 }));
+      }
+    });
+
+    return () => {
+      unsubMessages();
+      unsubPayments();
+      unsubAssistant();
+    };
+  }, []);
+
+  const getUnreadCount = (id: string) => {
+    if (id === 'private-registrations') {
+      return privateRegistrations.filter(r => r.status === 'pending' && !isViewed(r.id)).length;
+    }
+    if (id === 'wave-payments') {
+      return wavePayments.filter(p => p.status === 'pending' && !isPaymentViewed(p.id)).length;
+    }
+    if (id === 'assistant-requests') {
+      return assistantRequests.filter(r => !isAssistantRequestViewed(r.id)).length;
+    }
+    if (id === 'scanned-qr') {
+      return scannedContacts.filter(c => !isScannedContactViewed(c.id)).length;
+    }
+    return unreadCounts[id] || 0;
+  };
 
   const [contactInputs, setContactInputs] = useState({
       type: 'TRAVAILLEUR' as 'TRAVAILLEUR' | 'PROPRIÉTAIRE' | 'AGENCE',
@@ -1246,8 +1354,12 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                 <div className="space-y-4">
                     {wavePayments.map((payment, idx) => {
                         const inferredPhone = payment.userKey?.split('_').pop() || '';
+                        const viewed = isPaymentViewed(payment.id);
                         return (
                             <div key={idx} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
+                                {!viewed && (
+                                    <div className="absolute top-2 right-2 w-3 h-3 bg-red-600 rounded-full border-2 border-white animate-pulse z-10" />
+                                )}
                                 <div className="flex justify-between items-start mb-3">
                                     <div className="flex-1">
                                         <h4 className="font-black text-white uppercase text-xs tracking-tight mb-0.5">{payment.userName || 'Utilisateur'}</h4>
@@ -1278,6 +1390,13 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                             onOpenChat={handleOpenChat} 
                                             className="h-8 w-8"
                                         />
+                                        <button 
+                                            onClick={() => markPaymentAsViewed(payment.id)}
+                                            className={`p-1.5 rounded-lg transition-all active:scale-90 ${viewed ? 'bg-white/5 text-white/30' : 'bg-white/20 text-white'}`}
+                                            title="Marquer comme lu"
+                                        >
+                                            <VerifiedIcon className="w-4 h-4" />
+                                        </button>
                                         <button 
                                             onClick={() => { setItemToDelete(payment); setDeleteId(payment.id); }} 
                                             className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all active:scale-90"
@@ -1316,9 +1435,14 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {assistantRequests.map((req, idx) => (
-                        <div key={idx} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
-                            <div className="flex justify-between items-start mb-3">
+                    {assistantRequests.map((req, idx) => {
+                        const viewed = isAssistantRequestViewed(req.id);
+                        return (
+                            <div key={idx} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
+                                {!viewed && (
+                                    <div className="absolute top-2 right-2 w-3 h-3 bg-red-600 rounded-full border-2 border-white animate-pulse z-10" />
+                                )}
+                                <div className="flex justify-between items-start mb-3">
                                 <div className="flex-1">
                                     <h4 className="font-black text-white uppercase text-xs tracking-tight mb-0.5">{req.userName || 'Utilisateur'}</h4>
                                     <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">{req.city || 'Ville inconnue'}</p>
@@ -1350,6 +1474,13 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                         className="h-8 w-8"
                                     />
                                     <button 
+                                        onClick={() => markAssistantRequestAsViewed(req.id)}
+                                        className={`p-1.5 rounded-lg transition-all active:scale-90 ${viewed ? 'bg-white/5 text-white/30' : 'bg-white/20 text-white'}`}
+                                        title="Marquer comme lu"
+                                    >
+                                        <VerifiedIcon className="w-4 h-4" />
+                                    </button>
+                                    <button 
                                         onClick={() => { setItemToDelete(req); setDeleteId(req.id); }} 
                                         className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all active:scale-90"
                                     >
@@ -1358,7 +1489,8 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                 </div>
                             </div>
                         </div>
-                    ))}
+                    );
+                })}
                 </div>
             )}
         </div>
@@ -1386,9 +1518,14 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {scannedContacts.map((contact, idx) => (
-                        <div key={contact.id || idx} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
-                            <div className="flex justify-between items-start mb-3">
+                    {scannedContacts.map((contact, idx) => {
+                        const viewed = isScannedContactViewed(contact.id);
+                        return (
+                            <div key={contact.id || idx} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
+                                {!viewed && (
+                                    <div className="absolute top-2 right-2 w-3 h-3 bg-red-600 rounded-full border-2 border-white animate-pulse z-10" />
+                                )}
+                                <div className="flex justify-between items-start mb-3">
                                 <div className="flex-1">
                                     <h4 className="font-black text-white uppercase text-xs tracking-tight mb-0.5">{contact.name}</h4>
                                     <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">{contact.title || 'Contact Scanné'}</p>
@@ -1402,6 +1539,13 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                         onOpenChat={handleOpenChat}
                                         className="h-8 w-8"
                                     />
+                                    <button 
+                                        onClick={() => markScannedContactAsViewed(contact.id)}
+                                        className={`p-1.5 rounded-lg transition-all active:scale-90 ${viewed ? 'bg-white/5 text-white/30' : 'bg-white/20 text-white'}`}
+                                        title="Marquer comme lu"
+                                    >
+                                        <VerifiedIcon className="w-4 h-4" />
+                                    </button>
                                     <button 
                                         onClick={() => setSelectedQR(contact)}
                                         className="p-1.5 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all active:scale-90"
@@ -1434,7 +1578,8 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                 </div>
                             </div>
                         </div>
-                    ))}
+                    );
+                })}
                 </div>
             )}
         </div>
@@ -1505,6 +1650,9 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                         const viewed = isViewed(reg.id);
                         return (
                             <div key={reg.id} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
+                                {!viewed && (
+                                    <div className="absolute top-2 right-2 w-3 h-3 bg-red-600 rounded-full border-2 border-white animate-pulse z-10" />
+                                )}
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="flex-1">
                                         <h4 className="font-black text-white uppercase text-xs tracking-tight mb-0.5">{reg.title}</h4>
@@ -1588,21 +1736,29 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
           </header>
           
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 lg:gap-6 flex-1 content-start overflow-y-auto pr-2 lg:pr-4 scrollbar-hide pb-20">
-            {sidebarButtonsMemo.map(btn => (
-              <button 
-                key={btn.id}
-                onClick={() => handleSetView(btn.id as any)}
-                className={`aspect-[16/9] rounded-2xl lg:rounded-[2rem] p-3 lg:p-6 flex flex-col items-center justify-center text-center transition-all active:scale-95 shadow-xl border-2 lg:border-4 border-transparent ${
-                  view === btn.id 
-                    ? 'bg-black text-[#ff802b]' 
-                    : 'bg-white text-[#ff802b] hover:bg-white/90'
-                }`}
-              >
-                <span className="text-[10px] sm:text-xs lg:text-sm font-black uppercase tracking-widest leading-tight">
-                  {btn.label}
-                </span>
-              </button>
-            ))}
+            {sidebarButtonsMemo.map(btn => {
+              const count = getUnreadCount(btn.id);
+              return (
+                <button 
+                  key={btn.id}
+                  onClick={() => handleSetView(btn.id as any)}
+                  className={`aspect-[16/9] rounded-2xl lg:rounded-[2rem] p-3 lg:p-6 flex flex-col items-center justify-center text-center transition-all active:scale-95 shadow-xl border-2 lg:border-4 border-transparent relative ${
+                    view === btn.id 
+                      ? 'bg-black text-[#ff802b]' 
+                      : 'bg-white text-[#ff802b] hover:bg-white/90'
+                  }`}
+                >
+                  <span className="text-[10px] sm:text-xs lg:text-sm font-black uppercase tracking-widest leading-tight">
+                    {btn.label}
+                  </span>
+                  {count > 0 && (
+                    <div className="absolute -top-1 -right-1 lg:-top-2 lg:-right-2 bg-red-600 text-white min-w-[20px] h-5 lg:min-w-[28px] lg:h-7 rounded-full flex items-center justify-center px-1 border-2 border-white shadow-lg animate-bounce">
+                      <span className="text-[10px] lg:text-xs font-black">{count}</span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {onLogout && (
