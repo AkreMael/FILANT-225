@@ -287,6 +287,34 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, [currentUser?.phone, currentUser?.name]);
 
+  useEffect(() => {
+    if (!currentUser?.phone) return;
+    
+    const unsubscribe = databaseService.onNotificationsUpdate(currentUser.phone, (notifications) => {
+      const unread = notifications.filter(n => !n.isRead);
+      if (unread.length > 0) {
+        const latest = unread[0];
+        if (latest.id !== lastNotificationId) {
+          setLastNotificationId(latest.id);
+          // Show popup if not already on notifications screen
+          if (activeTab !== Tab.Notifications) {
+            showPopup(
+              `🔔 ${latest.title}\n\n${latest.message}`,
+              'alert',
+              (close) => {
+                close();
+                navigateTo({ activeTab: Tab.Notifications });
+              },
+              'Voir'
+            );
+          }
+        }
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [currentUser?.phone, activeTab, showPopup, lastNotificationId, navigateTo]);
+
   const [locationInitialTab, setLocationInitialTab] = useState<'appartement' | 'equipement'>('appartement');
   const [registrationType, setRegistrationType] = useState<string>('Travailleur');
   const [tallyFormUrl, setTallyFormUrl] = useState<string | null>(null);
@@ -297,6 +325,7 @@ const App: React.FC = () => {
 
   const [showRestrictedToast, setShowRestrictedToast] = useState(false);
   const [restrictedMessage, setRestrictedMessage] = useState("Cette fonctionnalité est réservée uniquement aux services Travailleurs, Propriétaires et Agences.");
+  const [lastNotificationId, setLastNotificationId] = useState<string | null>(null);
 
   const [popup, setPopup] = useState<PopupState>({
       show: false,

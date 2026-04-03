@@ -28,6 +28,11 @@ const QRIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 
 const SyncIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>;
 const VerifiedIcon = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
 const BlockedIcon = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>;
+const BellIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-6 w-6"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+    </svg>
+);
 const ExportIcon = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>;
 const WhatsAppIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -56,6 +61,7 @@ const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
 const sidebarButtons = [
   { id: 'contacts', label: 'Stockage' },
+  { id: 'notifications', label: 'Notifications' },
   { id: 'active-contacts', label: 'Activations' },
   { id: 'associations', label: 'Associations' },
   { id: 'user-messages', label: 'Messages' },
@@ -129,7 +135,7 @@ interface AdminDashboardScreenProps {
   onLogout?: () => void;
   onSelectUser?: (log: ConnectionLog) => void;
   onOpenChat?: (user: User) => void;
-  initialView?: 'grid' | 'contacts' | 'associations' | 'active-contacts' | 'sms' | 'wave-payments' | 'assistant-requests';
+  initialView?: 'grid' | 'contacts' | 'associations' | 'active-contacts' | 'user-messages' | 'firestore-users' | 'wave-payments' | 'assistant-requests' | 'scanned-qr' | 'private-registrations' | 'notifications';
 }
 
 const UserListItem = React.memo<{ user: User; onOpenChat?: (user: User) => void }>(({ user, onOpenChat }) => {
@@ -199,7 +205,7 @@ const UserListItem = React.memo<{ user: User; onOpenChat?: (user: User) => void 
 UserListItem.displayName = 'UserListItem';
 
 const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onLogout, onSelectUser, onOpenChat, initialView = 'grid' }) => {
-  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'user-messages' | 'firestore-users' | 'wave-payments' | 'assistant-requests' | 'scanned-qr' | 'private-registrations'>(initialView);
+  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'user-messages' | 'firestore-users' | 'wave-payments' | 'assistant-requests' | 'scanned-qr' | 'private-registrations' | 'notifications'>(initialView);
   const [firestoreUsers, setFirestoreUsers] = useState<User[]>([]);
   const [privateRegistrations, setPrivateRegistrations] = useState<PrivateRegistration[]>([]);
   const [selectedRegistration, setSelectedRegistration] = useState<PrivateRegistration | null>(null);
@@ -213,6 +219,12 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
   const [associations, setAssociations] = useState<Association[]>([]);
   const [activeContacts, setActiveContacts] = useState<ActiveContact[]>([]);
   const [adminContacts, setAdminContacts] = useState<AdminContact[]>([]);
+
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [notificationTargetUser, setNotificationTargetUser] = useState<User | null>(null);
+  const [notificationTitle, setNotificationTitle] = useState('');
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [isSendingNotification, setIsSendingNotification] = useState(false);
 
   const sidebarButtonsMemo = useMemo(() => sidebarButtons, []);
 
@@ -299,7 +311,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
   useEffect(() => {
       // Use a small delay to allow the UI to update immediately when switching views
       const timer = setTimeout(() => {
-          if ((view === 'contacts' || view === 'firestore-users') && firestoreUsers.length === 0) {
+          if ((view === 'contacts' || view === 'firestore-users' || view === 'notifications') && firestoreUsers.length === 0) {
               setIsSyncing(true);
               databaseService.getUsersFromFirestore().then(users => {
                   setFirestoreUsers(users);
@@ -757,6 +769,115 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
         </div>
     </div>
   );
+  const handleSendNotification = async () => {
+    if (!notificationTargetUser || !notificationTitle || !notificationMessage) return;
+    setIsSendingNotification(true);
+    try {
+      await databaseService.sendNotificationToFirestore(notificationTargetUser.phone, {
+        title: notificationTitle,
+        message: notificationMessage
+      });
+      setIsNotificationModalOpen(false);
+      setNotificationTitle('');
+      setNotificationMessage('');
+      setNotificationTargetUser(null);
+      alert("Notification envoyée avec succès !");
+    } catch (error) {
+      console.error("Error sending notification:", error);
+      alert("Erreur lors de l'envoi de la notification.");
+    } finally {
+      setIsSendingNotification(false);
+    }
+  };
+
+  const renderNotificationsView = () => {
+    const filteredUsers = firestoreUsers.filter(u => {
+        const matchesSearch = 
+            (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+            (u.phone || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (u.city || '').toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesRole = filterRole === 'all' || u.role === filterRole;
+        return matchesSearch && matchesRole;
+    });
+
+    return (
+        <div className="flex-1 flex flex-col h-full bg-[#ff802b] font-sans text-left overflow-hidden">
+            <header className="p-4 bg-white flex items-center justify-between sticky top-0 z-20 shadow-md">
+                <h2 className="text-sm font-black text-black uppercase tracking-[0.3em]">Envoyer des Notifications</h2>
+            </header>
+
+            <div className="p-4 space-y-3 bg-black/5">
+                <div className="relative">
+                    <input 
+                        type="text"
+                        placeholder="Rechercher un utilisateur..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-white/10 border-2 border-white/20 rounded-2xl py-3 pl-10 pr-4 text-white placeholder:text-white/40 text-xs font-bold focus:outline-none focus:border-white/40 transition-all"
+                    />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                        <SearchIcon />
+                    </div>
+                </div>
+
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+                    <select 
+                        value={filterRole}
+                        onChange={(e) => setFilterRole(e.target.value)}
+                        className="bg-black text-white text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border-none focus:ring-0"
+                    >
+                        <option value="all">Tous les rôles</option>
+                        <option value="Client">Clients</option>
+                        <option value="Agence">Agences</option>
+                        <option value="Travailleur">Travailleurs</option>
+                        <option value="Propriété">Équipements</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
+                {isSyncing ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-white/50">
+                        <div className="animate-spin mb-4">
+                            <SyncIcon />
+                        </div>
+                        <p className="font-black uppercase text-[10px] tracking-widest">Chargement des utilisateurs...</p>
+                    </div>
+                ) : filteredUsers.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-white/50">
+                        <p className="font-black uppercase text-xs tracking-widest">Aucun utilisateur trouvé</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4 pb-20">
+                        {filteredUsers.map((user, idx) => (
+                            <div key={idx} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <h4 className="font-black text-white uppercase text-xs tracking-tight">{user.name || 'Utilisateur'}</h4>
+                                        <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">{user.role || 'Client'}</p>
+                                        <p className="text-[9px] text-white/40 font-mono">+225 {user.phone}</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => {
+                                            setNotificationTargetUser(user);
+                                            setIsNotificationModalOpen(true);
+                                        }}
+                                        className="px-4 py-2 bg-[#ff802b] text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-[#e67326] transition-all active:scale-95 flex items-center gap-2"
+                                    >
+                                        <BellIcon className="w-3 h-3" />
+                                        Notifier
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+  };
+
   const renderContactStorageView = () => {
     const filteredUsers = firestoreUsers.filter(u => {
         const matchesSearch = 
@@ -1399,6 +1520,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
       if (view === 'assistant-requests') return renderAssistantRequestsView();
       if (view === 'scanned-qr') return renderScannedQRView();
       if (view === 'private-registrations') return renderPrivateRegistrationsView();
+      if (view === 'notifications') return renderNotificationsView();
       
       return (
         <div className="flex-1 flex flex-col items-center justify-center text-white/30 p-6">
@@ -1475,6 +1597,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
           {activeViewContent}
         </div>
 
+        {/* Shared Modal for Registration Details */}
         {/* Shared Modal for Registration Details */}
         {selectedRegistration && (
             <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-6 backdrop-blur-md animate-in fade-in duration-200">
@@ -1563,7 +1686,71 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
       <div className="absolute inset-0 bg-gray-50 flex flex-col overflow-hidden">
           {renderContent()}
 
-          {/* Modal de confirmation de suppression */}
+          {/* Modal d'envoi de notification */}
+        {isNotificationModalOpen && notificationTargetUser && (
+            <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-6 backdrop-blur-md animate-in fade-in duration-200">
+                <div className="bg-white rounded-[3rem] p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 border-8 border-[#ff802b]/20">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Nouvelle Notification</h3>
+                        <button 
+                            onClick={() => setIsNotificationModalOpen(false)}
+                            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div>
+                            <p className="text-[10px] font-black text-[#ff802b] uppercase tracking-widest mb-1">Destinataire</p>
+                            <p className="text-sm font-bold text-slate-700">{notificationTargetUser.name} (+225 {notificationTargetUser.phone})</p>
+                        </div>
+
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Titre</p>
+                            <input 
+                                type="text"
+                                value={notificationTitle}
+                                onChange={(e) => setNotificationTitle(e.target.value)}
+                                placeholder="Titre de la notification"
+                                className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 text-sm font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all"
+                            />
+                        </div>
+
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Message</p>
+                            <textarea 
+                                value={notificationMessage}
+                                onChange={(e) => setNotificationMessage(e.target.value)}
+                                placeholder="Écrivez votre message ici..."
+                                rows={4}
+                                className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 text-sm font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all resize-none"
+                            />
+                        </div>
+
+                        <button 
+                            onClick={handleSendNotification}
+                            disabled={isSendingNotification || !notificationTitle || !notificationMessage}
+                            className="w-full py-4 bg-black text-white font-black rounded-2xl shadow-xl transition-all active:scale-95 uppercase text-xs tracking-widest disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2"
+                        >
+                            {isSendingNotification ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Envoi en cours...
+                                </>
+                            ) : (
+                                <>
+                                    <BellIcon className="w-4 h-4" />
+                                    Envoyer maintenant
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* Modal de confirmation de suppression */}
           {deleteId && (
               <div className="absolute inset-0 bg-black/90 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
                   <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
