@@ -338,7 +338,14 @@ const ClassicCard: React.FC<ClassicCardProps> = ({ item, user, category, onOpenF
                 </div>
                 <div className="p-3 flex-1 w-full text-left relative flex flex-col justify-between min-h-[90px]">
                     <div>
-                        <span className="text-sm font-bold text-gray-900 leading-tight block mb-1 uppercase truncate">{item.name || item.title}</span>
+                        {isWorker && item.name ? (
+                            <>
+                                <span className="text-[11px] font-black text-gray-900 block uppercase truncate leading-tight">{item.name}</span>
+                                <span className="text-[10px] font-bold text-orange-600 block uppercase truncate mb-1">{item.title}</span>
+                            </>
+                        ) : (
+                            <span className="text-sm font-bold text-gray-900 leading-tight block mb-1 uppercase truncate">{item.title}</span>
+                        )}
                         <span className="text-[10px] text-gray-500 leading-tight line-clamp-2 italic">{item.city ? `Ville: ${item.city}` : item.description}</span>
                         {isWorker && item.price && (
                             <span className="text-red-600 font-black text-[11px] block mt-1">{item.price}</span>
@@ -533,16 +540,28 @@ const InterventionShopScreen: React.FC<InterventionShopScreenProps> = ({ onBack,
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 gap-4 pb-24">
-                            {filteredClassic.map((item, index) => (
-                                <ClassicCard 
-                                    key={index}
-                                    item={item}
-                                    user={user}
-                                    category={category}
-                                    onOpenForm={onOpenForm}
-                                />
-                            ))}
-                            {filteredClassic.length === 0 && <div className="col-span-2 text-center py-10 text-gray-500"><p className="font-bold">Aucun résultat.</p></div>}
+                            {isLoadingOffers && category === 'travailleurs' ? (
+                                Array.from({ length: 6 }).map((_, idx) => (
+                                    <div key={idx} className="bg-gray-100 rounded-xl aspect-[4/5] animate-pulse flex items-center justify-center">
+                                        <span className="text-gray-300 text-[10px] font-black uppercase">Chargement...</span>
+                                    </div>
+                                ))
+                            ) : (
+                                filteredClassic.map((item, index) => (
+                                    <ClassicCard 
+                                        key={index}
+                                        item={item}
+                                        user={user}
+                                        category={category}
+                                        onOpenForm={onOpenForm}
+                                    />
+                                ))
+                            )}
+                            {!isLoadingOffers && filteredClassic.length === 0 && (
+                                <div className="col-span-2 text-center py-10 text-gray-500">
+                                    <p className="font-bold">Aucun résultat.</p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </motion.div>
