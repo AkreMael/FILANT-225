@@ -1,6 +1,7 @@
 
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Tab } from '../types';
+import { databaseService } from '../services/databaseService';
 import { googleSheetsService, WorkerOffer } from '../services/googleSheetsService';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -331,37 +332,6 @@ const PublicationModal = ({ isOpen, onClose, onPublish, initialData }: {
     );
 };
 
-const PaymentModal = ({ isOpen, onConfirm, onClose, amount }: { isOpen: boolean, onConfirm: () => void, onClose: () => void, amount: number }) => {
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl p-8 text-center animate-in zoom-in-95 duration-300">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                <h3 className="text-xl font-black text-slate-900 mb-4 uppercase tracking-tight">Validation du paiement</h3>
-                <p className="text-gray-500 text-sm leading-relaxed mb-8">
-                    Voici le montant fixé pour la publication de votre statut
-                </p>
-                <button 
-                    onClick={onConfirm}
-                    className="w-full py-5 bg-orange-500 text-white rounded-2xl font-black text-lg shadow-xl shadow-orange-200 active:scale-95 transition-all flex items-center justify-center gap-3"
-                >
-                    {amount} francs
-                </button>
-                <button 
-                    onClick={onClose}
-                    className="mt-4 text-gray-400 font-black text-[10px] uppercase tracking-widest"
-                >
-                    Plus tard
-                </button>
-            </div>
-        </div>
-    );
-};
 
 interface OfferScreenProps {
   onNavigateToMenu: (view: 'worker_list' | 'location_hub') => void;
@@ -376,9 +346,10 @@ interface OfferScreenProps {
     description?: string,
     price?: string
   ) => void;
+  user: any;
 }
 
-const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTab, onOpenIntervention, onOpenCategory, onSelectItem }) => {
+const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTab, onOpenIntervention, onOpenCategory, onSelectItem, user }) => {
   const mainRef = useRef<HTMLElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -388,7 +359,6 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
 
   const [firebaseOffers, setFirebaseOffers] = useState<WorkerOffer[]>([]);
   const [isPublicationModalOpen, setIsPublicationModalOpen] = useState(false);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedServiceForPublication, setSelectedServiceForPublication] = useState('');
   const [publicationData, setPublicationData] = useState<any>(null);
 
@@ -444,53 +414,50 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
     setIsPublicationModalOpen(true);
   };
 
-  const handleFormSubmit = (data: any) => {
-    setPublicationData(data);
-    setIsPublicationModalOpen(false);
-    setIsPaymentModalOpen(true);
-  };
-
-  const handlePaymentConfirm = async () => {
+  const handleFormSubmit = async (data: any) => {
     try {
-      const response = await fetch('/api/publish-offer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: publicationData.name,
-          city: publicationData.city,
-          price: publicationData.price,
-          frequency: publicationData.frequency,
-          service: publicationData.service,
-          publicationPrice: publicationData.publicationPrice,
-          description: publicationData.description
-        }),
+      // Send publication request to Assistant
+      const message = `PUBLISH_REQUEST:${JSON.stringify(data)}`;
+      const chatUserId = (user?.phone || '').replace(/\D/g, '') || 'anonymous';
+      
+      await databaseService.saveAdminChatMessage(chatUserId, {
+        sender: 'user',
+        text: message,
+        timestamp: Date.now(),
+        userName: user?.name || 'Utilisateur'
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to publish offer');
-      }
-
-      setIsPaymentModalOpen(false);
       setIsPublicationModalOpen(false);
-      setPublicationData(null);
-      setActiveTab(Tab.Menu);
+      setActiveTab(Tab.UserChat);
     } catch (error) {
-      console.error("Error publishing offer:", error);
-      alert("Une erreur est survenue lors de la publication. Veuillez réessayer.");
+      console.error("Error sending publication request:", error);
+      alert("Une erreur est survenue lors de l'envoi de votre demande.");
     }
   };
 
-  const handleRecruit = (item: WorkerOffer) => {
-    const message = `Bonjour Filant Services, je souhaite recruter ce profil :\n\n` +
-                    `Nom: ${item.name}\n` +
-                    `Ville: ${item.city}\n` +
-                    `Métier: ${item.title}\n` +
-                    `Salaire: ${item.price}\n\n` +
-                    `Merci de me mettre en contact.`;
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/2250705052632?text=${encodedMessage}`, '_blank');
+  const handleRecruit = async (item: WorkerOffer) => {
+    try {
+      const message = `RECRUIT_REQUEST:${JSON.stringify({
+        name: item.name,
+        city: item.city,
+        service: item.title,
+        price: item.price
+      })}`;
+      
+      const chatUserId = (user?.phone || '').replace(/\D/g, '') || 'anonymous';
+      
+      await databaseService.saveAdminChatMessage(chatUserId, {
+        sender: 'user',
+        text: message,
+        timestamp: Date.now(),
+        userName: user?.name || 'Utilisateur'
+      });
+
+      setActiveTab(Tab.UserChat);
+    } catch (error) {
+      console.error("Error sending recruitment request:", error);
+      alert("Une erreur est survenue lors de l'envoi de votre demande.");
+    }
   };
 
   const handleContact = () => {
@@ -741,13 +708,6 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
                 onClose={() => setIsPublicationModalOpen(false)}
                 onPublish={handleFormSubmit}
                 initialData={{ service: selectedServiceForPublication }}
-            />
-
-            <PaymentModal 
-                isOpen={isPaymentModalOpen}
-                onConfirm={handlePaymentConfirm}
-                onClose={() => setIsPaymentModalOpen(false)}
-                amount={publicationData?.publicationPrice || 500}
             />
           </div>
 

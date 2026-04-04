@@ -286,6 +286,85 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, [currentUser?.phone, currentUser?.name]);
 
+  const [isPublicationPaymentModalOpen, setIsPublicationPaymentModalOpen] = useState(false);
+  const [publicationPaymentData, setPublicationPaymentData] = useState<any>(null);
+
+  useEffect(() => {
+      const handlePublicationPaymentTrigger = (event: CustomEvent<any>) => {
+          setPublicationPaymentData(event.detail);
+          setIsPublicationPaymentModalOpen(true);
+      };
+      window.addEventListener('open-publication-payment' as any, handlePublicationPaymentTrigger as any);
+      return () => window.removeEventListener('open-publication-payment' as any, handlePublicationPaymentTrigger as any);
+  }, []);
+
+  const handlePublicationPaymentConfirm = async () => {
+    if (!publicationPaymentData) return;
+    
+    try {
+      const response = await fetch('/api/publish-offer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: publicationPaymentData.name,
+          city: publicationPaymentData.city,
+          price: publicationPaymentData.price,
+          frequency: publicationPaymentData.frequency,
+          service: publicationPaymentData.service,
+          publicationPrice: 500, // Fixed at 500F as per request
+          description: publicationPaymentData.description
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to publish offer');
+      }
+
+      setIsPublicationPaymentModalOpen(false);
+      setPublicationPaymentData(null);
+      showPopup("Votre statut a été publié avec succès !", "alert");
+      setActiveTab(Tab.Offer);
+      setOfferSubView('main');
+    } catch (error) {
+      console.error("Error publishing offer:", error);
+      showPopup("Une erreur est survenue lors de la publication. Veuillez réessayer.", "alert");
+    }
+  };
+
+  const PaymentModal = ({ isOpen, onConfirm, onClose, amount }: { isOpen: boolean, onConfirm: () => void, onClose: () => void, amount: number }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl p-8 text-center animate-in zoom-in-95 duration-300">
+                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h3 className="text-xl font-black text-slate-900 mb-4 uppercase tracking-tight">Validation du paiement</h3>
+                <p className="text-gray-500 text-sm leading-relaxed mb-8">
+                    Voici le montant fixé pour la publication de votre statut
+                </p>
+                <button 
+                    onClick={onConfirm}
+                    className="w-full py-5 bg-orange-500 text-white rounded-2xl font-black text-lg shadow-xl shadow-orange-200 active:scale-95 transition-all flex items-center justify-center gap-3"
+                >
+                    {amount} francs
+                </button>
+                <button 
+                    onClick={onClose}
+                    className="mt-4 text-gray-400 font-black text-[10px] uppercase tracking-widest"
+                >
+                    Plus tard
+                </button>
+            </div>
+        </div>
+    );
+  };
+
   const [lastNotificationId, setLastNotificationId] = useState<string | null>(null);
 
   const [locationInitialTab, setLocationInitialTab] = useState<'appartement' | 'equipement'>('appartement');
@@ -1045,6 +1124,7 @@ const App: React.FC = () => {
                   description: desc,
                   price: price
                 })}
+                user={currentUser}
             />;
         }
       break;
@@ -1227,6 +1307,13 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
+
+            <PaymentModal 
+              isOpen={isPublicationPaymentModalOpen}
+              onConfirm={handlePublicationPaymentConfirm}
+              onClose={() => setIsPublicationPaymentModalOpen(false)}
+              amount={500}
+            />
 
             {showScannerGlobal && (
                 <ScannerOverlay 

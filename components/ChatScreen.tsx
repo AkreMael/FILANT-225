@@ -116,6 +116,16 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
     }
   };
 
+  const handleApprovePublication = async (requestData: any) => {
+    const confirmMessage = `PUBLISH_CONFIRM:${JSON.stringify(requestData)}`;
+    await handleSendMessage(confirmMessage);
+  };
+
+  const handleOpenPayment = (requestData: any) => {
+    const event = new CustomEvent('open-publication-payment', { detail: requestData });
+    window.dispatchEvent(event);
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-50 animate-in fade-in duration-300">
       <header className="bg-white border-b border-slate-200 p-4 flex items-center gap-3 sticky top-0 z-20 shadow-sm">
@@ -166,6 +176,98 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
           displayMessages.map((msg, idx) => {
             const isMe = (isAdmin && msg.sender === 'admin') || (!isAdmin && msg.sender === 'user');
             const messageId = msg.id || `msg_${idx}`;
+            
+            // Handle special messages
+            let content: React.ReactNode = <Linkify text={msg.text} />;
+            let specialAction: React.ReactNode = null;
+
+            if (msg.text.startsWith('PUBLISH_REQUEST:')) {
+              try {
+                const data = JSON.parse(msg.text.replace('PUBLISH_REQUEST:', ''));
+                content = (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      </div>
+                      <span className="font-black text-[10px] uppercase tracking-widest text-orange-600">Demande de publication</span>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1">
+                      <p className="text-[11px] font-bold text-slate-900 uppercase tracking-tight">{data.name}</p>
+                      <p className="text-[10px] text-slate-500 font-bold italic uppercase tracking-widest">{data.city}</p>
+                      <p className="text-[10px] text-slate-700 font-black uppercase tracking-widest">{data.service}</p>
+                      <p className="text-[10px] text-orange-600 font-black">{data.price}F par {data.frequency}</p>
+                    </div>
+                  </div>
+                );
+                if (isAdmin && msg.sender === 'user') {
+                  specialAction = (
+                    <button 
+                      onClick={() => handleApprovePublication(data)}
+                      className="mt-3 w-full py-3 bg-green-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+                    >
+                      Approuver la publication
+                    </button>
+                  );
+                }
+              } catch (e) {
+                console.error("Error parsing PUBLISH_REQUEST", e);
+              }
+            } else if (msg.text.startsWith('RECRUIT_REQUEST:')) {
+              try {
+                const data = JSON.parse(msg.text.replace('RECRUIT_REQUEST:', ''));
+                content = (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                      </div>
+                      <span className="font-black text-[10px] uppercase tracking-widest text-blue-600">Demande de recrutement</span>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1">
+                      <p className="text-[11px] font-bold text-slate-900 uppercase tracking-tight">{data.name}</p>
+                      <p className="text-[10px] text-slate-500 font-bold italic uppercase tracking-widest">{data.city}</p>
+                      <p className="text-[10px] text-slate-700 font-black uppercase tracking-widest">{data.service}</p>
+                      <p className="text-[10px] text-blue-600 font-black">{data.price}</p>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-bold italic mt-2">
+                      Je souhaite recruter ce profil. Merci de me mettre en contact.
+                    </p>
+                  </div>
+                );
+              } catch (e) {
+                console.error("Error parsing RECRUIT_REQUEST", e);
+              }
+            } else if (msg.text.startsWith('PUBLISH_CONFIRM:')) {
+              try {
+                const data = JSON.parse(msg.text.replace('PUBLISH_CONFIRM:', ''));
+                content = (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      </div>
+                      <span className="font-black text-[10px] uppercase tracking-widest text-green-600">Publication Approuvée</span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-600 leading-relaxed">
+                      Votre demande de publication pour le profil <span className="text-slate-900">"{data.service}"</span> a été approuvée par l'assistant.
+                    </p>
+                    {!isAdmin && (
+                      <button 
+                        onClick={() => handleOpenPayment(data)}
+                        className="w-full py-4 bg-orange-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-orange-200 active:scale-95 transition-all flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                        Payer et Publier (500F)
+                      </button>
+                    )}
+                  </div>
+                );
+              } catch (e) {
+                console.error("Error parsing PUBLISH_CONFIRM", e);
+              }
+            }
+
             return (
               <div key={messageId} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300 group`}>
                 <div className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm relative select-text touch-auto overflow-hidden ${
@@ -174,8 +276,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
                     : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'
                 }`}>
                   <div className="text-sm leading-relaxed break-words whitespace-pre-wrap">
-                    <Linkify text={msg.text} />
+                    {content}
                   </div>
+                  {specialAction}
                   <div className="flex items-center justify-between mt-1.5 gap-4">
                     <p className={`text-[9px] font-bold uppercase tracking-widest ${isMe ? 'text-white/60' : 'text-slate-400'}`}>
                       {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
