@@ -124,6 +124,20 @@ const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({
         // 2. Sauvegardes en arrière-plan (non bloquantes pour la redirection)
         const saveProcess = async () => {
             try {
+                if (paymentType === "Publication" && formData) {
+                    try {
+                        await fetch('/api/publish-offer', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(formData.data),
+                        });
+                    } catch (error) {
+                        console.error("Error publishing offer from payment screen:", error);
+                    }
+                }
+
                 if (title.includes("Mise en Relation") || title.includes("Carte FILANT")) {
                     const cardType = getCardType(user.role);
                     if (paymentType === "Activation" || title.includes("Carte FILANT")) {

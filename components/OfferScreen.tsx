@@ -436,15 +436,6 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
         });
       }, 1000);
 
-      // 2. Call API to save to Firestore and Google Sheets
-      await fetch('/api/publish-offer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
       setIsPublicationModalOpen(false);
       setActiveTab(Tab.UserChat);
     } catch (error) {
