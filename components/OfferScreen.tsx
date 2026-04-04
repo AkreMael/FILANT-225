@@ -2,6 +2,8 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Tab } from '../types';
 import { googleSheetsService, WorkerOffer } from '../services/googleSheetsService';
+import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase';
 
 // --- Icons ---
 const PhoneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>;
@@ -107,13 +109,13 @@ const carouselItems = [
     { title: "Technicien (sonorisation)", name: "Fenrir", city: "Korhogo", description: "Assistance quotidienne à domicile", price: "30 000 F", img: INTERV_IMAGES.aide_domicile },
 ];
 
-const InterventionCard: React.FC<{ item: WorkerOffer, onClick: () => void }> = ({ item, onClick }) => {
+const InterventionCard: React.FC<{ item: WorkerOffer, onClick: () => void, onRecruit: (item: WorkerOffer) => void }> = ({ item, onClick, onRecruit }) => {
     const [isCopying, setIsCopying] = useState(false);
     const pressTimer = useRef<number | null>(null);
     const startPos = useRef<{x: number, y: number} | null>(null);
 
     const handleCopy = () => {
-        const textToCopy = `Nom: ${item.name}\nVille: ${item.city}\nPrix: ${item.price} salaire par mois\nService: ${item.title}\nDescription: ${item.description}\nFilant Services`;
+        const textToCopy = `Nom: ${item.name}\nVille: ${item.city}\nPrix: ${item.price}\nMétier: ${item.title}\nDisponibilité: ${item.description}\nFilant Services`;
         navigator.clipboard.writeText(textToCopy).then(() => {
             setIsCopying(true);
             setTimeout(() => setIsCopying(false), 2000);
@@ -169,7 +171,7 @@ const InterventionCard: React.FC<{ item: WorkerOffer, onClick: () => void }> = (
                     <p className="text-[11px] font-black text-gray-900 truncate uppercase leading-tight mb-0.5">{item.name}</p>
                     <p className="text-[8px] font-bold text-gray-500 italic leading-none mb-1">Ville : {item.city}</p>
                     <span className="text-red-600 font-black text-[11px] leading-tight">
-                        {item.price} <span className="text-[8px] font-bold text-gray-500 italic">salaire par mois</span>
+                        {item.price}
                     </span>
                 </div>
                 <h4 className="text-[10px] font-bold text-gray-700 leading-tight mb-1 line-clamp-1">{item.title}</h4>
@@ -178,6 +180,15 @@ const InterventionCard: React.FC<{ item: WorkerOffer, onClick: () => void }> = (
                     <ShopIcon />
                     <span className="text-[8px] font-bold truncate">Filant Services</span>
                 </div>
+                <button 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onRecruit(item);
+                    }}
+                    className="mt-3 w-full py-2.5 bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md active:scale-95 transition-all"
+                >
+                    Je recrute
+                </button>
             </div>
         </div>
     );
@@ -200,6 +211,158 @@ const InfoBox = ({ title, description, onLinkClick }: { title: string, descripti
     </div>
 );
 
+const PublicationModal = ({ isOpen, onClose, onPublish, initialData }: { 
+    isOpen: boolean, 
+    onClose: () => void, 
+    onPublish: (data: any) => void,
+    initialData: { service: string }
+}) => {
+    const [formData, setFormData] = useState({
+        name: '',
+        city: '',
+        price: '',
+        frequency: 'mois' as 'semaine' | 'mois',
+        service: initialData.service,
+        description: ''
+    });
+
+    useEffect(() => {
+        if (isOpen) {
+            setFormData(prev => ({ ...prev, service: initialData.service, name: '', city: '', price: '', description: '' }));
+        }
+    }, [isOpen, initialData.service]);
+
+    const publicationPrice = formData.frequency === 'semaine' ? 305 : 500;
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+                <div className="p-8 max-h-[90vh] overflow-y-auto scrollbar-hide">
+                    <h3 className="text-xl font-black text-slate-900 mb-6 uppercase tracking-tight">Publier votre statut</h3>
+                    
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Métier / Titre</label>
+                            <input 
+                                type="text" 
+                                value={formData.service}
+                                onChange={(e) => setFormData({...formData, service: e.target.value})}
+                                placeholder="Ex: Cuisinier"
+                                className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-orange-400"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Nom Complet</label>
+                            <input 
+                                type="text" 
+                                value={formData.name}
+                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                placeholder="Ex: Mimi"
+                                className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-orange-400"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Ville</label>
+                            <input 
+                                type="text" 
+                                value={formData.city}
+                                onChange={(e) => setFormData({...formData, city: e.target.value})}
+                                placeholder="Ex: Bassam"
+                                className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-orange-400"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Salaire souhaité</label>
+                            <input 
+                                type="text" 
+                                value={formData.price}
+                                onChange={(e) => setFormData({...formData, price: e.target.value})}
+                                placeholder="Ex: 65000F"
+                                className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-orange-400"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Description (optionnel)</label>
+                            <textarea 
+                                value={formData.description}
+                                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                placeholder="Ex: Disponible immédiatement..."
+                                className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-orange-400 min-h-[80px] resize-none"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Fréquence de publication</label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button 
+                                    onClick={() => setFormData({...formData, frequency: 'semaine'})}
+                                    className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${formData.frequency === 'semaine' ? 'bg-orange-500 border-orange-500 text-white' : 'bg-white border-gray-100 text-gray-400'}`}
+                                >
+                                    Par semaine (305F)
+                                </button>
+                                <button 
+                                    onClick={() => setFormData({...formData, frequency: 'mois'})}
+                                    className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${formData.frequency === 'mois' ? 'bg-orange-500 border-orange-500 text-white' : 'bg-white border-gray-100 text-gray-400'}`}
+                                >
+                                    Par mois (500F)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-8 flex gap-3">
+                        <button 
+                            onClick={onClose}
+                            className="flex-1 py-4 text-gray-400 font-black text-xs uppercase tracking-widest"
+                        >
+                            Annuler
+                        </button>
+                        <button 
+                            onClick={() => onPublish({...formData, publicationPrice})}
+                            className="flex-1 py-4 bg-orange-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-200 active:scale-95 transition-all"
+                        >
+                            Suivant
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const PaymentModal = ({ isOpen, onConfirm, onClose, amount }: { isOpen: boolean, onConfirm: () => void, onClose: () => void, amount: number }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl p-8 text-center animate-in zoom-in-95 duration-300">
+                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h3 className="text-xl font-black text-slate-900 mb-4 uppercase tracking-tight">Validation du paiement</h3>
+                <p className="text-gray-500 text-sm leading-relaxed mb-8">
+                    Voici le montant fixé pour la publication de votre statut
+                </p>
+                <button 
+                    onClick={onConfirm}
+                    className="w-full py-5 bg-orange-500 text-white rounded-2xl font-black text-lg shadow-xl shadow-orange-200 active:scale-95 transition-all flex items-center justify-center gap-3"
+                >
+                    {amount} francs
+                </button>
+                <button 
+                    onClick={onClose}
+                    className="mt-4 text-gray-400 font-black text-[10px] uppercase tracking-widest"
+                >
+                    Plus tard
+                </button>
+            </div>
+        </div>
+    );
+};
+
 interface OfferScreenProps {
   onNavigateToMenu: (view: 'worker_list' | 'location_hub') => void;
   setActiveTab: (tab: Tab) => void;
@@ -221,6 +384,13 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [workerOffers, setWorkerOffers] = useState<WorkerOffer[]>([]);
   const [isLoadingOffers, setIsLoadingOffers] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const [firebaseOffers, setFirebaseOffers] = useState<WorkerOffer[]>([]);
+  const [isPublicationModalOpen, setIsPublicationModalOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedServiceForPublication, setSelectedServiceForPublication] = useState('');
+  const [publicationData, setPublicationData] = useState<any>(null);
 
   useEffect(() => {
     const loadOffers = async () => {
@@ -241,6 +411,87 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
     const interval = setInterval(loadOffers, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch Firebase offers
+  useEffect(() => {
+    const q = query(collection(db, 'travailleurs'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const offers = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const cleanPrice = data.price?.toString().replace(/F/gi, '').trim();
+        return {
+          img: data.photoUrl || "https://i.supaimg.com/c3c14402-3c1f-4484-bfe1-774bcc4ac6de.png",
+          name: data.name || data.fullName || 'Anonyme',
+          city: data.city || 'Non spécifiée',
+          price: cleanPrice ? `${cleanPrice}F par ${data.frequency || 'mois'}` : '',
+          title: data.service || data.jobTitle || 'Travailleur',
+          description: data.description || `Disponible pour : ${data.service || data.jobTitle || 'Travailleur'}`
+        } as WorkerOffer;
+      });
+      setFirebaseOffers(offers);
+    }, (error) => {
+        console.error("Error fetching Firebase offers:", error);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const allOffers = useMemo(() => {
+    return [...firebaseOffers, ...workerOffers];
+  }, [firebaseOffers, workerOffers]);
+
+  const handlePublishClick = (service: string) => {
+    setSelectedServiceForPublication(service);
+    setIsPublicationModalOpen(true);
+  };
+
+  const handleFormSubmit = (data: any) => {
+    setPublicationData(data);
+    setIsPublicationModalOpen(false);
+    setIsPaymentModalOpen(true);
+  };
+
+  const handlePaymentConfirm = async () => {
+    try {
+      const response = await fetch('/api/publish-offer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: publicationData.name,
+          city: publicationData.city,
+          price: publicationData.price,
+          frequency: publicationData.frequency,
+          service: publicationData.service,
+          publicationPrice: publicationData.publicationPrice,
+          description: publicationData.description
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to publish offer');
+      }
+
+      setIsPaymentModalOpen(false);
+      setIsPublicationModalOpen(false);
+      setPublicationData(null);
+      setActiveTab(Tab.Menu);
+    } catch (error) {
+      console.error("Error publishing offer:", error);
+      alert("Une erreur est survenue lors de la publication. Veuillez réessayer.");
+    }
+  };
+
+  const handleRecruit = (item: WorkerOffer) => {
+    const message = `Bonjour Filant Services, je souhaite recruter ce profil :\n\n` +
+                    `Nom: ${item.name}\n` +
+                    `Ville: ${item.city}\n` +
+                    `Métier: ${item.title}\n` +
+                    `Salaire: ${item.price}\n\n` +
+                    `Merci de me mettre en contact.`;
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/2250705052632?text=${encodedMessage}`, '_blank');
+  };
 
   const handleContact = () => {
     window.open('tel:0705052632', '_self');
@@ -419,28 +670,54 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
                         DEMANDE D'EMBAUCHE
                     </h2>
                 </div>
-                <p className="font-bold text-base leading-snug max-w-[90%]">
+                <p className="font-bold text-base leading-snug max-w-[90%] mb-6">
                     <span className="text-[#a3e635]">L’image est masquée avec FILANT°225. L’apparence ne compte pas, mais plutôt la propriété, la compétence, l’efficacité et la confiance.</span>
                     <br />
                     <span className="text-white">Veuillez rechercher votre travail idéal.</span>
                 </p>
+
+                <button 
+                    onClick={() => handlePublishClick('')}
+                    className="w-full py-4 bg-orange-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-orange-900/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                    </svg>
+                    + PUBLIER VOTRE STATUT
+                </button>
              </div>
 
-             <div className="flex gap-4 overflow-x-auto px-4 scrollbar-hide pb-2 transition-all duration-500 relative z-20">
+             <div className={`flex ${isExpanded ? 'flex-wrap justify-center' : 'overflow-x-auto scrollbar-hide'} gap-4 px-4 pb-2 transition-all duration-500 relative z-20`}>
                 {isLoadingOffers ? (
                     Array.from({ length: 3 }).map((_, idx) => (
                         <div key={idx} className="flex-shrink-0 w-[150px] h-[260px] bg-white/20 rounded-3xl animate-pulse flex items-center justify-center">
                             <span className="text-white/30 text-[10px] font-black uppercase tracking-widest">Chargement...</span>
                         </div>
                     ))
-                ) : workerOffers.length > 0 ? (
-                    workerOffers.map((item, idx) => (
-                        <InterventionCard 
-                            key={idx} 
-                            item={item} 
-                            onClick={() => onSelectItem(item.title, 'worker', item.img, true, item.description, item.price)} 
-                        />
-                    ))
+                ) : allOffers.length > 0 ? (
+                    <>
+                        {(isExpanded ? allOffers : allOffers.slice(0, 4)).map((item, idx) => (
+                            <InterventionCard 
+                                key={idx} 
+                                item={item} 
+                                onClick={() => onSelectItem(item.title, 'worker', item.img, true, item.description, item.price)} 
+                                onRecruit={handleRecruit}
+                            />
+                        ))}
+                        {!isExpanded && allOffers.length > 4 && (
+                            <button 
+                                onClick={() => setIsExpanded(true)}
+                                className="flex-shrink-0 w-[150px] h-[260px] bg-white/10 border-2 border-dashed border-white/30 rounded-3xl flex flex-col items-center justify-center gap-2 active:scale-95 transition-all"
+                            >
+                                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                </div>
+                                <span className="text-white text-[10px] font-black uppercase tracking-widest">Voir plus</span>
+                            </button>
+                        )}
+                    </>
                 ) : (
                     <div className="w-full flex flex-col items-center justify-center py-10 bg-white/10 rounded-3xl border border-white/20">
                         <span className="text-white font-black text-xs uppercase tracking-widest">Aucune offre disponible</span>
@@ -448,6 +725,30 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
                     </div>
                 )}
              </div>
+             {isExpanded && (
+                 <div className="px-4 mt-6 flex justify-center relative z-20">
+                    <button 
+                        onClick={() => setIsExpanded(false)}
+                        className="px-6 py-2 bg-white/10 rounded-full text-white text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all border border-white/20"
+                    >
+                        Voir moins
+                    </button>
+                 </div>
+             )}
+
+            <PublicationModal 
+                isOpen={isPublicationModalOpen}
+                onClose={() => setIsPublicationModalOpen(false)}
+                onPublish={handleFormSubmit}
+                initialData={{ service: selectedServiceForPublication }}
+            />
+
+            <PaymentModal 
+                isOpen={isPaymentModalOpen}
+                onConfirm={handlePaymentConfirm}
+                onClose={() => setIsPaymentModalOpen(false)}
+                amount={publicationData?.publicationPrice || 500}
+            />
           </div>
 
           {/* Agence Immobilière */}

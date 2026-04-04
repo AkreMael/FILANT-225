@@ -173,6 +173,68 @@ async function startServer() {
     }
   });
 
+  app.post("/api/publish-offer", async (req, res) => {
+    try {
+      const { name, city, price, frequency, service, publicationPrice, description } = req.body;
+      
+      // 1. Save to Firestore for immediate display
+      const docRef = await firestore.collection("travailleurs").add({
+        name,
+        city,
+        price,
+        frequency,
+        service,
+        publicationPrice,
+        description: description || `Disponible pour : ${service}`,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        isVerified: false
+      });
+
+      // 2. Attempt to write to Google Sheets if configured
+      const sheetId = process.env.GOOGLE_SHEETS_ID;
+      const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+      const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+      if (sheetId && serviceAccountEmail && privateKey) {
+        try {
+          const { JWT } = await import("google-auth-library");
+          const { GoogleSpreadsheet } = await import("google-spreadsheet");
+          
+          const auth = new JWT({
+            email: serviceAccountEmail,
+            key: privateKey,
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+          });
+
+          const doc = new GoogleSpreadsheet(sheetId, auth);
+          await doc.loadInfo();
+          
+          // Assuming the first sheet is the one to write to
+          const sheet = doc.sheetsByIndex[0];
+          await sheet.addRow({
+            "Nom": name,
+            "Ville": city,
+            "Salaire": price,
+            "Fréquence": frequency,
+            "Service": service,
+            "Date": new Date().toISOString()
+          });
+          console.log("Successfully added row to Google Sheets");
+        } catch (sheetError) {
+          console.error("Error writing to Google Sheets:", sheetError);
+          // We don't fail the whole request if sheet write fails, as Firestore is the primary source for the app
+        }
+      } else {
+        console.warn("Google Sheets API not configured. Skipping sheet write.");
+      }
+
+      res.json({ id: docRef.id, success: true });
+    } catch (error: any) {
+      console.error("Error publishing offer:", error);
+      res.status(500).json({ error: "Failed to publish offer", details: error.message });
+    }
+  });
+
   app.post("/api/placement", async (req, res) => {
     try {
       const data = req.body;
