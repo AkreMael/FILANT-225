@@ -225,9 +225,13 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
   useEffect(() => {
     const loadOffers = async () => {
         setIsLoadingOffers(true);
+        console.log('OfferScreen: Fetching worker offers...');
         const offers = await googleSheetsService.fetchWorkerOffers();
+        console.log('OfferScreen: Fetched offers:', offers);
         if (offers.length > 0) {
             setWorkerOffers(offers);
+        } else {
+            console.warn('OfferScreen: No offers found in Google Sheet.');
         }
         setIsLoadingOffers(false);
     };
@@ -410,17 +414,10 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
              <div className="px-5 mb-6 relative z-20">
                 <div className="flex justify-between items-baseline mb-1">
                     <h2 
-                        onClick={() => onOpenCategory('travailleurs')}
-                        className="text-white font-black text-2xl uppercase tracking-tighter cursor-pointer active:opacity-70"
+                        className="text-white font-black text-2xl uppercase tracking-tighter"
                     >
                         DEMANDE D'EMBAUCHE
                     </h2>
-                    <button 
-                        onClick={() => onOpenCategory('travailleurs')}
-                        className="text-white font-bold text-base bg-white/10 px-3 py-1 rounded-full active:scale-95 transition-all"
-                    >
-                        Plus
-                    </button>
                 </div>
                 <p className="font-bold text-base leading-snug max-w-[90%]">
                     <span className="text-[#a3e635]">L’image est masquée avec FILANT°225. L’apparence ne compte pas, mais plutôt la propriété, la compétence, l’efficacité et la confiance.</span>
