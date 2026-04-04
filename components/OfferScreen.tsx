@@ -222,7 +222,7 @@ const PublicationModal = ({ isOpen, onClose, onPublish, initialData }: {
         name: '',
         city: '',
         price: '',
-        frequency: 'mois' as 'semaine' | 'mois',
+        frequency: 'mois',
         service: initialData.service,
         description: ''
     });
@@ -233,7 +233,7 @@ const PublicationModal = ({ isOpen, onClose, onPublish, initialData }: {
         }
     }, [isOpen, initialData.service]);
 
-    const publicationPrice = formData.frequency === 'semaine' ? 305 : 500;
+    const publicationPrice = 500;
 
     if (!isOpen) return null;
 
@@ -293,21 +293,10 @@ const PublicationModal = ({ isOpen, onClose, onPublish, initialData }: {
                                 className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-orange-400 min-h-[80px] resize-none"
                             />
                         </div>
-                        <div>
-                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Fréquence de publication</label>
-                            <div className="grid grid-cols-2 gap-3">
-                                <button 
-                                    onClick={() => setFormData({...formData, frequency: 'semaine'})}
-                                    className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${formData.frequency === 'semaine' ? 'bg-orange-500 border-orange-500 text-white' : 'bg-white border-gray-100 text-gray-400'}`}
-                                >
-                                    Par semaine (305F)
-                                </button>
-                                <button 
-                                    onClick={() => setFormData({...formData, frequency: 'mois'})}
-                                    className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${formData.frequency === 'mois' ? 'bg-orange-500 border-orange-500 text-white' : 'bg-white border-gray-100 text-gray-400'}`}
-                                >
-                                    Par mois (500F)
-                                </button>
+                        <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
+                            <div className="flex justify-between items-center">
+                                <span className="text-[10px] font-black text-orange-700 uppercase tracking-widest">Frais de publication</span>
+                                <span className="text-sm font-black text-orange-600 tracking-tight">500 FCFA</span>
                             </div>
                         </div>
                     </div>
@@ -425,15 +414,35 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
 
   const handleFormSubmit = async (data: any) => {
     try {
-      // Send publication request to Assistant
+      // 1. Send publication info to Assistant
       const message = `PUBLISH_REQUEST:${JSON.stringify(data)}`;
       const chatUserId = (user?.phone || '').replace(/\D/g, '') || 'anonymous';
       
+      // User message
       await databaseService.saveAdminChatMessage(chatUserId, {
         sender: 'user',
         text: message,
         timestamp: Date.now(),
         userName: user?.name || 'Utilisateur'
+      });
+
+      // Automated Assistant response
+      setTimeout(async () => {
+        await databaseService.saveAdminChatMessage(chatUserId, {
+          sender: 'admin',
+          text: "Merci, l'équipe Filan 225 va vous contacter pour le paiement. Si le paiement n'est pas effectué sous 24h, votre profil sera supprimé.",
+          timestamp: Date.now(),
+          userName: 'Assistant Filan'
+        });
+      }, 1000);
+
+      // 2. Call API to save to Firestore and Google Sheets
+      await fetch('/api/publish-offer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
       });
 
       setIsPublicationModalOpen(false);
