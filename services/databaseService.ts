@@ -282,16 +282,30 @@ export const databaseService = {
     try {
       if (!auth.currentUser) {
         const { signInAnonymously } = await import('firebase/auth');
-        await signInAnonymously(auth);
+        try {
+          await signInAnonymously(auth);
+          console.log("Authenticated anonymously as:", auth.currentUser?.uid);
+        } catch (authError: any) {
+          if (authError.code === 'auth/admin-restricted-operation' || authError.code === 'auth/operation-not-allowed') {
+            console.warn("Anonymous authentication is not enabled or is restricted. Some features may be limited. Please enable Anonymous Auth in the Firebase Console.");
+            // We proceed, but Firestore operations will likely fail if they require authentication
+          } else {
+            throw authError;
+          }
+        }
       }
 
       // Update Firebase Auth Profile (displayName)
       if (auth.currentUser && user.name) {
         const { updateProfile } = await import('firebase/auth');
-        await updateProfile(auth.currentUser, {
-          displayName: user.name
-        });
-        console.log("Firebase Auth Profile updated with name:", user.name);
+        try {
+          await updateProfile(auth.currentUser, {
+            displayName: user.name
+          });
+          console.log("Firebase Auth Profile updated with name:", user.name);
+        } catch (profileError) {
+          console.warn("Failed to update Firebase Auth profile:", profileError);
+        }
       }
 
       const cardDataPro = databaseService.getCardData(user.phone, 'pro');
@@ -345,7 +359,15 @@ export const databaseService = {
     try {
       if (!auth.currentUser) {
         const { signInAnonymously } = await import('firebase/auth');
-        await signInAnonymously(auth);
+        try {
+          await signInAnonymously(auth);
+        } catch (authError: any) {
+          if (authError.code === 'auth/admin-restricted-operation' || authError.code === 'auth/operation-not-allowed') {
+            console.warn("Anonymous authentication is not enabled or is restricted.");
+          } else {
+            throw authError;
+          }
+        }
       }
       const docSnap = await getDocFromServer(userRef);
       if (docSnap.exists()) {
@@ -374,7 +396,15 @@ export const databaseService = {
     try {
       if (!auth.currentUser) {
         const { signInAnonymously } = await import('firebase/auth');
-        await signInAnonymously(auth);
+        try {
+          await signInAnonymously(auth);
+        } catch (authError: any) {
+          if (authError.code === 'auth/admin-restricted-operation' || authError.code === 'auth/operation-not-allowed') {
+            console.warn("Anonymous authentication is not enabled or is restricted.");
+          } else {
+            throw authError;
+          }
+        }
       }
       const docSnap = await getDocFromServer(userRef);
       if (docSnap.exists()) {
@@ -732,7 +762,15 @@ export const databaseService = {
       if (!auth.currentUser) {
         console.log("No user logged in, signing in anonymously...");
         const { signInAnonymously } = await import('firebase/auth');
-        await signInAnonymously(auth);
+        try {
+          await signInAnonymously(auth);
+        } catch (authError: any) {
+          if (authError.code === 'auth/admin-restricted-operation' || authError.code === 'auth/operation-not-allowed') {
+            console.warn("Anonymous authentication is not enabled or is restricted.");
+          } else {
+            throw authError;
+          }
+        }
       }
 
       const collectionName = collectionMap[type] || 'other_registrations';

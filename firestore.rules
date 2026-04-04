@@ -369,7 +369,7 @@ service cloud.firestore {
 
     match /users/{phone} {
       // Allow users to read their own profile, or admin to read all
-      allow read: if isAdmin() || isDocOwner(); 
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
       
       // Allow creation/update if data is valid and role is not being escalated to admin
       allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
@@ -377,32 +377,37 @@ service cloud.firestore {
       allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
                      uidNotModified() && (request.resource.data.role == resource.data.role || isAdmin());
       allow delete: if isAdmin();
+
+      // Subcollection for notifications
+      match /notifications/{id} {
+        allow read, write: if isAdmin() || (isAuthenticated() && get(/databases/$(database)/documents/users/$(phone)).data.userId == request.auth.uid);
+      }
     }
 
     match /travailleurs/{id} {
       allow create: if isAuthenticated() && isValidTravailleur(request.resource.data) && uidUnchanged();
-      allow read: if isAdmin() || isDocOwner();
+      allow read: if true; // Publicly visible
       allow update: if isAdmin() || (isDocOwner() && isValidTravailleur(request.resource.data) && uidNotModified());
       allow delete: if isAdmin();
     }
 
     match /proprietaires/{id} {
       allow create: if isAuthenticated() && isValidProprietaire(request.resource.data) && uidUnchanged();
-      allow read: if isAdmin() || isDocOwner();
+      allow read: if true; // Publicly visible
       allow update: if isAdmin() || (isDocOwner() && isValidProprietaire(request.resource.data) && uidNotModified());
       allow delete: if isAdmin();
     }
 
     match /agences/{id} {
       allow create: if isAuthenticated() && isValidAgence(request.resource.data) && uidUnchanged();
-      allow read: if isAdmin() || isDocOwner();
+      allow read: if true; // Publicly visible
       allow update: if isAdmin() || (isDocOwner() && isValidAgence(request.resource.data) && uidNotModified());
       allow delete: if isAdmin();
     }
 
     match /entreprises/{id} {
       allow create: if isAuthenticated() && isValidEntreprise(request.resource.data) && uidUnchanged();
-      allow read: if isAdmin() || isDocOwner();
+      allow read: if true; // Publicly visible
       allow update: if isAdmin() || (isDocOwner() && isValidEntreprise(request.resource.data) && uidNotModified());
       allow delete: if isAdmin();
     }
