@@ -39,10 +39,10 @@ interface RegistrationHubScreenProps {
 
 const RegistrationHubScreen: React.FC<RegistrationHubScreenProps> = ({ onSelectType, onBack }) => {
   return (
-    <div className="absolute inset-0 bg-white font-sans overflow-hidden flex flex-col">
-      <div className="relative h-[180px] w-full flex-shrink-0">
+    <div className="absolute inset-0 bg-white font-sans flex flex-col overflow-y-auto">
+      <div className="relative h-[160px] sm:h-[180px] w-full flex-shrink-0">
         <img 
-          src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&q=80&w=1000" 
+          src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/48d49f0b-5f3e-4468-8f3a-b536ad980302.jpg" 
           alt="header" 
           className="w-full h-full object-cover grayscale-[0.2]" 
           referrerPolicy="no-referrer"
@@ -57,10 +57,10 @@ const RegistrationHubScreen: React.FC<RegistrationHubScreenProps> = ({ onSelectT
         </div>
       </div>
 
-      <div className="flex-1 bg-white rounded-t-[3rem] -mt-12 relative z-10 p-6 flex flex-col items-center overflow-y-auto scrollbar-hide">
-        <div className="w-16 h-1.5 bg-gray-100 rounded-full mb-8"></div>
+      <div className="flex-1 bg-white rounded-t-[3rem] -mt-12 relative z-10 p-6 flex flex-col items-center">
+        <div className="w-16 h-1.5 bg-gray-100 rounded-full mb-6 sm:mb-8"></div>
         
-        <div className="w-full max-w-md space-y-8">
+        <div className="w-full max-w-md space-y-6 sm:space-y-8 pb-12">
           <div className="text-center space-y-2">
             <h2 className="text-2xl font-black text-black uppercase tracking-tight">Type d'inscription</h2>
             <div className="h-1.5 w-20 bg-orange-500 mx-auto rounded-full"></div>
@@ -94,12 +94,12 @@ const RegistrationHubScreen: React.FC<RegistrationHubScreenProps> = ({ onSelectT
               </div>
             ))}
           </div>
-        </div>
 
-        <div className="mt-auto pt-8 border-t border-gray-100 w-full max-w-md text-center">
-          <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
-            Fini le chômage avec FILANT°225
-          </p>
+          <div className="mt-8 pt-6 border-t border-gray-100 w-full text-center">
+            <p className="text-[10px] text-gray-400 italic leading-tight px-4">
+              FILANT°225 est votre partenaire de confiance pour trouver des professionnels qualifiés en Côte d'Ivoire.
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -45,15 +45,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
     }
 
     setIsLoading(true);
-    setTimeout(async () => {
+    try {
         const { user, error: registerError } = await databaseService.registerUser(name, city, sanitizedPhone);
         if (user) {
           onLoginSuccess(user);
         } else {
           onShowPopup(registerError || "Erreur lors de l'inscription.", 'alert');
         }
+    } catch (error) {
+        onShowPopup("Une erreur est survenue lors de l'inscription.", 'alert');
+    } finally {
         setIsLoading(false);
-    }, 2000);
+    }
   };
 
   const handleLogin = async () => {
@@ -76,15 +79,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
     }
     
     setIsLoading(true);
-    setTimeout(async () => {
+    try {
         const { user, error: loginError } = await databaseService.loginUser(name, sanitizedPhone);
         if (user) {
           onLoginSuccess(user);
         } else {
           onShowPopup(loginError || "Erreur de connexion.", 'alert');
         }
+    } catch (error) {
+        onShowPopup("Une erreur est survenue lors de la connexion.", 'alert');
+    } finally {
         setIsLoading(false);
-    }, 2000);
+    }
   };
 
   const handleSubmit = () => {
@@ -96,10 +102,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white font-sans overflow-hidden">
-      <div className="relative h-[220px] w-full flex-shrink-0">
+    <div className="flex flex-col h-full bg-white font-sans overflow-y-auto">
+      <div className="relative h-[180px] sm:h-[220px] w-full flex-shrink-0">
         <img 
-          src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&q=80&w=1000" 
+          src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/48d49f0b-5f3e-4468-8f3a-b536ad980302.jpg" 
           alt="header" 
           className="w-full h-full object-cover grayscale-[0.2]" 
           referrerPolicy="no-referrer"
@@ -118,10 +124,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
         </div>
       </div>
 
-      <div className="flex-1 bg-white rounded-t-[3rem] -mt-12 relative z-10 p-8 flex flex-col items-center overflow-y-auto scrollbar-hide">
-        <div className="w-16 h-1.5 bg-gray-100 rounded-full mb-8"></div>
+      <div className="flex-1 bg-white rounded-t-[3rem] -mt-12 relative z-10 p-6 sm:p-8 flex flex-col items-center">
+        <div className="w-16 h-1.5 bg-gray-100 rounded-full mb-6 sm:mb-8"></div>
         
-        <div className="w-full max-w-md space-y-8">
+        <div className="w-full max-w-md space-y-6 sm:space-y-8 pb-12">
           <div className="text-center space-y-2">
             <h2 className="text-2xl font-black text-black uppercase tracking-tight">
               {isAdminRole ? "Administration" : (isRegisterView ? "Inscription" : "Connexion")}
@@ -241,12 +247,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
                 </button>
               </div>
           )}
-        </div>
-
-        <div className="mt-12 pt-8 border-t border-gray-100 w-full max-w-md">
-          <p className="text-[10px] text-gray-400 italic leading-tight text-center px-4">
-            FILANT°225 est votre partenaire de confiance pour trouver des professionnels qualifiés en Côte d'Ivoire.
-          </p>
+          <div className="mt-8 pt-6 border-t border-gray-100 w-full">
+            <p className="text-[10px] text-gray-400 italic leading-tight text-center px-4">
+              FILANT°225 est votre partenaire de confiance pour trouver des professionnels qualifiés en Côte d'Ivoire.
+            </p>
+          </div>
         </div>
       </div>
     </div>

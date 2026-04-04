@@ -70,9 +70,9 @@ const RegistrationInfoScreen: React.FC<RegistrationInfoScreenProps> = ({ type, o
     const isCompany = type === 'Entreprise';
 
     return (
-        <div className="absolute inset-0 bg-orange-500 flex flex-col font-sans animate-in slide-in-from-bottom-full duration-1000 ease-out overflow-hidden">
+        <div className="absolute inset-0 bg-orange-500 flex flex-col font-sans animate-in slide-in-from-bottom-full duration-1000 ease-out overflow-y-auto">
             {/* Header Branding */}
-            <header className="p-6 flex flex-col items-center flex-shrink-0">
+            <header className="p-4 sm:p-6 flex flex-col items-center flex-shrink-0">
                 <button onClick={onBack} className="self-start p-2 bg-white/20 backdrop-blur-md rounded-full text-white active:scale-90 mb-4">
                     <BackIcon />
                 </button>
@@ -89,10 +89,10 @@ const RegistrationInfoScreen: React.FC<RegistrationInfoScreenProps> = ({ type, o
             </header>
 
             {/* Content Area */}
-            <main className="flex-1 bg-white rounded-t-[3rem] p-8 shadow-2xl relative z-10 flex flex-col overflow-y-auto scrollbar-hide">
+            <main className="flex-1 bg-white rounded-t-[3rem] p-6 sm:p-8 shadow-2xl relative z-10 flex flex-col">
                 
                 {/* Title */}
-                <div className="flex flex-col items-center mb-8">
+                <div className="flex flex-col items-center mb-6 sm:mb-8">
                     <h1 className="text-orange-500 font-black text-2xl uppercase tracking-tight text-center leading-tight">
                         {content.title}
                     </h1>
@@ -146,7 +146,7 @@ const RegistrationInfoScreen: React.FC<RegistrationInfoScreenProps> = ({ type, o
                 </div>
 
                 {/* Final Button */}
-                <div className="pt-8 pb-4 flex justify-center">
+                <div className="pt-8 pb-4 flex flex-col items-center gap-8">
                     <button 
                         onClick={onNext}
                         className="w-full max-w-xs bg-black hover:bg-slate-900 text-white font-black py-5 rounded-3xl shadow-2xl transition-all transform active:scale-95 flex flex-col items-center justify-center gap-0 uppercase tracking-widest"
@@ -154,6 +154,12 @@ const RegistrationInfoScreen: React.FC<RegistrationInfoScreenProps> = ({ type, o
                         <span className="text-sm leading-tight">Inscrivez-vous</span>
                         <span className="text-[10px] opacity-70 leading-tight">310 F CFA</span>
                     </button>
+
+                    <div className="pt-6 border-t border-gray-100 w-full">
+                        <p className="text-[10px] text-gray-400 italic leading-tight text-center px-4">
+                            FILANT°225 est votre partenaire de confiance pour trouver des professionnels qualifiés en Côte d'Ivoire.
+                        </p>
+                    </div>
                 </div>
             </main>
         </div>

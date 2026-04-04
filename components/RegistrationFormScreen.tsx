@@ -252,15 +252,15 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-white z-[600] flex flex-col font-sans overflow-hidden"
+            className="absolute inset-0 bg-white z-[600] flex flex-col font-sans"
         >
-            <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden scrollbar-hide">
+            <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden scrollbar-hide pb-20">
                 
                 <motion.div 
                   initial={{ y: -50, opacity: 0, scale: 1.1 }}
                   animate={{ y: 0, opacity: 1, scale: 1 }}
                   transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-                  className="relative h-[200px] w-full flex-shrink-0"
+                  className="relative h-[160px] sm:h-[200px] w-full flex-shrink-0"
                 >
                     <img 
                       src={headerImage} 
@@ -404,7 +404,7 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
 
                                 <div className="mt-8 pt-6 border-t border-gray-100">
                                     <p className="text-[10px] text-gray-400 italic leading-tight text-center px-4">
-                                        Rejoignez le réseau Filan 225 dès maintenant ! Donnez de la visibilité à vos compétences ou services et accédez à des opportunités garanties en un clic. Votre avenir professionnel commence ici.
+                                        FILANT°225 est votre partenaire de confiance pour trouver des professionnels qualifiés en Côte d'Ivoire.
                                     </p>
                                 </div>
                             </form>
