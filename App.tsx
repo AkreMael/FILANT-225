@@ -311,7 +311,7 @@ const App: React.FC = () => {
           name: publicationPaymentData.name,
           city: publicationPaymentData.city,
           price: publicationPaymentData.price,
-          frequency: publicationPaymentData.frequency,
+          frequency: publicationPaymentData.frequency || 'mois',
           service: publicationPaymentData.service,
           publicationPrice: 500, // Fixed at 500F as per request
           description: publicationPaymentData.description

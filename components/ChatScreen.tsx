@@ -235,6 +235,16 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ currentUser, targetUser, isAdmi
                     </p>
                   </div>
                 );
+                if (isAdmin && msg.sender === 'user') {
+                  specialAction = (
+                    <button 
+                      onClick={() => handleApprovePublication(data)}
+                      className="mt-3 w-full py-3 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+                    >
+                      Approuver le recrutement
+                    </button>
+                  );
+                }
               } catch (e) {
                 console.error("Error parsing RECRUIT_REQUEST", e);
               }

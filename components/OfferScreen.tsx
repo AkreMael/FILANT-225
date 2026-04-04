@@ -406,7 +406,16 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
   }, []);
 
   const allOffers = useMemo(() => {
-    return [...firebaseOffers, ...workerOffers];
+    const combined = [...firebaseOffers, ...workerOffers];
+    // De-duplicate by name and title to avoid showing the same offer from both sources
+    const unique = new Map();
+    combined.forEach(offer => {
+      const key = `${offer.name.toLowerCase()}-${offer.title.toLowerCase()}`;
+      if (!unique.has(key)) {
+        unique.set(key, offer);
+      }
+    });
+    return Array.from(unique.values());
   }, [firebaseOffers, workerOffers]);
 
   const handlePublishClick = (service: string) => {
@@ -441,7 +450,8 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
         name: item.name,
         city: item.city,
         service: item.title,
-        price: item.price
+        price: item.price,
+        description: item.description
       })}`;
       
       const chatUserId = (user?.phone || '').replace(/\D/g, '') || 'anonymous';
