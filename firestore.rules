@@ -233,29 +233,35 @@ service cloud.firestore {
         'userId', 'jobTitle', 'fullName', 'city', 'phone', 
         'whatsapp', 'experience', 'workMode', 'birthDate', 'createdAt'
       ];
+      
+      // For "Demande d'emploi" (direct publication), we relax the required fields
+      let isDirectPublication = ('typeInscription' in data && data.typeInscription == "Demande d'emploi");
+      let effectiveRequiredFields = isDirectPublication ? ['userId', 'jobTitle', 'fullName', 'city', 'createdAt'] : requiredFields;
+
       let allowedFields = [
         'userId', 'jobTitle', 'fullName', 'city', 'phone', 'whatsapp', 
-        'experience', 'workMode', 
+        'experience', 'workMode', 'name', 'service', 'photoUrl', 'frequency', 'description',
         'birthDate', 'email', 'status', 'createdAt', 'price', 'typeInscription', 'isUnblurred'
       ];
       
-      return hasRequiredFields(requiredFields) &&
+      return hasRequiredFields(effectiveRequiredFields) &&
              hasOnlyAllowedFields(allowedFields) &&
              data.userId is string &&
              data.jobTitle is string && data.jobTitle.size() > 0 && data.jobTitle.size() < 100 &&
              data.fullName is string && data.fullName.size() > 0 && data.fullName.size() < 100 &&
              data.city is string && data.city.size() > 0 && data.city.size() < 100 &&
-             data.phone is string && data.phone.size() >= 8 && data.phone.size() < 20 &&
-             data.whatsapp is string && data.whatsapp.size() >= 8 && data.whatsapp.size() < 20 &&
-             data.experience in ['Appris sur le tas', 'Nouveau (Formation)'] &&
-             data.workMode in ["J'ai un local", "Travailleur ambulant"] &&
-             data.birthDate is string && data.birthDate.size() < 50 &&
              data.createdAt is timestamp &&
+             (!('phone' in data) || (data.phone is string && data.phone.size() >= 8 && data.phone.size() < 20)) &&
+             (!('whatsapp' in data) || (data.whatsapp is string && data.whatsapp.size() >= 8 && data.whatsapp.size() < 20)) &&
+             (!('experience' in data) || data.experience in ['Appris sur le tas', 'Nouveau (Formation)']) &&
+             (!('workMode' in data) || data.workMode in ["J'ai un local", "Travailleur ambulant"]) &&
+             (!('birthDate' in data) || (data.birthDate is string && data.birthDate.size() < 50)) &&
              (!('email' in data) || isValidEmail(data.email)) &&
              (!('status' in data) || data.status in ['pending', 'paid', 'validated']) &&
-             (!('price' in data) || data.price is number) &&
+             (!('price' in data) || (data.price is number || data.price is string)) &&
              (!('typeInscription' in data) || data.typeInscription is string) &&
-             (!('isUnblurred' in data) || data.isUnblurred is bool);
+             (!('isUnblurred' in data) || data.isUnblurred is bool) &&
+             (!('photoUrl' in data) || isValidUrl(data.photoUrl));
     }
 
     function isValidProprietaire(data) {
@@ -337,15 +343,18 @@ service cloud.firestore {
 
     function isValidChatMessage(data) {
       let requiredFields = ['id', 'sender', 'text', 'timestamp', 'read'];
-      let allowedFields = ['id', 'sender', 'text', 'timestamp', 'read'];
+      let allowedFields = ['id', 'sender', 'text', 'timestamp', 'read', 'type', 'userId', 'userName'];
       
       return hasRequiredFields(requiredFields) &&
              hasOnlyAllowedFields(allowedFields) &&
              data.id is string &&
              data.sender in ['user', 'admin'] &&
              data.text is string && data.text.size() > 0 && data.text.size() < 5000 &&
-             data.timestamp is timestamp &&
-             data.read is bool;
+             (data.timestamp is number || data.timestamp is timestamp) &&
+             data.read is bool &&
+             (!('type' in data) || data.type is string) &&
+             (!('userId' in data) || data.userId is string) &&
+             (!('userName' in data) || data.userName is string);
     }
 
     function isValidScannedContact(data) {
@@ -419,7 +428,7 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
 
       // Subcollection for private chat messages
-      match /messages/{messageId} {
+      match /history/{messageId} {
         allow read, write: if isAdmin() || isOwner(id);
       }
     }

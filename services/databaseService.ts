@@ -1799,6 +1799,82 @@ export const databaseService = {
     }
   },
 
+  async publishStatusAsMessage(userId: string, data: any) {
+    try {
+      const sanitizedUserId = userId.replace(/[.#$[\]/]/g, '_');
+      const timestamp = Date.now();
+      
+      // 1. Prepare message text for the chat
+      const messageText = `NOUVELLE PUBLICATION :\nNom: ${data.name}\nVille: ${data.city}\nMétier: ${data.service}\nPrix: ${data.price}\nDescription: ${data.description || 'N/A'}`;
+      
+      // 2. Save as a chat message (RTDB + Firestore history)
+      // This uses the same logic as saveAdminChatMessage but combined for efficiency
+      const chatRef = rtdbRef(rtdb, `messages/${sanitizedUserId}`);
+      const messageId = push(chatRef).key;
+      const newMessageRef = rtdbRef(rtdb, `messages/${sanitizedUserId}/${messageId}`);
+      
+      const msgData = {
+        id: messageId,
+        text: messageText,
+        sender: 'user',
+        timestamp: timestamp,
+        read: false,
+        userId: sanitizedUserId,
+        userName: data.name || sanitizedUserId,
+        type: 'publication'
+      };
+
+      // 3. Save to 'travailleurs' collection for immediate display
+      const workerData = {
+        userId: sanitizedUserId,
+        name: data.name,
+        fullName: data.name, // For compatibility
+        city: data.city,
+        price: data.price,
+        frequency: data.frequency || 'mois',
+        service: data.service,
+        jobTitle: data.service, // For compatibility
+        description: data.description || `Disponible pour : ${data.service}`,
+        createdAt: serverTimestamp(),
+        isVerified: false,
+        typeInscription: "Demande d'emploi",
+        photoUrl: data.photoUrl || "https://i.supaimg.com/c3c14402-3c1f-4484-bfe1-774bcc4ac6de.png",
+        isUnblurred: false,
+        // Add dummy values for required fields in firestore.rules if needed, 
+        // but we'll update the rules to make them optional for "Demande d'emploi"
+        phone: data.phone || sanitizedUserId,
+        whatsapp: data.whatsapp || sanitizedUserId,
+        experience: 'Appris sur le tas',
+        workMode: 'Travailleur ambulant',
+        birthDate: 'Non spécifiée'
+      };
+
+      const workerDocRef = doc(collection(db, 'travailleurs'));
+      const adminOfferDocRef = doc(collection(db, 'offres_emploi'));
+
+      await Promise.all([
+        set(newMessageRef, msgData),
+        setDoc(doc(db, 'messages', sanitizedUserId, 'history', messageId!), {
+          ...msgData,
+          timestamp: serverTimestamp()
+        }),
+        setDoc(workerDocRef, workerData),
+        setDoc(adminOfferDocRef, {
+          ...workerData,
+          submittedAt: serverTimestamp(),
+          source: "Publication Directe"
+        })
+      ]);
+
+      console.log("Status published as message and worker offer successfully");
+      return { success: true, id: workerDocRef.id };
+    } catch (error) {
+      console.error("Error in publishStatusAsMessage:", error);
+      handleFirestoreError(error, OperationType.WRITE, 'multi-write');
+      return { success: false, error };
+    }
+  },
+
   async markAdminMessagesAsRead(userId: string, senderToMark: 'admin' | 'user') {
     try {
       const sanitizedUserId = userId.replace(/[.#$[\]/]/g, '_');

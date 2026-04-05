@@ -442,50 +442,32 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
 
   const handleFormSubmit = async (data: any) => {
     try {
-      console.log("Submitting publication form:", data);
+      console.log("Submitting publication form via databaseService:", data);
       
+      const userId = user?.userId || user?.id || user?.phone;
+      if (!userId) {
+        console.error("No user ID available for publication");
+        return;
+      }
+
       // Include current user info
       const publicationPayload = {
         ...data,
-        userId: user?.userId || user?.id || user?.phone,
         photoUrl: user?.photoUrl || user?.avatar || null,
-        isUnblurred: false // Default to blurred
       };
 
-      // Direct call to API to save to Firestore
-      const response = await fetch('/api/publish-offer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(publicationPayload),
-      });
+      // Use the new method that mimics chat message sending
+      const result = await databaseService.publishStatusAsMessage(userId, publicationPayload);
 
-      const contentType = response.headers.get("content-type");
-      let result: any;
-      
-      if (contentType && contentType.includes("application/json")) {
-        result = await response.json();
+      if (result.success) {
+        setIsPublicationModalOpen(false);
+        setToastMessage("Statut publié avec succès !");
+        setTimeout(() => setToastMessage(null), 4000);
       } else {
-        const text = await response.text();
-        console.error("Server returned non-JSON response:", text);
-        throw new Error(`Le serveur a renvoyé une réponse invalide (HTML). Détails: ${text.substring(0, 100)}...`);
+        console.error("Publication failed:", result.error);
       }
-
-      console.log("Publication API response:", result);
-
-      if (!response.ok) {
-        const errorMsg = result.error || result.details || 'Erreur inconnue lors de la publication';
-        throw new Error(errorMsg);
-      }
-
-      setIsPublicationModalOpen(false);
-      setToastMessage("Statut publié avec succès !");
-      setTimeout(() => setToastMessage(null), 4000);
     } catch (error: any) {
       console.error("Error publishing offer:", error);
-      // No alert or toast for errors as requested
     }
   };
 
