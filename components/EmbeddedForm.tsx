@@ -190,15 +190,21 @@ const EmbeddedForm: React.FC<EmbeddedFormProps> = ({
 
         // Save to Firebase
         try {
-            await databaseService.saveFormSubmission({ 
+            const result = await databaseService.saveFormSubmission({ 
                 userPhone: user.phone, 
                 formType, 
                 formTitle: title, 
                 data: answers, 
                 whatsappMessage: message 
             });
-        } catch (err) {
+            if (!result.success) {
+                const errorMsg = result.error?.message || (typeof result.error === 'string' ? result.error : JSON.stringify(result.error, Object.getOwnPropertyNames(result.error)));
+                alert(`Erreur lors de l'enregistrement : ${errorMsg}`);
+            }
+        } catch (err: any) {
             console.error("Error saving form submission:", err);
+            const errorMsg = err?.message || (typeof err === 'string' ? err : JSON.stringify(err, Object.getOwnPropertyNames(err)));
+            alert(`Erreur critique lors de l'enregistrement : ${errorMsg}`);
         }
 
         if (target === 'whatsapp') {

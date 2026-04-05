@@ -1261,6 +1261,21 @@ export const databaseService = {
       }
   },
 
+  updateOfferBlur: async (offerId: string, isUnblurred: boolean) => {
+      try {
+          const response = await fetch('/api/update-offer-blur', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ offerId, isUnblurred })
+          });
+          if (!response.ok) throw new Error('Failed to update blur status');
+          return await response.json();
+      } catch (error) {
+          console.error("Error updating offer blur:", error);
+          throw error;
+      }
+  },
+
   saveChatMessage: (phone: string, message: StoredChatMessage) => {
       try {
           const historyKey = getScopedKey(phone, CHAT_KEY_PREFIX);
@@ -1947,13 +1962,13 @@ export const databaseService = {
 
   async saveFormSubmission(data: any) {
     try {
-      const docRef = await addDoc(collection(db, 'form_submissions'), {
+      const docRef = await addDoc(collection(db, 'offres_emploi'), {
         ...data,
         submittedAt: serverTimestamp()
       });
       return { success: true, id: docRef.id };
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'form_submissions');
+      handleFirestoreError(error, OperationType.CREATE, 'offres_emploi');
       return { success: false, error };
     }
   },

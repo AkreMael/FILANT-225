@@ -62,7 +62,7 @@ async function startServer() {
   app.post("/api/publish-offer", async (req, res) => {
     console.log("POST /api/publish-offer received:", req.body);
     try {
-      const { name, city, price, frequency, service, description, userId, photoUrl } = req.body;
+      const { name, city, price, frequency, service, description, userId, photoUrl, isUnblurred } = req.body;
       
       if (!name || !service) {
         return res.status(400).json({ error: "Nom et Métier sont obligatoires." });
@@ -83,7 +83,8 @@ async function startServer() {
           isVerified: false,
           typeInscription: "Demande d'emploi",
           userId: userId || null,
-          photoUrl: photoUrl || null
+          photoUrl: photoUrl || null,
+          isUnblurred: isUnblurred || false
         });
         console.log("Saved to Firestore with ID:", docRef.id);
       } catch (firestoreError: any) {
@@ -98,6 +99,22 @@ async function startServer() {
         error: "Erreur interne du serveur lors de la publication.", 
         details: error.message 
       });
+    }
+  });
+
+  app.post("/api/update-offer-blur", async (req, res) => {
+    try {
+      const { offerId, isUnblurred } = req.body;
+      if (!offerId) {
+        return res.status(400).json({ error: "Missing offerId" });
+      }
+      await firestore.collection("travailleurs").doc(offerId).update({
+        isUnblurred: !!isUnblurred
+      });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error updating offer blur:", error);
+      res.status(500).json({ error: "Failed to update blur", details: error.message });
     }
   });
 

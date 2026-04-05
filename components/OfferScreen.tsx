@@ -15,6 +15,7 @@ export interface WorkerOffer {
     price: string;
     title: string;
     description: string;
+    isUnblurred?: boolean;
 }
 
 // --- Icons ---
@@ -133,11 +134,29 @@ const carouselItems = [
 
 const InterventionCard: React.FC<{ item: WorkerOffer, currentUser?: any }> = ({ item, currentUser }) => {
     const [isCopying, setIsCopying] = useState(false);
-    const [isUnblurred, setIsUnblurred] = useState(false);
+    const [isUpdatingBlur, setIsUpdatingBlur] = useState(false);
     const pressTimer = useRef<number | null>(null);
     const startPos = useRef<{x: number, y: number} | null>(null);
 
     const isOwner = currentUser && item.userId && (currentUser.userId === item.userId || currentUser.id === item.userId || currentUser.phone === item.userId);
+
+    const isUnblurred = item.isUnblurred || false;
+
+    const handleToggleBlur = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!isOwner || !item.id || isUpdatingBlur) return;
+        
+        try {
+            setIsUpdatingBlur(true);
+            await databaseService.updateOfferBlur(item.id, !isUnblurred);
+        } catch (error: any) {
+            console.error("Failed to toggle blur:", error);
+            const errorMsg = error?.message || (typeof error === 'string' ? error : JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            alert(`Erreur lors du changement de visibilité : ${errorMsg}`);
+        } finally {
+            setIsUpdatingBlur(false);
+        }
+    };
 
     const handleCopy = () => {
         const textToCopy = `Nom: ${item.name}\nVille: ${item.city}\nPrix: ${item.price}\nMétier: ${item.title}\nDisponibilité: ${item.description}\nFilant Services`;
@@ -198,11 +217,9 @@ const InterventionCard: React.FC<{ item: WorkerOffer, currentUser?: any }> = ({ 
                 )}
                 {isOwner && (
                     <button 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setIsUnblurred(!isUnblurred);
-                        }}
-                        className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full backdrop-blur-md active:scale-90 transition-all z-20"
+                        onClick={handleToggleBlur}
+                        disabled={isUpdatingBlur}
+                        className={`absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full backdrop-blur-md active:scale-90 transition-all z-20 ${isUpdatingBlur ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title={isUnblurred ? "Masquer" : "Afficher"}
                     >
                         <EyeIcon open={isUnblurred} />
@@ -400,6 +417,7 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
           price: cleanPrice ? `${cleanPrice}F par ${data.frequency || 'mois'}` : '',
           title: data.service || data.jobTitle || 'Travailleur',
           description: data.description || `Disponible pour : ${data.service || data.jobTitle || 'Travailleur'}`,
+          isUnblurred: data.isUnblurred || false,
           createdAt: data.createdAt?.toDate?.() || new Date(0) // Handle potential missing/null createdAt
         } as WorkerOffer & { createdAt: Date };
       });
@@ -431,7 +449,8 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
       const publicationPayload = {
         ...data,
         userId: user?.userId || user?.id || user?.phone,
-        photoUrl: user?.photoUrl || user?.avatar || null
+        photoUrl: user?.photoUrl || user?.avatar || null,
+        isUnblurred: false // Default to blurred
       };
 
       // Direct call to API to save to Firestore
@@ -467,7 +486,7 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
       setTimeout(() => setToastMessage(null), 4000);
     } catch (error: any) {
       console.error("Error publishing offer:", error);
-      // Ensure we display a string and not [object Object]
+      
       let displayError = "Erreur inconnue";
       if (error instanceof Error) {
         displayError = error.message;
@@ -475,7 +494,7 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
         displayError = error;
       } else {
         try {
-          displayError = JSON.stringify(error);
+          displayError = JSON.stringify(error, Object.getOwnPropertyNames(error));
         } catch (e) {
           displayError = String(error);
         }

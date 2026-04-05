@@ -236,7 +236,7 @@ service cloud.firestore {
       let allowedFields = [
         'userId', 'jobTitle', 'fullName', 'city', 'phone', 'whatsapp', 
         'experience', 'workMode', 
-        'birthDate', 'email', 'status', 'createdAt', 'price', 'typeInscription'
+        'birthDate', 'email', 'status', 'createdAt', 'price', 'typeInscription', 'isUnblurred'
       ];
       
       return hasRequiredFields(requiredFields) &&
@@ -254,7 +254,8 @@ service cloud.firestore {
              (!('email' in data) || isValidEmail(data.email)) &&
              (!('status' in data) || data.status in ['pending', 'paid', 'validated']) &&
              (!('price' in data) || data.price is number) &&
-             (!('typeInscription' in data) || data.typeInscription is string);
+             (!('typeInscription' in data) || data.typeInscription is string) &&
+             (!('isUnblurred' in data) || data.isUnblurred is bool);
     }
 
     function isValidProprietaire(data) {
@@ -445,7 +446,7 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    match /form_submissions/{id} {
+    match /offres_emploi/{id} {
       allow create: if true; // Allow anyone to submit forms (can be restricted if needed)
       allow read, update, delete: if isAdmin();
     }
