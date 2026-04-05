@@ -59,6 +59,85 @@ async function startServer() {
   };
 
   // API Routes
+  app.post("/api/publish-offer", async (req, res) => {
+    console.log("POST /api/publish-offer received:", req.body);
+    try {
+      const { name, city, price, frequency, service, publicationPrice, description } = req.body;
+      
+      if (!name || !service) {
+        return res.status(400).json({ error: "Nom et Métier sont obligatoires." });
+      }
+
+      // 1. Save to Firestore for immediate display
+      console.log("Saving to Firestore...");
+      const docRef = await firestore.collection("travailleurs").add({
+        name,
+        city: city || "Non spécifiée",
+        price: price || "À discuter",
+        frequency: frequency || "mois",
+        service,
+        publicationPrice: publicationPrice || 0,
+        description: description || `Disponible pour : ${service}`,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        isVerified: false
+      });
+      console.log("Saved to Firestore with ID:", docRef.id);
+
+      // 2. Attempt to write to Google Sheets if configured
+      const sheetId = process.env.GOOGLE_SHEETS_ID;
+      const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+      const privateKey = process.env.GOOGLE_PRIVATE_KEY;
+
+      if (sheetId && serviceAccountEmail && privateKey) {
+        try {
+          console.log("Attempting to write to Google Sheets...");
+          const { JWT } = await import("google-auth-library");
+          const { GoogleSpreadsheet } = await import("google-spreadsheet");
+          
+          // Handle private key formatting (common issue with \n)
+          const formattedKey = privateKey.replace(/\\n/g, '\n');
+          
+          const auth = new JWT({
+            email: serviceAccountEmail,
+            key: formattedKey,
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+          });
+
+          const doc = new GoogleSpreadsheet(sheetId, auth);
+          await doc.loadInfo();
+          
+          const sheet = doc.sheetsByIndex[0];
+          console.log(`Writing to sheet: ${sheet.title}`);
+          
+          await sheet.addRow({
+            "Nom": name,
+            "Ville": city || "Non spécifiée",
+            "Métier": service,
+            "Salaire": price || "À discuter",
+            "Description": description || `Disponible pour : ${service}`,
+            "Date de publication": new Date().toLocaleString('fr-FR', { timeZone: 'UTC' })
+          });
+          console.log("Successfully added row to Google Sheets");
+        } catch (sheetError: any) {
+          console.error("Error writing to Google Sheets:", sheetError.message);
+          if (sheetError.response) {
+            console.error("Sheet Error Response:", sheetError.response.data);
+          }
+        }
+      } else {
+        console.warn("Google Sheets API credentials missing. Check GOOGLE_SHEETS_ID, GOOGLE_SERVICE_ACCOUNT_EMAIL, and GOOGLE_PRIVATE_KEY.");
+      }
+
+      return res.json({ id: docRef.id, success: true });
+    } catch (error: any) {
+      console.error("CRITICAL Error in /api/publish-offer:", error);
+      return res.status(500).json({ 
+        error: "Erreur interne du serveur lors de la publication.", 
+        details: error.message 
+      });
+    }
+  });
+
   app.get("/api/workers", async (req, res) => {
     try {
       // Fetch from multiple collections in parallel to provide a comprehensive list quickly
@@ -158,7 +237,6 @@ async function startServer() {
       res.status(500).json({ error: "Failed to save offer" });
     }
   });
-
   app.post("/api/recruitment", async (req, res) => {
     try {
       const data = req.body;
@@ -170,75 +248,6 @@ async function startServer() {
     } catch (error) {
       console.error("Error saving recruitment:", error);
       res.status(500).json({ error: "Failed to save recruitment" });
-    }
-  });
-
-  app.post("/api/publish-offer", async (req, res) => {
-    try {
-      const { name, city, price, frequency, service, publicationPrice, description } = req.body;
-      
-      // 1. Save to Firestore for immediate display
-      const docRef = await firestore.collection("travailleurs").add({
-        name,
-        city,
-        price,
-        frequency,
-        service,
-        publicationPrice,
-        description: description || `Disponible pour : ${service}`,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        isVerified: false
-      });
-
-      // 2. Attempt to write to Google Sheets if configured
-      const sheetId = process.env.GOOGLE_SHEETS_ID;
-      const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-      const privateKey = process.env.GOOGLE_PRIVATE_KEY;
-
-      if (sheetId && serviceAccountEmail && privateKey) {
-        try {
-          console.log("Attempting to write to Google Sheets...");
-          const { JWT } = await import("google-auth-library");
-          const { GoogleSpreadsheet } = await import("google-spreadsheet");
-          
-          // Handle private key formatting (common issue with \n)
-          const formattedKey = privateKey.replace(/\\n/g, '\n');
-          
-          const auth = new JWT({
-            email: serviceAccountEmail,
-            key: formattedKey,
-            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-          });
-
-          const doc = new GoogleSpreadsheet(sheetId, auth);
-          await doc.loadInfo();
-          
-          const sheet = doc.sheetsByIndex[0];
-          console.log(`Writing to sheet: ${sheet.title}`);
-          
-          await sheet.addRow({
-            "Nom": name,
-            "Ville": city,
-            "Métier": service,
-            "Salaire": price,
-            "Description": description || `Disponible pour : ${service}`,
-            "Date de publication": new Date().toLocaleString('fr-FR', { timeZone: 'UTC' })
-          });
-          console.log("Successfully added row to Google Sheets");
-        } catch (sheetError: any) {
-          console.error("Error writing to Google Sheets:", sheetError.message);
-          if (sheetError.response) {
-            console.error("Sheet Error Response:", sheetError.response.data);
-          }
-        }
-      } else {
-        console.warn("Google Sheets API credentials missing. Check GOOGLE_SHEETS_ID, GOOGLE_SERVICE_ACCOUNT_EMAIL, and GOOGLE_PRIVATE_KEY.");
-      }
-
-      res.json({ id: docRef.id, success: true });
-    } catch (error: any) {
-      console.error("Error publishing offer:", error);
-      res.status(500).json({ error: "Failed to publish offer", details: error.message });
     }
   });
 

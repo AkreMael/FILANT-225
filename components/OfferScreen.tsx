@@ -164,11 +164,11 @@ const InterventionCard: React.FC<{ item: WorkerOffer }> = ({ item }) => {
                 <img 
                     src={item.img || "https://i.supaimg.com/c3c14402-3c1f-4484-bfe1-774bcc4ac6de.png"} 
                     alt={item.title} 
-                    className="w-full h-full object-cover blur-lg" 
+                    className="w-full h-full object-cover blur-[15px]" 
                     referrerPolicy="no-referrer" 
                 />
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/10">
-                    <span className="text-white text-[11px] font-black uppercase tracking-[0.2em] text-center px-2 drop-shadow-lg">masqué</span>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/30 backdrop-blur-[2px]">
+                    <span className="text-white text-[12px] font-black uppercase tracking-[0.3em] text-center px-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">masqué</span>
                 </div>
             </div>
             <div className="p-3 flex flex-col flex-1">
@@ -417,15 +417,23 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify(data),
       });
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        console.error("Server returned non-JSON response:", text);
+        throw new Error("Le serveur a renvoyé une réponse invalide (HTML au lieu de JSON).");
+      }
 
       const result = await response.json();
       console.log("Publication API response:", result);
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to publish offer');
+        throw new Error(result.error || result.details || 'Failed to publish offer');
       }
 
       setIsPublicationModalOpen(false);
@@ -433,7 +441,7 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
       setTimeout(() => setToastMessage(null), 4000);
     } catch (error: any) {
       console.error("Error publishing offer:", error);
-      alert(`Une erreur est survenue lors de la publication : ${error.message}`);
+      alert(`Erreur de publication : ${error.message}`);
     }
   };
 
