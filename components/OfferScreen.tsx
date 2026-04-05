@@ -141,14 +141,18 @@ const InterventionCard: React.FC<{ item: WorkerOffer, currentUser?: any }> = ({ 
     const isOwner = useMemo(() => {
         if (!currentUser || !item.userId) return false;
         
-        const sanitize = (id: string) => id.replace(/[.#$[\]/]/g, '_');
+        // Avoid matching on generic or empty strings
+        if (item.userId === 'undefined' || item.userId === 'null' || item.userId === '') return false;
+
+        const sanitize = (id: string) => typeof id === 'string' ? id.replace(/[.#$[\]/]/g, '_') : '';
         
-        // Collect all possible IDs for the current user
+        // Collect all possible IDs for the current user, ensuring they are valid strings
         const possibleIds = [
             currentUser.userId,
             currentUser.id,
             currentUser.phone
-        ].filter(Boolean).map(id => sanitize(id as string));
+        ].filter(id => id && typeof id === 'string' && id !== 'undefined' && id !== 'null')
+         .map(id => sanitize(id as string));
         
         // If any of the user's IDs match the item's userId, they are the owner
         return possibleIds.includes(item.userId);
@@ -278,7 +282,7 @@ const InfoBox = ({ title, description, onLinkClick }: { title: string, descripti
 const PublicationModal = ({ isOpen, onClose, onPublish, initialData }: { 
     isOpen: boolean, 
     onClose: () => void, 
-    onPublish: (data: any) => void,
+    onPublish: (data: any) => Promise<void>,
     initialData: { service: string }
 }) => {
     const [formData, setFormData] = useState({
@@ -289,12 +293,30 @@ const PublicationModal = ({ isOpen, onClose, onPublish, initialData }: {
         service: initialData.service,
         description: ''
     });
+    const [isPublishing, setIsPublishing] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
             setFormData(prev => ({ ...prev, service: initialData.service, name: '', city: '', price: '', description: '' }));
+            setIsPublishing(false);
         }
     }, [isOpen, initialData.service]);
+
+    const handlePublish = async () => {
+        if (isPublishing) return;
+        setIsPublishing(true);
+        
+        // Add a minimum delay of 2 seconds as requested by the user to avoid duplicates
+        const minDelay = new Promise(resolve => setTimeout(resolve, 2000));
+        
+        try {
+            await Promise.all([onPublish(formData), minDelay]);
+            // The modal will be closed by the parent on success
+        } catch (error) {
+            console.error("Publication error in modal:", error);
+            setIsPublishing(false);
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -364,10 +386,11 @@ const PublicationModal = ({ isOpen, onClose, onPublish, initialData }: {
                             Annuler
                         </button>
                         <button 
-                            onClick={() => onPublish(formData)}
-                            className="flex-1 py-4 bg-orange-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-200 active:scale-95 transition-all"
+                            onClick={handlePublish}
+                            disabled={isPublishing}
+                            className={`flex-1 py-4 bg-orange-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-200 active:scale-95 transition-all ${isPublishing ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                            Publier
+                            {isPublishing ? 'Publication...' : 'Publier'}
                         </button>
                     </div>
                 </div>

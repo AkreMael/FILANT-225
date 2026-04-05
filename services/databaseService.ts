@@ -1797,6 +1797,10 @@ export const databaseService = {
   },
 
   async publishStatusAsMessage(userId: string, data: any) {
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.error("Invalid userId for publication:", userId);
+      return { success: false, error: "Utilisateur non identifié" };
+    }
     try {
       const sanitizedUserId = userId.replace(/[.#$[\]/]/g, '_');
       const timestamp = Date.now();
