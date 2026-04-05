@@ -32,11 +32,10 @@ const WorkerDetailScreen: React.FC<WorkerDetailScreenProps> = ({ workerName, onB
 
     try {
       await databaseService.savePlacement(data);
-      alert('Votre demande a été soumise avec succès !');
+      console.log('Votre demande a été soumise avec succès !');
       onBack();
     } catch (error) {
       console.error("Error submitting placement request", error);
-      alert("Une erreur est survenue lors de l'envoi de votre demande.");
     } finally {
       setIsSubmitting(false);
     }

@@ -297,8 +297,6 @@ const RegistrationFormScreen: React.FC<RegistrationFormScreenProps> = ({ onBack,
                             </div>
                         ) : (
                             <form onSubmit={handleSubmit} className="space-y-6 pb-12">
-                                {error && <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-2xl text-sm font-bold animate-pulse text-center">{error}</div>}
-
                                 <div className="space-y-5">
                                     <div className="space-y-1.5">
                                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{config.labelTitre}</label>

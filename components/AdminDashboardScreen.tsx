@@ -159,7 +159,7 @@ const UserListItem = React.memo<{ user: User; onOpenChat?: (user: User) => void 
             setIsVerified(newStatus);
         } catch (error) {
             console.error("Error toggling verification:", error);
-            alert("Erreur lors de la modification du statut de vérification.");
+            console.error("Erreur lors de la modification du statut de vérification.");
         } finally {
             setIsVerifying(false);
         }
@@ -256,12 +256,12 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
       setIsResetting(true);
       try {
         await databaseService.resetDatabase(ADMIN_PHONE);
-        alert("✅ Base de données réinitialisée avec succès !");
+        console.log("✅ Base de données réinitialisée avec succès !");
         // Re-fetch users to update UI
         const users = await databaseService.getUsersFromFirestore();
         setFirestoreUsers(users);
       } catch (error) {
-        alert("❌ Erreur lors de la réinitialisation : " + (error instanceof Error ? error.message : String(error)));
+        console.error("❌ Erreur lors de la réinitialisation : " + (error instanceof Error ? error.message : String(error)));
       } finally {
         setIsResetting(false);
       }
@@ -555,7 +555,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
 
   const handleAddAssociation = () => {
       if (!assocInputs.providerName || !assocInputs.providerPhone || !assocInputs.clientName || !assocInputs.clientPhone) {
-          alert("Veuillez remplir les informations obligatoires.");
+          console.warn("Veuillez remplir les informations obligatoires.");
           return;
       }
       const newAssoc: Association = {
@@ -600,7 +600,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
 
   const handleAddActiveContact = () => {
       if (!contactInputs.name || !contactInputs.phone) {
-          alert("Veuillez remplir au moins le nom et le numéro.");
+          console.warn("Veuillez remplir au moins le nom et le numéro.");
           return;
       }
       const newContact: ActiveContact = {
@@ -954,10 +954,10 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
       setNotificationTitle('');
       setNotificationMessage('');
       setNotificationTargetUser(null);
-      alert("Notification envoyée avec succès !");
+      console.log("Notification envoyée avec succès !");
     } catch (error) {
       console.error("Error sending notification:", error);
-      alert("Erreur lors de l'envoi de la notification.");
+      console.error("Erreur lors de l'envoi de la notification.");
     } finally {
       setIsSendingNotification(false);
     }
@@ -1219,7 +1219,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
 
   const handleAddAdminContact = () => {
       if (!adminContactInputs.name || !adminContactInputs.phone) {
-          alert("Veuillez remplir au moins le nom et le numéro.");
+          console.warn("Veuillez remplir au moins le nom et le numéro.");
           return;
       }
       const newContact: AdminContact = {
@@ -1306,12 +1306,12 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
               };
               window.addEventListener('message', messageHandler);
           } else if (response.ok) {
-              alert("Contact synchronisé avec succès !");
+              console.log("Contact synchronisé avec succès !");
           } else {
-              alert("Erreur lors de la synchronisation.");
+              console.error("Erreur lors de la synchronisation.");
           }
       } catch (error) {
-          alert("Erreur réseau.");
+          console.error("Erreur réseau.");
       }
   };
 

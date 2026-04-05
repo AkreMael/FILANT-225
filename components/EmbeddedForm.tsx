@@ -198,13 +198,10 @@ const EmbeddedForm: React.FC<EmbeddedFormProps> = ({
                 whatsappMessage: message 
             });
             if (!result.success) {
-                const errorMsg = result.error?.message || (typeof result.error === 'string' ? result.error : JSON.stringify(result.error, Object.getOwnPropertyNames(result.error)));
-                alert(`Erreur lors de l'enregistrement : ${errorMsg}`);
+                console.error("Error saving form submission:", result.error);
             }
         } catch (err: any) {
-            console.error("Error saving form submission:", err);
-            const errorMsg = err?.message || (typeof err === 'string' ? err : JSON.stringify(err, Object.getOwnPropertyNames(err)));
-            alert(`Erreur critique lors de l'enregistrement : ${errorMsg}`);
+            console.error("Critical error saving form submission:", err);
         }
 
         if (target === 'whatsapp') {

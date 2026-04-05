@@ -151,8 +151,7 @@ const InterventionCard: React.FC<{ item: WorkerOffer, currentUser?: any }> = ({ 
             await databaseService.updateOfferBlur(item.id, !isUnblurred);
         } catch (error: any) {
             console.error("Failed to toggle blur:", error);
-            const errorMsg = error?.message || (typeof error === 'string' ? error : JSON.stringify(error, Object.getOwnPropertyNames(error)));
-            alert(`Erreur lors du changement de visibilité : ${errorMsg}`);
+            // No alert as requested
         } finally {
             setIsUpdatingBlur(false);
         }
@@ -486,21 +485,7 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
       setTimeout(() => setToastMessage(null), 4000);
     } catch (error: any) {
       console.error("Error publishing offer:", error);
-      
-      let displayError = "Erreur inconnue";
-      if (error instanceof Error) {
-        displayError = error.message;
-      } else if (typeof error === 'string') {
-        displayError = error;
-      } else {
-        try {
-          displayError = JSON.stringify(error, Object.getOwnPropertyNames(error));
-        } catch (e) {
-          displayError = String(error);
-        }
-      }
-      
-      alert(`Erreur de publication : ${displayError}`);
+      // No alert or toast for errors as requested
     }
   };
 

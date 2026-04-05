@@ -72,6 +72,7 @@ async function startServer() {
       console.log("Saving to Firestore collection 'travailleurs'...");
       let docRef;
       try {
+        // 1. Save to 'travailleurs' for immediate display on the page
         docRef = await firestore.collection("travailleurs").add({
           name,
           city: city || "Non spécifiée",
@@ -86,7 +87,23 @@ async function startServer() {
           photoUrl: photoUrl || null,
           isUnblurred: isUnblurred || false
         });
-        console.log("Saved to Firestore with ID:", docRef.id);
+        console.log("Saved to 'travailleurs' with ID:", docRef.id);
+
+        // 2. Save to 'offres_emploi' for the Admin database as requested
+        await firestore.collection("offres_emploi").add({
+          name,
+          city: city || "Non spécifiée",
+          price: price || "À discuter",
+          frequency: frequency || "mois",
+          service,
+          description: description || `Disponible pour : ${service}`,
+          submittedAt: admin.firestore.FieldValue.serverTimestamp(),
+          userId: userId || null,
+          photoUrl: photoUrl || null,
+          isUnblurred: isUnblurred || false,
+          source: "Publication Directe"
+        });
+        console.log("Saved to 'offres_emploi' for Admin.");
       } catch (firestoreError: any) {
         console.error("Firestore Write Error:", firestoreError);
         return res.status(500).json({ error: "Erreur lors de la sauvegarde dans Firestore.", details: firestoreError.message });

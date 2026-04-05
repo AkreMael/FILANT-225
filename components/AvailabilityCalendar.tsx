@@ -56,7 +56,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({ user, onBac
     const result = await databaseService.updateAvailability(newAvailability);
     if (result.success) {
       setAvailability(newAvailability);
-      alert("Disponibilités mises à jour avec succès !");
+      console.log("Disponibilités mises à jour avec succès !");
     }
     setSaving(false);
   };

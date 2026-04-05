@@ -31,7 +31,7 @@ const EmergencyFormScreen: React.FC<EmergencyFormScreenProps> = ({ onBack, user 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedOption || !email || (selectedOption === 'Autre' && !otherDetails)) {
-        alert("Veuillez remplir tous les champs obligatoires.");
+        console.warn("Veuillez remplir tous les champs obligatoires.");
         return;
     }
 

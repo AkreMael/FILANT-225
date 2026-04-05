@@ -40,7 +40,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
     const sanitizedPhone = phone.replace(/\s/g, '');
     
     if (name.trim() === '' || city.trim() === '' || !/^\d{10}$/.test(sanitizedPhone)) {
-      onShowPopup("Veuillez remplir tous les champs correctement. Le numéro doit comporter 10 chiffres.", 'alert');
+      console.warn("Veuillez remplir tous les champs correctement. Le numéro doit comporter 10 chiffres.");
       return;
     }
 
@@ -50,10 +50,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
         if (user) {
           onLoginSuccess(user);
         } else {
-          onShowPopup(registerError || "Erreur lors de l'inscription.", 'alert');
+          console.error("Erreur lors de l'inscription:", registerError);
         }
     } catch (error) {
-        onShowPopup("Une erreur est survenue lors de l'inscription.", 'alert');
+        console.error("Une erreur est survenue lors de l'inscription:", error);
     } finally {
         setIsLoading(false);
     }
@@ -63,7 +63,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
     const sanitizedPhone = phone.replace(/\s/g, '');
     
     if (name.trim() === '' || !/^\d{10}$/.test(sanitizedPhone)) {
-      onShowPopup("Veuillez entrer votre nom et un numéro à 10 chiffres.", 'alert');
+      console.warn("Veuillez entrer votre nom et un numéro à 10 chiffres.");
       return;
     }
 
@@ -73,7 +73,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
             sanitizedPhone !== ADMIN_PHONE || 
             adminCode !== ADMIN_PHONE + '0102'
         ) {
-            onShowPopup("Identifiants incorrects. Accès refusé.", 'alert');
+            console.error("Identifiants incorrects. Accès refusé.");
             return;
         }
     }
@@ -84,10 +84,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
         if (user) {
           onLoginSuccess(user);
         } else {
-          onShowPopup(loginError || "Erreur de connexion.", 'alert');
+          console.error("Erreur de connexion:", loginError);
         }
     } catch (error) {
-        onShowPopup("Une erreur est survenue lors de la connexion.", 'alert');
+        console.error("Une erreur est survenue lors de la connexion:", error);
     } finally {
         setIsLoading(false);
     }

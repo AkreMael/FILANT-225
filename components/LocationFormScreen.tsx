@@ -29,11 +29,11 @@ const LocationFormScreen: React.FC<LocationFormScreenProps> = ({ itemTitle, onBa
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!formData.name || !formData.phone || !formData.city) {
-      alert('Veuillez remplir tous les champs.');
+      console.warn('Veuillez remplir tous les champs.');
       return;
     }
     // In a real application, you would handle form submission logic here.
-    alert(`Votre demande pour "${itemTitle}" a été soumise avec succès ! (Ceci est une simulation)`);
+    console.log(`Votre demande pour "${itemTitle}" a été soumise avec succès ! (Ceci est une simulation)`);
     onBack(); // Go back to the list after submission
   };
 
