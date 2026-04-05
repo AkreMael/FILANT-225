@@ -2,9 +2,18 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Tab } from '../types';
 import { databaseService } from '../services/databaseService';
-import { googleSheetsService, WorkerOffer } from '../services/googleSheetsService';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
+
+// Define WorkerOffer locally since we're removing googleSheetsService
+export interface WorkerOffer {
+    img: string;
+    name: string;
+    city: string;
+    price: string;
+    title: string;
+    description: string;
+}
 
 // --- Icons ---
 const PhoneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>;
@@ -340,23 +349,7 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadOffers = async () => {
-        setIsLoadingOffers(true);
-        console.log('OfferScreen: Fetching worker offers...');
-        const offers = await googleSheetsService.fetchWorkerOffers();
-        console.log('OfferScreen: Fetched offers:', offers);
-        if (offers.length > 0) {
-            setWorkerOffers(offers);
-        } else {
-            console.warn('OfferScreen: No offers found in Google Sheet.');
-        }
-        setIsLoadingOffers(false);
-    };
-    loadOffers();
-    
-    // Refresh every 5 minutes
-    const interval = setInterval(loadOffers, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+    setIsLoadingOffers(false);
   }, []);
 
   // Fetch Firebase offers
@@ -391,18 +384,8 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
 
   const allOffers = useMemo(() => {
     // Firebase offers are already sorted desc by createdAt in the query
-    // We put them first so they appear at the top
-    const combined = [...firebaseOffers, ...workerOffers];
-    // De-duplicate by name and title to avoid showing the same offer from both sources
-    const unique = new Map();
-    combined.forEach(offer => {
-      const key = `${offer.name.toLowerCase()}-${offer.title.toLowerCase()}`;
-      if (!unique.has(key)) {
-        unique.set(key, offer);
-      }
-    });
-    return Array.from(unique.values());
-  }, [firebaseOffers, workerOffers]);
+    return firebaseOffers;
+  }, [firebaseOffers]);
 
   const handlePublishClick = (service: string) => {
     setSelectedServiceForPublication(service);
@@ -423,17 +406,21 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
       });
 
       const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
+      let result: any;
+      
+      if (contentType && contentType.includes("application/json")) {
+        result = await response.json();
+      } else {
         const text = await response.text();
         console.error("Server returned non-JSON response:", text);
-        throw new Error("Le serveur a renvoyé une réponse invalide (HTML au lieu de JSON).");
+        throw new Error(`Le serveur a renvoyé une réponse invalide (HTML). Détails: ${text.substring(0, 100)}...`);
       }
 
-      const result = await response.json();
       console.log("Publication API response:", result);
 
       if (!response.ok) {
-        throw new Error(result.error || result.details || 'Failed to publish offer');
+        const errorMsg = result.error || result.details || 'Erreur inconnue lors de la publication';
+        throw new Error(errorMsg);
       }
 
       setIsPublicationModalOpen(false);
@@ -441,7 +428,21 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
       setTimeout(() => setToastMessage(null), 4000);
     } catch (error: any) {
       console.error("Error publishing offer:", error);
-      alert(`Erreur de publication : ${error.message}`);
+      // Ensure we display a string and not [object Object]
+      let displayError = "Erreur inconnue";
+      if (error instanceof Error) {
+        displayError = error.message;
+      } else if (typeof error === 'string') {
+        displayError = error;
+      } else {
+        try {
+          displayError = JSON.stringify(error);
+        } catch (e) {
+          displayError = String(error);
+        }
+      }
+      
+      alert(`Erreur de publication : ${displayError}`);
     }
   };
 

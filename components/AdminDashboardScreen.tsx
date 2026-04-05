@@ -69,6 +69,7 @@ const sidebarButtons = [
   { id: 'associations', label: 'Associations' },
   { id: 'user-messages', label: 'Messages' },
   { id: 'private-registrations', label: 'Inscriptions' },
+  { id: 'job-postings', label: 'Emplois' },
   { id: 'firestore-users', label: 'Cloud' },
   { id: 'wave-payments', label: 'Paiements' },
   { id: 'assistant-requests', label: 'Assistant' },
@@ -138,7 +139,7 @@ interface AdminDashboardScreenProps {
   onLogout?: () => void;
   onSelectUser?: (log: ConnectionLog) => void;
   onOpenChat?: (user: User) => void;
-  initialView?: 'grid' | 'contacts' | 'associations' | 'active-contacts' | 'user-messages' | 'firestore-users' | 'wave-payments' | 'assistant-requests' | 'scanned-qr' | 'private-registrations' | 'notifications';
+  initialView?: 'grid' | 'contacts' | 'associations' | 'active-contacts' | 'user-messages' | 'firestore-users' | 'wave-payments' | 'assistant-requests' | 'scanned-qr' | 'private-registrations' | 'notifications' | 'job-postings';
 }
 
 const UserListItem = React.memo<{ user: User; onOpenChat?: (user: User) => void }>(({ user, onOpenChat }) => {
@@ -289,6 +290,21 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [viewedJobPostings, setViewedJobPostings] = useState<string[]>(() => {
+    const saved = localStorage.getItem('viewedJobPostings');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const markJobPostingAsViewed = (id: string) => {
+    if (!viewedJobPostings.includes(id)) {
+      const newList = [...viewedJobPostings, id];
+      setViewedJobPostings(newList);
+      localStorage.setItem('viewedJobPostings', JSON.stringify(newList));
+    }
+  };
+
+  const isJobPostingViewed = (id: string) => viewedJobPostings.includes(id);
+
   const markAsViewed = (id: string) => {
     if (!viewedRegistrations.includes(id)) {
       const newList = [...viewedRegistrations, id];
@@ -343,6 +359,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
   });
 
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [jobPostings, setJobPostings] = useState<any[]>([]);
 
   useEffect(() => {
     // 1. Messages (RTDB)
@@ -383,10 +400,16 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
       }
     });
 
+    // 4. Job Postings (Firestore)
+    const unsubJobPostings = databaseService.onJobPostingsUpdate((postings) => {
+      setJobPostings(postings);
+    });
+
     return () => {
       unsubMessages();
       unsubPayments();
       unsubAssistant();
+      unsubJobPostings();
     };
   }, []);
 
@@ -402,6 +425,9 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
     }
     if (id === 'scanned-qr') {
       return scannedContacts.filter(c => !isScannedContactViewed(c.id)).length;
+    }
+    if (id === 'job-postings') {
+      return jobPostings.filter(p => !isJobPostingViewed(p.id)).length;
     }
     return unreadCounts[id] || 0;
   };
@@ -660,6 +686,8 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
           } else if (view === 'user-messages' && itemToDelete) {
               await databaseService.deleteAdminConversation(itemToDelete.userId);
               setConversations(prev => prev.filter(c => c.userId !== itemToDelete.userId));
+          } else if (view === 'job-postings' && itemToDelete) {
+              await databaseService.deleteJobPosting(itemToDelete.id);
           } else if ((view === 'contacts' || view === 'firestore-users') && itemToDelete) {
               await databaseService.deleteUserFromFirestore(itemToDelete.phone);
               setFirestoreUsers(prev => prev.filter(u => u.phone !== itemToDelete.phone));
@@ -1497,6 +1525,93 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
     </div>
   );
 
+  const renderJobPostingsView = () => (
+    <div className="flex-1 flex flex-col h-full bg-[#ff802b] font-sans text-left overflow-hidden">
+        <header className="p-4 bg-white text-center sticky top-0 z-20 shadow-md">
+            <h2 className="text-sm font-black text-black uppercase tracking-[0.3em]">Demandes d'emploi</h2>
+        </header>
+
+        <div className="px-4 mt-4">
+            <div className="bg-black rounded-full p-1.5 flex items-center justify-center">
+                <span className="text-[9px] font-black text-white uppercase tracking-widest">recherche</span>
+            </div>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
+            {jobPostings.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-white/50">
+                    <p className="font-black uppercase text-xs tracking-widest">
+                        {isSyncing ? 'Chargement...' : 'Aucune demande'}
+                    </p>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {jobPostings.map((post, idx) => {
+                        const viewed = isJobPostingViewed(post.id);
+                        return (
+                            <div key={post.id || idx} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
+                                {!viewed && (
+                                    <div className="absolute top-2 right-2 w-3 h-3 bg-red-600 rounded-full border-2 border-white animate-pulse z-10" />
+                                )}
+                                <div className="flex justify-between items-start mb-3">
+                                    <div className="flex-1">
+                                        <h4 className="font-black text-white uppercase text-xs tracking-tight mb-0.5">{post.name}</h4>
+                                        <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">{post.service || post.jobTitle || 'Métier inconnu'}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button 
+                                            onClick={() => markJobPostingAsViewed(post.id)}
+                                            className={`p-1.5 rounded-lg transition-all active:scale-90 ${viewed ? 'bg-white/5 text-white/30' : 'bg-white/20 text-white'}`}
+                                            title="Marquer comme lu"
+                                        >
+                                            <VerifiedIcon className="w-4 h-4" />
+                                        </button>
+                                        <button 
+                                            onClick={() => { setItemToDelete(post); setDeleteId(post.id); }} 
+                                            className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all active:scale-90"
+                                        >
+                                            <TrashIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                    <div className="bg-white/5 p-2 rounded-xl border border-white/10">
+                                        <p className="text-[7px] font-black text-white/40 uppercase tracking-widest mb-0.5">Ville</p>
+                                        <p className="text-[11px] font-black text-white uppercase">{post.city || 'N/A'}</p>
+                                    </div>
+                                    <div className="bg-white/5 p-2 rounded-xl border border-white/10">
+                                        <p className="text-[7px] font-black text-white/40 uppercase tracking-widest mb-0.5">Salaire</p>
+                                        <p className="text-[11px] font-black text-white uppercase">{post.price} {post.frequency ? `/ ${post.frequency}` : ''}</p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white/5 p-3 rounded-xl border border-white/10 mb-3">
+                                    <p className="text-[8px] font-black text-[#ff802b] uppercase tracking-widest mb-1.5">Description</p>
+                                    <p className="text-[11px] text-white/80 leading-relaxed">{post.description}</p>
+                                </div>
+
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[8px] text-white/30 font-black uppercase tracking-widest">
+                                        {post.createdAt?.toDate ? post.createdAt.toDate().toLocaleString() : 
+                                         (post.createdAt && post.createdAt.seconds ? new Date(post.createdAt.seconds * 1000).toLocaleString() : 
+                                         new Date(post.createdAt).toLocaleString())}
+                                    </span>
+                                    {post.typeInscription && (
+                                        <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-white/10 text-white/60">
+                                            {post.typeInscription}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    </div>
+  );
+
   const renderScannedQRView = () => (
     <div className="flex-1 flex flex-col h-full bg-[#ff802b] font-sans text-left overflow-hidden">
         <header className="p-4 bg-white text-center sticky top-0 z-20 shadow-md">
@@ -1701,6 +1816,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
       if (view === 'wave-payments') return renderWavePaymentsView();
       if (view === 'assistant-requests') return renderAssistantRequestsView();
       if (view === 'scanned-qr') return renderScannedQRView();
+      if (view === 'job-postings') return renderJobPostingsView();
       if (view === 'private-registrations') return renderPrivateRegistrationsView();
       if (view === 'notifications') return renderNotificationsView();
       
@@ -1714,7 +1830,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
 
     const activeViewContent = useMemo(() => renderActiveView(), [
         view, firestoreUsers, privateRegistrations, wavePayments, assistantRequests, 
-        scannedContacts, conversations, associations, activeContacts, adminContacts,
+        scannedContacts, conversations, associations, activeContacts, adminContacts, jobPostings, viewedJobPostings,
         searchTerm, isSyncing, isFormOpen, selectedRegistration, selectedQR, deleteId, itemToDelete, editingContact, selectedContacts, shareMode, viewingContact
     ]);
 

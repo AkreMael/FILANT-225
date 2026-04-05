@@ -62,70 +62,31 @@ async function startServer() {
   app.post("/api/publish-offer", async (req, res) => {
     console.log("POST /api/publish-offer received:", req.body);
     try {
-      const { name, city, price, frequency, service, publicationPrice, description } = req.body;
+      const { name, city, price, frequency, service, description } = req.body;
       
       if (!name || !service) {
         return res.status(400).json({ error: "Nom et Métier sont obligatoires." });
       }
 
-      // 1. Save to Firestore for immediate display
-      console.log("Saving to Firestore...");
-      const docRef = await firestore.collection("travailleurs").add({
-        name,
-        city: city || "Non spécifiée",
-        price: price || "À discuter",
-        frequency: frequency || "mois",
-        service,
-        publicationPrice: publicationPrice || 0,
-        description: description || `Disponible pour : ${service}`,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        isVerified: false
-      });
-      console.log("Saved to Firestore with ID:", docRef.id);
-
-      // 2. Attempt to write to Google Sheets if configured
-      const sheetId = process.env.GOOGLE_SHEETS_ID;
-      const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-      const privateKey = process.env.GOOGLE_PRIVATE_KEY;
-
-      if (sheetId && serviceAccountEmail && privateKey) {
-        try {
-          console.log("Attempting to write to Google Sheets...");
-          const { JWT } = await import("google-auth-library");
-          const { GoogleSpreadsheet } = await import("google-spreadsheet");
-          
-          // Handle private key formatting (common issue with \n)
-          const formattedKey = privateKey.replace(/\\n/g, '\n');
-          
-          const auth = new JWT({
-            email: serviceAccountEmail,
-            key: formattedKey,
-            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-          });
-
-          const doc = new GoogleSpreadsheet(sheetId, auth);
-          await doc.loadInfo();
-          
-          const sheet = doc.sheetsByIndex[0];
-          console.log(`Writing to sheet: ${sheet.title}`);
-          
-          await sheet.addRow({
-            "Nom": name,
-            "Ville": city || "Non spécifiée",
-            "Métier": service,
-            "Salaire": price || "À discuter",
-            "Description": description || `Disponible pour : ${service}`,
-            "Date de publication": new Date().toLocaleString('fr-FR', { timeZone: 'UTC' })
-          });
-          console.log("Successfully added row to Google Sheets");
-        } catch (sheetError: any) {
-          console.error("Error writing to Google Sheets:", sheetError.message);
-          if (sheetError.response) {
-            console.error("Sheet Error Response:", sheetError.response.data);
-          }
-        }
-      } else {
-        console.warn("Google Sheets API credentials missing. Check GOOGLE_SHEETS_ID, GOOGLE_SERVICE_ACCOUNT_EMAIL, and GOOGLE_PRIVATE_KEY.");
+      // Save to Firestore for immediate display
+      console.log("Saving to Firestore collection 'travailleurs'...");
+      let docRef;
+      try {
+        docRef = await firestore.collection("travailleurs").add({
+          name,
+          city: city || "Non spécifiée",
+          price: price || "À discuter",
+          frequency: frequency || "mois",
+          service,
+          description: description || `Disponible pour : ${service}`,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          isVerified: false,
+          typeInscription: "Demande d'emploi"
+        });
+        console.log("Saved to Firestore with ID:", docRef.id);
+      } catch (firestoreError: any) {
+        console.error("Firestore Write Error:", firestoreError);
+        return res.status(500).json({ error: "Erreur lors de la sauvegarde dans Firestore.", details: firestoreError.message });
       }
 
       return res.json({ id: docRef.id, success: true });

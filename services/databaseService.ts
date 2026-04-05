@@ -749,6 +749,38 @@ export const databaseService = {
     }
   },
 
+  getJobPostings: async (): Promise<any[]> => {
+    const path = 'travailleurs';
+    try {
+      const q = query(collection(db, path), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.LIST, path);
+      return [];
+    }
+  },
+
+  onJobPostingsUpdate: (callback: (postings: any[]) => void) => {
+    const path = 'travailleurs';
+    const q = query(collection(db, path), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      const postings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      callback(postings);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, path);
+    });
+  },
+
+  deleteJobPosting: async (id: string) => {
+    const path = `travailleurs/${id}`;
+    try {
+      await deleteDoc(doc(db, 'travailleurs', id));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, path);
+    }
+  },
+
   saveRegistration: async (type: string, data: any) => {
     console.log(`Starting ${type} registration save...`, { type, dataKeys: Object.keys(data) });
     const collectionMap: Record<string, string> = {
