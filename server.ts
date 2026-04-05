@@ -62,7 +62,7 @@ async function startServer() {
   app.post("/api/publish-offer", async (req, res) => {
     console.log("POST /api/publish-offer received:", req.body);
     try {
-      const { name, city, price, frequency, service, description } = req.body;
+      const { name, city, price, frequency, service, description, userId, photoUrl } = req.body;
       
       if (!name || !service) {
         return res.status(400).json({ error: "Nom et Métier sont obligatoires." });
@@ -81,7 +81,9 @@ async function startServer() {
           description: description || `Disponible pour : ${service}`,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
           isVerified: false,
-          typeInscription: "Demande d'emploi"
+          typeInscription: "Demande d'emploi",
+          userId: userId || null,
+          photoUrl: photoUrl || null
         });
         console.log("Saved to Firestore with ID:", docRef.id);
       } catch (firestoreError: any) {

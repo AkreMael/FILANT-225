@@ -6,7 +6,7 @@ import { User, PrivateRegistration } from '../types';
 import { ADMIN_PHONE } from '../utils/authUtils';
 import Typewriter from './common/Typewriter';
 import MenuBackground from './common/MenuBackground';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 
 const IconWrapper: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
     <div className={`flex items-center justify-center rounded-full ${className}`}>
@@ -37,6 +37,11 @@ const BellIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 const ExportIcon = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>;
+const DownloadIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+    </svg>
+);
 const WhatsAppIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor">
         <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.886-.001 2.269.655 4.288 1.902 5.941l-1.442 5.253 5.354-1.405z" />
@@ -218,6 +223,19 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
   const [scannedContacts, setScannedContacts] = useState<any[]>([]);
   const [conversations, setConversations] = useState<any[]>([]);
   const [selectedQR, setSelectedQR] = useState<any | null>(null);
+
+  const downloadQRCode = () => {
+    const canvas = document.getElementById('admin-qr-canvas') as HTMLCanvasElement;
+    if (canvas && selectedQR) {
+      const url = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `QR_Code_${selectedQR.name.replace(/\s+/g, '_')}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
   const [isSyncing, setIsSyncing] = useState(false);
   const [logs, setLogs] = useState<ConnectionLog[]>([]);
   const [associations, setAssociations] = useState<Association[]>([]);
@@ -1717,12 +1735,29 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                         <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight text-center mb-1">{selectedQR.name}</h3>
                         <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-8">{selectedQR.title || 'Contact Scanné'}</p>
                         
-                        <div className="bg-slate-50 p-6 rounded-[2.5rem] border-4 border-emerald-500/20 shadow-inner mb-8">
-                            <QRCodeSVG 
+                        <div className="bg-slate-50 p-6 rounded-[2.5rem] border-4 border-emerald-500/20 shadow-inner mb-8 flex flex-col items-center gap-6">
+                            <QRCodeCanvas 
+                                id="admin-qr-canvas"
                                 value={`Métier: ${selectedQR.title || 'Non spécifié'}\nNom: ${selectedQR.name}\nVille: ${selectedQR.city || 'N/A'}\nNuméro: ${selectedQR.phone}`} 
                                 size={200} 
                                 level="H" 
+                                includeMargin={true}
+                                imageSettings={{
+                                    src: "https://i.supaimg.com/5cd01a23-e101-4415-9e28-ff02a617cd11.png",
+                                    x: undefined,
+                                    y: undefined,
+                                    height: 40,
+                                    width: 40,
+                                    excavate: true,
+                                }}
                             />
+                            <button 
+                                onClick={downloadQRCode}
+                                className="flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+                            >
+                                <DownloadIcon className="w-4 h-4" />
+                                Télécharger
+                            </button>
                         </div>
 
                         <div className="w-full space-y-3">

@@ -7,6 +7,8 @@ import { db } from '../firebase';
 
 // Define WorkerOffer locally since we're removing googleSheetsService
 export interface WorkerOffer {
+    id?: string;
+    userId?: string;
     img: string;
     name: string;
     city: string;
@@ -20,6 +22,16 @@ const PhoneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w
 const FacebookIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-2.2c0-.81.24-1.356 1.442-1.356h2.558v-4.148c-.443-.058-1.961-.191-3.727-.191-3.69 0-6.213 2.253-6.213 6.388v1.511z"/></svg>;
 const InstagramIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.332 3.608 1.308.975.975 1.245 2.242 1.308 3.608.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.332 2.633-1.308 3.608-.975.975-2.242 1.245-3.608 1.308-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.332-3.608-1.308-.975-.975-1.245-2.242-1.308-3.608-.058-1.266-.07-1.646-.07-4.85s.012-3.584.07-4.85c.062-1.366.332-2.633 1.308-3.608.975-.975 2.242-1.245 3.608-1.308 1.266-.058-1.646-.07 4.85-.07zm0-2.163c-3.259 0-3.667.014-4.947.072-1.277.057-2.395.26-3.236 1.079-.841.84-1.044 1.959-1.101 3.236-.058 1.28-.072 1.688-.072 4.947s.014 3.667.072 4.947c.057 1.277.26 2.395 1.079 3.236.84 1.218 1.959 1.42 3.236 1.477 1.28.058 1.688.072 4.947.072s3.667-.014 4.947-.072c1.277-.057 2.395-.26 3.236-1.079.841-.84 1.044-1.959 1.101-3.236.058-1.28.072-1.688.072-4.947s-.014-3.667-.072-4.947c-.057-1.277-.26-2.395-1.079-3.236-.84-.841-1.959-1.044-3.236-1.101-1.28-.058-1.688-.072-4.947-.072zM12 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.791-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.209-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>;
 const TikTokIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-1.13-.31-2.34-.25-3.41.33-.71.38-1.27.98-1.58 1.72-.45.91-.42 1.91-.04 2.81.37.91 1.07 1.69 1.91 2.15 1.22.69 2.72.71 3.99.14 1.1-.46 1.97-1.39 2.32-2.48.1-.34.15-.7.18-1.07.03-3.14.02-6.28.02-9.42z"/></svg>;
+
+const EyeIcon = ({ open }: { open: boolean }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        {open ? (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 1.274-4.057-5.064-7 9.542-7 1.225 0 2.39.26 3.44.725M15 12a3 3 0 11-6 0 3 3 0 016 0z M3 3l18 18" />
+        )}
+    </svg>
+);
 
 const ArrowRightIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>;
 const ShopIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12.378 1.602a.75.75 0 00-.756 0L3 6.632V21a.75.75 0 00.75.75h16.5a.75.75 0 00.75-.75V6.632l-8.622-5.03zM12 4.457l6.5 3.791V20.25H5.5V8.248l6.5-3.791zM9.5 12.25a2.5 2.5 0 005 0v-1.5a.75.75 0 00-1.5 0v1.5a1 1 0 01-2 0v-1.5a.75.75 0 00-1.5 0v1.5z" /></svg>;
@@ -119,10 +131,13 @@ const carouselItems = [
     { title: "Technicien (sonorisation)", name: "Fenrir", city: "Korhogo", description: "Assistance quotidienne à domicile", price: "30 000 F", img: INTERV_IMAGES.aide_domicile },
 ];
 
-const InterventionCard: React.FC<{ item: WorkerOffer }> = ({ item }) => {
+const InterventionCard: React.FC<{ item: WorkerOffer, currentUser?: any }> = ({ item, currentUser }) => {
     const [isCopying, setIsCopying] = useState(false);
+    const [isUnblurred, setIsUnblurred] = useState(false);
     const pressTimer = useRef<number | null>(null);
     const startPos = useRef<{x: number, y: number} | null>(null);
+
+    const isOwner = currentUser && item.userId && (currentUser.userId === item.userId || currentUser.id === item.userId || currentUser.phone === item.userId);
 
     const handleCopy = () => {
         const textToCopy = `Nom: ${item.name}\nVille: ${item.city}\nPrix: ${item.price}\nMétier: ${item.title}\nDisponibilité: ${item.description}\nFilant Services`;
@@ -173,12 +188,26 @@ const InterventionCard: React.FC<{ item: WorkerOffer }> = ({ item }) => {
                 <img 
                     src={item.img || "https://i.supaimg.com/c3c14402-3c1f-4484-bfe1-774bcc4ac6de.png"} 
                     alt={item.title} 
-                    className="w-full h-full object-cover blur-[15px]" 
+                    className={`w-full h-full object-cover transition-all duration-500 ${isUnblurred ? 'blur-0' : 'blur-[15px]'}`} 
                     referrerPolicy="no-referrer" 
                 />
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/30 backdrop-blur-[2px]">
-                    <span className="text-white text-[12px] font-black uppercase tracking-[0.3em] text-center px-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">masqué</span>
-                </div>
+                {!isUnblurred && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/30 backdrop-blur-[2px]">
+                        <span className="text-white text-[12px] font-black uppercase tracking-[0.3em] text-center px-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">masqué</span>
+                    </div>
+                )}
+                {isOwner && (
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsUnblurred(!isUnblurred);
+                        }}
+                        className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full backdrop-blur-md active:scale-90 transition-all z-20"
+                        title={isUnblurred ? "Masquer" : "Afficher"}
+                    >
+                        <EyeIcon open={isUnblurred} />
+                    </button>
+                )}
             </div>
             <div className="p-3 flex flex-col flex-1">
                 <div className="flex flex-col mb-1.5">
@@ -363,6 +392,8 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
         const data = doc.data();
         const cleanPrice = data.price?.toString().replace(/F/gi, '').trim();
         return {
+          id: doc.id,
+          userId: data.userId,
           img: data.photoUrl || "https://i.supaimg.com/c3c14402-3c1f-4484-bfe1-774bcc4ac6de.png",
           name: data.name || data.fullName || 'Anonyme',
           city: data.city || 'Non spécifiée',
@@ -395,14 +426,22 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
   const handleFormSubmit = async (data: any) => {
     try {
       console.log("Submitting publication form:", data);
-      // Direct call to API to save to Firestore and Google Sheets
+      
+      // Include current user info
+      const publicationPayload = {
+        ...data,
+        userId: user?.userId || user?.id || user?.phone,
+        photoUrl: user?.photoUrl || user?.avatar || null
+      };
+
+      // Direct call to API to save to Firestore
       const response = await fetch('/api/publish-offer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(publicationPayload),
       });
 
       const contentType = response.headers.get("content-type");
@@ -661,6 +700,7 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
                             <InterventionCard 
                                 key={idx} 
                                 item={item} 
+                                currentUser={user}
                             />
                         ))}
                         {!isExpanded && allOffers.length > 4 && (

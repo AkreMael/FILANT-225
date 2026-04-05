@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../types';
 import { databaseService, CardData } from '../services/databaseService';
 import { getCardType } from '../utils/authUtils';
-import { QRCodeSVG } from 'qrcode.react';
-import { Camera, Check, Edit2, ArrowLeft, X, Loader2, RefreshCw } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
+import { Camera, Check, Edit2, ArrowLeft, X, Loader2, RefreshCw, Download } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
 interface ProfessionalCardScreenProps {
@@ -185,6 +185,19 @@ const ProfessionalCardScreen: React.FC<ProfessionalCardScreenProps> = ({ user, o
 
   const qrValue = `Métier: ${profession || 'Non spécifié'}\nNom: ${user.name}\nVille: ${user.city}\nNuméro: ${COMPANY_PHONE}`;
 
+  const downloadQRCode = () => {
+    const canvas = document.getElementById('qr-code-canvas') as HTMLCanvasElement;
+    if (canvas) {
+      const url = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `QR_Code_${user.name.replace(/\s+/g, '_')}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-900 text-white p-4 pb-24">
       {/* Header */}
@@ -234,8 +247,31 @@ const ProfessionalCardScreen: React.FC<ProfessionalCardScreenProps> = ({ user, o
         {/* Main Content */}
         <div className="p-6 flex flex-col sm:flex-row gap-6">
           {/* QR Code */}
-          <div className="flex justify-center items-center bg-white p-2 border-2 border-slate-100 rounded-lg shrink-0">
-            <QRCodeSVG value={qrValue} size={140} level="H" />
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex justify-center items-center bg-white p-2 border-2 border-slate-100 rounded-lg shrink-0 shadow-inner">
+              <QRCodeCanvas 
+                id="qr-code-canvas"
+                value={qrValue} 
+                size={140} 
+                level="H"
+                includeMargin={true}
+                imageSettings={{
+                  src: "https://i.supaimg.com/5cd01a23-e101-4415-9e28-ff02a617cd11.png",
+                  x: undefined,
+                  y: undefined,
+                  height: 30,
+                  width: 30,
+                  excavate: true,
+                }}
+              />
+            </div>
+            <button 
+              onClick={downloadQRCode}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 border border-slate-200"
+            >
+              <Download className="w-3 h-3" />
+              Télécharger QR
+            </button>
           </div>
 
           {/* Info Rows */}
