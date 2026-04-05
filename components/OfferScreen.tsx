@@ -140,7 +140,7 @@ const InterventionCard: React.FC<{ item: WorkerOffer, currentUser?: any }> = ({ 
 
     const isOwner = currentUser && item.userId && (currentUser.userId === item.userId || currentUser.id === item.userId || currentUser.phone === item.userId);
 
-    const isUnblurred = item.isUnblurred || false;
+    const isUnblurred = item.isUnblurred !== false;
 
     const handleToggleBlur = async (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -218,7 +218,7 @@ const InterventionCard: React.FC<{ item: WorkerOffer, currentUser?: any }> = ({ 
                     <button 
                         onClick={handleToggleBlur}
                         disabled={isUpdatingBlur}
-                        className={`absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full backdrop-blur-md active:scale-90 transition-all z-20 ${isUpdatingBlur ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`absolute top-2 right-2 p-2 ${isUnblurred ? 'bg-green-500' : 'bg-black/50'} text-white rounded-full backdrop-blur-md active:scale-90 transition-all z-20 shadow-lg ${isUpdatingBlur ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title={isUnblurred ? "Masquer" : "Afficher"}
                     >
                         <EyeIcon open={isUnblurred} />

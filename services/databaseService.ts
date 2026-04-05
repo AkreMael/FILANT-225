@@ -1,6 +1,6 @@
 import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification, PrivateRegistration, Review, Intervention, Availability } from '../types';
 import { db, auth, rtdb, storage } from '../firebase';
-import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc, getDocFromServer, onSnapshot, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc, getDocFromServer, onSnapshot, writeBatch, updateDoc } from 'firebase/firestore';
 import { ref as rtdbRef, push, set, serverTimestamp as rtdbTimestamp, get, update, onValue, remove } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
 
@@ -1263,15 +1263,12 @@ export const databaseService = {
 
   updateOfferBlur: async (offerId: string, isUnblurred: boolean) => {
       try {
-          const response = await fetch('/api/update-offer-blur', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ offerId, isUnblurred })
-          });
-          if (!response.ok) throw new Error('Failed to update blur status');
-          return await response.json();
+          const offerRef = doc(db, 'travailleurs', offerId);
+          await updateDoc(offerRef, { isUnblurred });
+          return { success: true };
       } catch (error) {
           console.error("Error updating offer blur:", error);
+          handleFirestoreError(error, OperationType.UPDATE, `travailleurs/${offerId}`);
           throw error;
       }
   },
@@ -1839,7 +1836,7 @@ export const databaseService = {
         isVerified: false,
         typeInscription: "Demande d'emploi",
         photoUrl: data.photoUrl || "https://i.supaimg.com/c3c14402-3c1f-4484-bfe1-774bcc4ac6de.png",
-        isUnblurred: false,
+        isUnblurred: true,
         // Add dummy values for required fields in firestore.rules if needed, 
         // but we'll update the rules to make them optional for "Demande d'emploi"
         phone: data.phone || sanitizedUserId,
