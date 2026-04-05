@@ -138,7 +138,21 @@ const InterventionCard: React.FC<{ item: WorkerOffer, currentUser?: any }> = ({ 
     const pressTimer = useRef<number | null>(null);
     const startPos = useRef<{x: number, y: number} | null>(null);
 
-    const isOwner = currentUser && item.userId && (currentUser.userId === item.userId || currentUser.id === item.userId || currentUser.phone === item.userId);
+    const isOwner = useMemo(() => {
+        if (!currentUser || !item.userId) return false;
+        
+        const sanitize = (id: string) => id.replace(/[.#$[\]/]/g, '_');
+        
+        // Collect all possible IDs for the current user
+        const possibleIds = [
+            currentUser.userId,
+            currentUser.id,
+            currentUser.phone
+        ].filter(Boolean).map(id => sanitize(id as string));
+        
+        // If any of the user's IDs match the item's userId, they are the owner
+        return possibleIds.includes(item.userId);
+    }, [currentUser, item.userId]);
 
     const isUnblurred = item.isUnblurred !== false;
 
