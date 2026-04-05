@@ -193,39 +193,46 @@ async function startServer() {
       // 2. Attempt to write to Google Sheets if configured
       const sheetId = process.env.GOOGLE_SHEETS_ID;
       const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-      const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+      const privateKey = process.env.GOOGLE_PRIVATE_KEY;
 
       if (sheetId && serviceAccountEmail && privateKey) {
         try {
+          console.log("Attempting to write to Google Sheets...");
           const { JWT } = await import("google-auth-library");
           const { GoogleSpreadsheet } = await import("google-spreadsheet");
           
+          // Handle private key formatting (common issue with \n)
+          const formattedKey = privateKey.replace(/\\n/g, '\n');
+          
           const auth = new JWT({
             email: serviceAccountEmail,
-            key: privateKey,
+            key: formattedKey,
             scopes: ['https://www.googleapis.com/auth/spreadsheets'],
           });
 
           const doc = new GoogleSpreadsheet(sheetId, auth);
           await doc.loadInfo();
           
-          // Assuming the first sheet is the one to write to
           const sheet = doc.sheetsByIndex[0];
+          console.log(`Writing to sheet: ${sheet.title}`);
+          
           await sheet.addRow({
             "Nom": name,
             "Ville": city,
             "Métier": service,
             "Salaire": price,
             "Description": description || `Disponible pour : ${service}`,
-            "Date de publication": new Date().toLocaleString('fr-FR')
+            "Date de publication": new Date().toLocaleString('fr-FR', { timeZone: 'UTC' })
           });
           console.log("Successfully added row to Google Sheets");
-        } catch (sheetError) {
-          console.error("Error writing to Google Sheets:", sheetError);
-          // We don't fail the whole request if sheet write fails, as Firestore is the primary source for the app
+        } catch (sheetError: any) {
+          console.error("Error writing to Google Sheets:", sheetError.message);
+          if (sheetError.response) {
+            console.error("Sheet Error Response:", sheetError.response.data);
+          }
         }
       } else {
-        console.warn("Google Sheets API not configured. Skipping sheet write.");
+        console.warn("Google Sheets API credentials missing. Check GOOGLE_SHEETS_ID, GOOGLE_SERVICE_ACCOUNT_EMAIL, and GOOGLE_PRIVATE_KEY.");
       }
 
       res.json({ id: docRef.id, success: true });

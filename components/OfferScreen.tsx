@@ -161,9 +161,14 @@ const InterventionCard: React.FC<{ item: WorkerOffer }> = ({ item }) => {
                 </div>
             )}
             <div className="h-[120px] w-full relative">
-                <img src={item.img || "https://i.supaimg.com/c3c14402-3c1f-4484-bfe1-774bcc4ac6de.png"} alt={item.title} className="w-full h-full object-cover blur-[12px]" referrerPolicy="no-referrer" />
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="text-white/60 text-[11px] font-black uppercase tracking-widest text-center px-2 drop-shadow-md">masqué</span>
+                <img 
+                    src={item.img || "https://i.supaimg.com/c3c14402-3c1f-4484-bfe1-774bcc4ac6de.png"} 
+                    alt={item.title} 
+                    className="w-full h-full object-cover blur-lg" 
+                    referrerPolicy="no-referrer" 
+                />
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/10">
+                    <span className="text-white text-[11px] font-black uppercase tracking-[0.2em] text-center px-2 drop-shadow-lg">masqué</span>
                 </div>
             </div>
             <div className="p-3 flex flex-col flex-1">
@@ -332,6 +337,7 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
   const [isPublicationModalOpen, setIsPublicationModalOpen] = useState(false);
   const [selectedServiceForPublication, setSelectedServiceForPublication] = useState('');
   const [publicationData, setPublicationData] = useState<any>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const loadOffers = async () => {
@@ -355,8 +361,11 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
 
   // Fetch Firebase offers
   useEffect(() => {
-    const q = query(collection(db, 'travailleurs'), orderBy('createdAt', 'desc'));
+    console.log("Setting up Firestore onSnapshot listener...");
+    // We don't use orderBy here to avoid excluding documents missing the createdAt field
+    const q = query(collection(db, 'travailleurs'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log(`Firestore snapshot received: ${snapshot.size} documents`);
       const offers = snapshot.docs.map(doc => {
         const data = doc.data();
         const cleanPrice = data.price?.toString().replace(/F/gi, '').trim();
@@ -366,10 +375,14 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
           city: data.city || 'Non spécifiée',
           price: cleanPrice ? `${cleanPrice}F par ${data.frequency || 'mois'}` : '',
           title: data.service || data.jobTitle || 'Travailleur',
-          description: data.description || `Disponible pour : ${data.service || data.jobTitle || 'Travailleur'}`
-        } as WorkerOffer;
+          description: data.description || `Disponible pour : ${data.service || data.jobTitle || 'Travailleur'}`,
+          createdAt: data.createdAt?.toDate?.() || new Date(0) // Handle potential missing/null createdAt
+        } as WorkerOffer & { createdAt: Date };
       });
-      setFirebaseOffers(offers);
+
+      // Sort by createdAt desc in memory
+      const sortedOffers = offers.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      setFirebaseOffers(sortedOffers);
     }, (error) => {
         console.error("Error fetching Firebase offers:", error);
     });
@@ -377,6 +390,8 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
   }, []);
 
   const allOffers = useMemo(() => {
+    // Firebase offers are already sorted desc by createdAt in the query
+    // We put them first so they appear at the top
     const combined = [...firebaseOffers, ...workerOffers];
     // De-duplicate by name and title to avoid showing the same offer from both sources
     const unique = new Map();
@@ -396,6 +411,7 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
 
   const handleFormSubmit = async (data: any) => {
     try {
+      console.log("Submitting publication form:", data);
       // Direct call to API to save to Firestore and Google Sheets
       const response = await fetch('/api/publish-offer', {
         method: 'POST',
@@ -405,15 +421,19 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
         body: JSON.stringify(data),
       });
 
+      const result = await response.json();
+      console.log("Publication API response:", result);
+
       if (!response.ok) {
-        throw new Error('Failed to publish offer');
+        throw new Error(result.error || 'Failed to publish offer');
       }
 
       setIsPublicationModalOpen(false);
-      // No redirection, just a success message if needed, but the user said "instantaneous and fluid"
-    } catch (error) {
+      setToastMessage("Statut publié avec succès !");
+      setTimeout(() => setToastMessage(null), 4000);
+    } catch (error: any) {
       console.error("Error publishing offer:", error);
-      alert("Une erreur est survenue lors de la publication de votre statut.");
+      alert(`Une erreur est survenue lors de la publication : ${error.message}`);
     }
   };
 
@@ -572,7 +592,15 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
       </div>
 
       {/* --- CONTENT AREA --- */}
-      <main ref={mainRef} className="mt-8 flex flex-col scroll-mt-24 pb-32">
+      <main ref={mainRef} className="mt-8 flex flex-col scroll-mt-24 pb-32 relative">
+        {toastMessage && (
+            <div className="fixed top-32 left-1/2 -translate-x-1/2 z-[9999] px-8 py-4 bg-green-600 text-white font-black text-sm uppercase tracking-widest rounded-3xl shadow-2xl animate-in slide-in-from-top-8 fade-in duration-500 border-2 border-white/20 backdrop-blur-sm">
+                <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                    {toastMessage}
+                </div>
+            </div>
+        )}
           
           {/* Intervention Rapide */}
           <InfoBox 
