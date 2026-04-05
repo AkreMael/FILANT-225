@@ -110,7 +110,7 @@ const carouselItems = [
     { title: "Technicien (sonorisation)", name: "Fenrir", city: "Korhogo", description: "Assistance quotidienne à domicile", price: "30 000 F", img: INTERV_IMAGES.aide_domicile },
 ];
 
-const InterventionCard: React.FC<{ item: WorkerOffer, onClick: () => void, onRecruit: (item: WorkerOffer) => void }> = ({ item, onClick, onRecruit }) => {
+const InterventionCard: React.FC<{ item: WorkerOffer }> = ({ item }) => {
     const [isCopying, setIsCopying] = useState(false);
     const pressTimer = useRef<number | null>(null);
     const startPos = useRef<{x: number, y: number} | null>(null);
@@ -150,7 +150,6 @@ const InterventionCard: React.FC<{ item: WorkerOffer, onClick: () => void, onRec
 
     return (
         <div 
-            onClick={onClick}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             onTouchMove={handleTouchMove}
@@ -181,15 +180,6 @@ const InterventionCard: React.FC<{ item: WorkerOffer, onClick: () => void, onRec
                     <ShopIcon />
                     <span className="text-[8px] font-bold truncate">Filant Services</span>
                 </div>
-                <button 
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onRecruit(item);
-                    }}
-                    className="mt-3 w-full py-2.5 bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md active:scale-95 transition-all"
-                >
-                    Je recrute
-                </button>
             </div>
         </div>
     );
@@ -232,8 +222,6 @@ const PublicationModal = ({ isOpen, onClose, onPublish, initialData }: {
             setFormData(prev => ({ ...prev, service: initialData.service, name: '', city: '', price: '', description: '' }));
         }
     }, [isOpen, initialData.service]);
-
-    const publicationPrice = 500;
 
     if (!isOpen) return null;
 
@@ -293,12 +281,6 @@ const PublicationModal = ({ isOpen, onClose, onPublish, initialData }: {
                                 className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-orange-400 min-h-[80px] resize-none"
                             />
                         </div>
-                        <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
-                            <div className="flex justify-between items-center">
-                                <span className="text-[10px] font-black text-orange-700 uppercase tracking-widest">Frais de publication</span>
-                                <span className="text-sm font-black text-orange-600 tracking-tight">500 FCFA</span>
-                            </div>
-                        </div>
                     </div>
 
                     <div className="mt-8 flex gap-3">
@@ -309,10 +291,10 @@ const PublicationModal = ({ isOpen, onClose, onPublish, initialData }: {
                             Annuler
                         </button>
                         <button 
-                            onClick={() => onPublish({...formData, publicationPrice})}
+                            onClick={() => onPublish(formData)}
                             className="flex-1 py-4 bg-orange-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-200 active:scale-95 transition-all"
                         >
-                            Suivant
+                            Publier
                         </button>
                     </div>
                 </div>
@@ -414,59 +396,24 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
 
   const handleFormSubmit = async (data: any) => {
     try {
-      // 1. Send publication info to Assistant
-      const message = `PUBLISH_REQUEST:${JSON.stringify(data)}`;
-      const chatUserId = (user?.phone || '').replace(/\D/g, '') || 'anonymous';
-      
-      // User message
-      await databaseService.saveAdminChatMessage(chatUserId, {
-        sender: 'user',
-        text: message,
-        timestamp: Date.now(),
-        userName: user?.name || 'Utilisateur'
+      // Direct call to API to save to Firestore and Google Sheets
+      const response = await fetch('/api/publish-offer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
       });
 
-      // Automated Assistant response
-      setTimeout(async () => {
-        await databaseService.saveAdminChatMessage(chatUserId, {
-          sender: 'admin',
-          text: "Merci, l'équipe Filan 225 va vous contacter pour le paiement. Si le paiement n'est pas effectué sous 24h, votre profil sera supprimé.",
-          timestamp: Date.now(),
-          userName: 'Assistant Filan'
-        });
-      }, 1000);
+      if (!response.ok) {
+        throw new Error('Failed to publish offer');
+      }
 
       setIsPublicationModalOpen(false);
-      setActiveTab(Tab.UserChat);
+      // No redirection, just a success message if needed, but the user said "instantaneous and fluid"
     } catch (error) {
-      console.error("Error sending publication request:", error);
-      alert("Une erreur est survenue lors de l'envoi de votre demande.");
-    }
-  };
-
-  const handleRecruit = async (item: WorkerOffer) => {
-    try {
-      const message = `RECRUIT_REQUEST:${JSON.stringify({
-        name: item.name,
-        city: item.city,
-        service: item.title,
-        price: item.price,
-        description: item.description
-      })}`;
-      
-      const chatUserId = (user?.phone || '').replace(/\D/g, '') || 'anonymous';
-      
-      await databaseService.saveAdminChatMessage(chatUserId, {
-        sender: 'user',
-        text: message,
-        timestamp: Date.now(),
-        userName: user?.name || 'Utilisateur'
-      });
-
-      setActiveTab(Tab.UserChat);
-    } catch (error) {
-      console.error("Error sending recruitment request:", error);
-      alert("Une erreur est survenue lors de l'envoi de votre demande.");
+      console.error("Error publishing offer:", error);
+      alert("Une erreur est survenue lors de la publication de votre statut.");
     }
   };
 
@@ -677,8 +624,6 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
                             <InterventionCard 
                                 key={idx} 
                                 item={item} 
-                                onClick={() => onSelectItem(item.title, 'worker', item.img, true, item.description, item.price)} 
-                                onRecruit={handleRecruit}
                             />
                         ))}
                         {!isExpanded && allOffers.length > 4 && (

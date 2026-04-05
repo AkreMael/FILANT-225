@@ -214,10 +214,10 @@ async function startServer() {
           await sheet.addRow({
             "Nom": name,
             "Ville": city,
+            "Métier": service,
             "Salaire": price,
-            "Fréquence": frequency,
-            "Service": service,
-            "Date": new Date().toISOString()
+            "Description": description || `Disponible pour : ${service}`,
+            "Date de publication": new Date().toLocaleString('fr-FR')
           });
           console.log("Successfully added row to Google Sheets");
         } catch (sheetError) {

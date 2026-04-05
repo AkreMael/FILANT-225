@@ -286,30 +286,6 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, [currentUser?.phone, currentUser?.name]);
 
-  useEffect(() => {
-      const handlePublicationPaymentTrigger = (event: CustomEvent<any>) => {
-          const data = event.detail;
-          const paymentEvent = new CustomEvent('trigger-payment-view', {
-              detail: {
-                  title: `Publication : ${data.service}`,
-                  amount: "500",
-                  waveLink: `https://pay.wave.com/m/M_ci_jwxwatdcoKS8/c/ci/?amount=500`,
-                  paymentType: "Publication",
-                  formData: {
-                      formType: 'worker',
-                      formTitle: data.service,
-                      data: { ...data, publicationPrice: 500 },
-                      whatsappMessage: `Bonjour, je souhaite recruter le profil suivant :\nNom: ${data.name}\nVille: ${data.city}\nMétier: ${data.service}\nPrix: ${data.price}\nFilant Services`
-                  }
-              }
-          });
-          window.dispatchEvent(paymentEvent);
-      };
-      window.addEventListener('open-publication-payment' as any, handlePublicationPaymentTrigger as any);
-      return () => window.removeEventListener('open-publication-payment' as any, handlePublicationPaymentTrigger as any);
-  }, []);
-
-
   const [lastNotificationId, setLastNotificationId] = useState<string | null>(null);
 
   const [locationInitialTab, setLocationInitialTab] = useState<'appartement' | 'equipement'>('appartement');
