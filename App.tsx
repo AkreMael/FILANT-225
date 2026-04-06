@@ -43,7 +43,7 @@ import { getAnalytics } from "firebase/analytics";
 
 import { auth, db } from './firebase';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { doc, getDocFromServer, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 
 // Initialisation Analytics si supporté
 if (typeof window !== 'undefined') {
@@ -209,10 +209,21 @@ const App: React.FC = () => {
 
   // Authentification anonyme pour Firestore
   useEffect(() => {
+    let isMounted = true;
+
     const testConnection = async () => {
       try {
         // Test de connexion selon les directives
-        await getDocFromServer(doc(db, 'test', 'connection'));
+        // Use a simple getDoc with a timeout-like behavior (Promise.race)
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 5000)
+        );
+        
+        await Promise.race([
+          getDoc(doc(db, 'test', 'connection')),
+          timeoutPromise
+        ]);
+        
         console.log("Firestore connection test successful");
       } catch (error) {
         if (error instanceof Error && error.message.includes('the client is offline')) {
@@ -222,26 +233,43 @@ const App: React.FC = () => {
       }
     };
 
+    testConnection();
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!isMounted) return;
+      
       try {
         if (user) {
-          testConnection();
+          console.log("Auth state changed: User logged in", user.uid);
           
           // Try to recover user data from Firestore using UID or stored phone
           const storedPhone = localStorage.getItem('filant_currentUserPhone');
           let userData: User | null = null;
 
-          if (storedPhone) {
-            console.log("Attempting to recover user from phone:", storedPhone);
-            userData = await databaseService.getUserByPhoneFromFirestore(storedPhone);
+          // Use a timeout for Firestore recovery to avoid hanging the app
+          const recoverUser = async () => {
+            if (storedPhone) {
+              console.log("Attempting to recover user from phone:", storedPhone);
+              userData = await databaseService.getUserByPhoneFromFirestore(storedPhone);
+            }
+
+            if (!userData) {
+              console.log("Attempting to recover user from UID:", user.uid);
+              userData = await databaseService.getUserByUidFromFirestore(user.uid);
+            }
+          };
+
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Recovery Timeout')), 5000)
+          );
+
+          try {
+            await Promise.race([recoverUser(), timeoutPromise]);
+          } catch (e) {
+            console.warn("User recovery timed out or failed:", e);
           }
 
-          if (!userData) {
-            console.log("Attempting to recover user from UID:", user.uid);
-            userData = await databaseService.getUserByUidFromFirestore(user.uid);
-          }
-
-          if (userData) {
+          if (userData && isMounted) {
             const fullUser = { ...userData, userId: user.uid };
             setCurrentUser(fullUser);
             setShowSplash(true);
@@ -257,14 +285,16 @@ const App: React.FC = () => {
               navigateTo({ activeTab: Tab.AdminDashboard });
             }
 
-            // Sync to Firestore to ensure UID is linked
+            // Sync to Firestore to ensure UID is linked (Non-blocking)
             databaseService.syncUserToFirestore(fullUser);
           }
         } else {
+          console.log("Auth state changed: No user");
           // If no user is authenticated, try to sign in anonymously if we have a stored phone
           const storedPhone = localStorage.getItem('filant_currentUserPhone');
-          if (storedPhone) {
+          if (storedPhone && isMounted) {
             try {
+              const { signInAnonymously } = await import('firebase/auth');
               await signInAnonymously(auth);
             } catch (e) {
               console.error("Failed to sign in anonymously during recovery:", e);
@@ -274,10 +304,16 @@ const App: React.FC = () => {
       } catch (error) {
         console.error("Error in onAuthStateChanged:", error);
       } finally {
-        setIsAuthChecking(false);
+        if (isMounted) {
+          setIsAuthChecking(false);
+        }
       }
     });
-    return () => unsubscribe();
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
   
   // Firebase Messaging

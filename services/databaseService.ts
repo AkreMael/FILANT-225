@@ -1,6 +1,6 @@
 import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification, PrivateRegistration, Review, Intervention, Availability } from '../types';
 import { db, auth, rtdb, storage } from '../firebase';
-import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc, getDocFromServer, onSnapshot, writeBatch, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc, getDoc, onSnapshot, writeBatch, updateDoc } from 'firebase/firestore';
 import { ref as rtdbRef, push, set, serverTimestamp as rtdbTimestamp, get, update, onValue, remove } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
 
@@ -82,6 +82,13 @@ let workersCache: Worker[] | null = null;
 
 // --- HELPER FUNCTIONS ---
 const getScopedKey = (phone: string, prefix: string) => `${prefix}${phone.replace(/\s/g, '')}`;
+
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 5000): Promise<T> => {
+    return Promise.race([
+        promise,
+        new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Operation Timeout')), timeoutMs))
+    ]);
+};
 
 // --- User Management ---
 const getUsers = (): User[] => {
@@ -297,7 +304,7 @@ export const databaseService = {
       const fbUser = await databaseService.ensureAuth();
 
       // Update Firebase Auth Profile (displayName)
-      if (fbUser && user.name) {
+      if (fbUser && user.name && fbUser.displayName !== user.name) {
         const { updateProfile } = await import('firebase/auth');
         try {
           await updateProfile(fbUser, {
@@ -313,19 +320,20 @@ export const databaseService = {
       const cardDataService = databaseService.getCardData(user.phone, 'service');
 
       const userRef = doc(db, 'users', sanitizedPhone);
-      const docSnap = await getDocFromServer(userRef);
+      // Use getDoc instead of getDocFromServer for better performance/cache usage
+      const docSnap = await getDoc(userRef);
       const existingData = docSnap.exists() ? docSnap.data() : {};
 
       const userData: any = {
-        userId: fbUser?.uid || null,
+        userId: fbUser?.uid || existingData.userId || null,
         name: user.name,
         phone: sanitizedPhone,
         city: user.city,
-        role: user.role || localStorage.getItem('filant_user_role') || 'Client',
+        role: user.role || existingData.role || localStorage.getItem('filant_user_role') || 'Client',
         isVerified: existingData.isVerified || user.isVerified || false,
         lastConnection: new Date().toISOString(),
-        cardDataPro: cardDataPro || null,
-        cardDataService: cardDataService || null
+        cardDataPro: cardDataPro || existingData.cardDataPro || null,
+        cardDataService: cardDataService || existingData.cardDataService || null
       };
 
       userData.lastSeen = serverTimestamp();
@@ -335,7 +343,8 @@ export const databaseService = {
       await setDoc(userRef, userData, { merge: true });
       console.log("User synced to Firestore successfully:", user.name);
     } catch (e) {
-      handleFirestoreError(e, OperationType.WRITE, path);
+      console.error("Error in syncUserToFirestore:", e);
+      // Don't throw here to avoid blocking the main flow if sync fails
     }
   },
 
@@ -344,7 +353,7 @@ export const databaseService = {
     try {
       const { getDocs, query, collection, where, limit } = await import('firebase/firestore');
       const q = query(collection(db, path), where('userId', '==', uid), limit(1));
-      const snapshot = await getDocs(q);
+      const snapshot = await withTimeout(getDocs(q));
       if (!snapshot.empty) {
         const data = snapshot.docs[0].data();
         return {
@@ -367,7 +376,7 @@ export const databaseService = {
     
     try {
       await databaseService.ensureAuth();
-      const docSnap = await getDocFromServer(userRef);
+      const docSnap = await withTimeout(getDoc(userRef));
       if (docSnap.exists()) {
         const data = docSnap.data();
         // Strict verification: Name must match (case insensitive)
@@ -381,7 +390,7 @@ export const databaseService = {
         }
       }
     } catch (e) {
-      handleFirestoreError(e, OperationType.GET, path);
+      console.error("Error in getUserFromFirestore:", e);
     }
     return null;
   },
@@ -393,7 +402,7 @@ export const databaseService = {
     
     try {
       await databaseService.ensureAuth();
-      const docSnap = await getDocFromServer(userRef);
+      const docSnap = await withTimeout(getDoc(userRef));
       if (docSnap.exists()) {
         const data = docSnap.data();
         return {
@@ -404,7 +413,7 @@ export const databaseService = {
         };
       }
     } catch (e) {
-      handleFirestoreError(e, OperationType.GET, path);
+      console.error("Error in getUserByPhoneFromFirestore:", e);
     }
     return null;
   },
@@ -416,7 +425,7 @@ export const databaseService = {
     // 1. Sync Card Data from Firestore
     try {
         const userRef = doc(db, 'users', sanitizedPhone);
-        const docSnap = await getDocFromServer(userRef);
+        const docSnap = await getDoc(userRef);
         if (docSnap.exists()) {
             const data = docSnap.data();
             if (data.cardDataPro) {
@@ -585,8 +594,8 @@ export const databaseService = {
     users.push(newUser);
     saveUsers(users);
     
-    // Sync to Firestore
-    await databaseService.syncUserToFirestore(newUser);
+    // Sync to Firestore (Non-blocking)
+    databaseService.syncUserToFirestore(newUser);
     databaseService.logConnection(newUser);
     
     return { user: newUser };
@@ -941,7 +950,7 @@ export const databaseService = {
     const id = `${workerId}_${date}`;
     const path = `availabilities/${id}`;
     try {
-      const docSnap = await getDocFromServer(doc(db, 'availabilities', id));
+      const docSnap = await withTimeout(getDoc(doc(db, 'availabilities', id)));
       if (docSnap.exists()) {
         return { id: docSnap.id, ...docSnap.data() } as Availability;
       }

@@ -96,6 +96,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
   };
 
   const handleSubmit = () => {
+    console.log("handleSubmit called. isLoading:", isLoading, "isRegisterView:", isRegisterView);
     if (isLoading) return;
     if (isRegisterView && !isAdminRole) {
       handleRegister();
@@ -159,7 +160,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
                     value={name} 
                     onChange={(e) => setName(e.target.value)} 
                     className="w-full pl-12 pr-12 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" 
-                    required 
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
                     <SpeakerIcon text="Entrez votre nom" className="text-orange-500" />
@@ -178,7 +178,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
                     value={city} 
                     onChange={(e) => setCity(e.target.value)} 
                     className="w-full pl-12 pr-12 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" 
-                    required 
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
                       <SpeakerIcon text="Entrez votre ville" className="text-orange-500" />
@@ -203,8 +202,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
                         setPhone(val);
                     }} 
                     className="w-full pl-[4.5rem] pr-12 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" 
-                    required 
-                    pattern="\d{10}"
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
                     <SpeakerIcon text="Entrez votre numéro WhatsApp à 10 chiffres" className="text-orange-500" />
@@ -223,7 +220,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
                     value={adminCode} 
                     onChange={(e) => setAdminCode(e.target.value)} 
                     className="w-full pl-12 pr-12 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" 
-                    required 
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
                       <SpeakerIcon text="Entrez votre code administrateur" className="text-orange-500" />
