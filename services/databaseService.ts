@@ -1,6 +1,6 @@
 import { User, Worker, Offer, FavoriteRequest, PersonalRequest, Notification, PrivateRegistration, Review, Intervention, Availability } from '../types';
 import { db, auth, rtdb, storage } from '../firebase';
-import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc, getDoc, onSnapshot, writeBatch, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, deleteDoc, getDoc, onSnapshot, writeBatch, updateDoc, where } from 'firebase/firestore';
 import { ref as rtdbRef, push, set, serverTimestamp as rtdbTimestamp, get, update, onValue, remove } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
 
@@ -319,7 +319,11 @@ export const databaseService = {
         console.log("Authenticated anonymously as:", cred.user.uid);
         return cred.user;
       } catch (authError: any) {
-        console.warn("Anonymous authentication failed or restricted:", authError.message);
+        if (authError.code === 'auth/admin-restricted-operation') {
+          console.error("Anonymous authentication is disabled in Firebase Console. Please enable it in Authentication > Sign-in method.");
+        } else {
+          console.warn("Anonymous authentication failed or restricted:", authError.message);
+        }
       }
     }
     return auth.currentUser;
@@ -1308,8 +1312,14 @@ export const databaseService = {
 
   updateOfferBlur: async (offerId: string, isUnblurred: boolean) => {
       try {
-          const offerRef = doc(db, 'travailleurs', offerId);
-          await updateDoc(offerRef, { isUnblurred });
+          const workerRef = doc(db, 'travailleurs', offerId);
+          const offerRef = doc(db, 'offres_emploi', offerId);
+          
+          const batch = writeBatch(db);
+          batch.update(workerRef, { isUnblurred });
+          batch.update(offerRef, { isUnblurred });
+          
+          await batch.commit();
           return { success: true };
       } catch (error) {
           console.error("Error updating offer blur:", error);
@@ -1812,7 +1822,8 @@ export const databaseService = {
             timestamp: Date.now(),
             read: false,
             userId: sanitizedUserId,
-            userName: userName || sanitizedUserId
+            userName: userName || sanitizedUserId,
+            authUid: auth.currentUser?.uid || null
           }
         : {
             ...message,
@@ -1820,17 +1831,22 @@ export const databaseService = {
             timestamp: message.timestamp || Date.now(),
             read: false,
             userId: sanitizedUserId,
-            userName: userName || message.userName || sanitizedUserId
+            userName: userName || message.userName || sanitizedUserId,
+            authUid: auth.currentUser?.uid || null
           };
       
       // Use Promise.all to run both writes in parallel and handle errors
-      await Promise.all([
-        set(newMessageRef, msgData),
-        setDoc(doc(db, 'messages', sanitizedUserId, 'history', messageId!), {
-          ...msgData,
-          timestamp: serverTimestamp()
-        })
-      ]);
+      const rtdbPromise = set(newMessageRef, msgData).catch(err => {
+        console.warn("RTDB Chat Write Failed (likely permissions):", err.message);
+        return null;
+      });
+      
+      const firestorePromise = setDoc(doc(db, 'messages', sanitizedUserId, 'history', messageId!), {
+        ...msgData,
+        timestamp: serverTimestamp()
+      });
+
+      await Promise.all([rtdbPromise, firestorePromise]);
       
       console.log("Admin chat message saved successfully to RTDB and Firestore");
       return true;
@@ -1867,7 +1883,8 @@ export const databaseService = {
         read: false,
         userId: sanitizedUserId,
         userName: data.name || sanitizedUserId,
-        type: 'publication'
+        type: 'publication',
+        authUid: auth.currentUser?.uid || null
       };
 
       // 3. Save to 'travailleurs' collection for immediate display
@@ -1898,12 +1915,19 @@ export const databaseService = {
       const workerDocRef = doc(db, 'travailleurs', sanitizedUserId);
       const adminOfferDocRef = doc(db, 'offres_emploi', sanitizedUserId);
 
+      const rtdbPromise = set(newMessageRef, msgData).catch(err => {
+        console.warn("RTDB Chat Write Failed (likely permissions):", err.message);
+        return null;
+      });
+
+      const firestorePromise = setDoc(doc(db, 'messages', sanitizedUserId, 'history', messageId!), {
+        ...msgData,
+        timestamp: serverTimestamp()
+      });
+
       await Promise.all([
-        set(newMessageRef, msgData),
-        setDoc(doc(db, 'messages', sanitizedUserId, 'history', messageId!), {
-          ...msgData,
-          timestamp: serverTimestamp()
-        }),
+        rtdbPromise,
+        firestorePromise,
         setDoc(workerDocRef, {
           ...workerData,
           updatedAt: serverTimestamp() // Track updates
@@ -1927,19 +1951,39 @@ export const databaseService = {
   async markAdminMessagesAsRead(userId: string, senderToMark: 'admin' | 'user') {
     try {
       const sanitizedUserId = userId.replace(/[.#$[\]/]/g, '_');
-      const chatRef = rtdbRef(rtdb, `messages/${sanitizedUserId}`);
-      const snapshot = await get(chatRef);
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const updates: any = {};
-        Object.keys(data).forEach(key => {
-          if (data[key].sender === senderToMark && !data[key].read) {
-            updates[`${key}/read`] = true;
+      
+      // 1. Update RTDB (Fallback)
+      try {
+        const chatRef = rtdbRef(rtdb, `messages/${sanitizedUserId}`);
+        const snapshot = await get(chatRef);
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const updates: any = {};
+          Object.keys(data).forEach(key => {
+            if (data[key].sender === senderToMark && !data[key].read) {
+              updates[`${key}/read`] = true;
+            }
+          });
+          if (Object.keys(updates).length > 0) {
+            await update(chatRef, updates);
           }
-        });
-        if (Object.keys(updates).length > 0) {
-          await update(chatRef, updates);
         }
+      } catch (rtdbError) {
+        console.warn("Failed to mark messages as read in RTDB:", rtdbError);
+      }
+
+      // 2. Update Firestore (Primary)
+      const historyRef = collection(db, 'messages', sanitizedUserId, 'history');
+      const q = query(historyRef, where('sender', '==', senderToMark), where('read', '==', false));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        const batch = writeBatch(db);
+        querySnapshot.docs.forEach((doc) => {
+          batch.update(doc.ref, { read: true });
+        });
+        await batch.commit();
+        console.log(`Marked ${querySnapshot.size} messages as read in Firestore`);
       }
     } catch (error) {
       console.error("Error marking messages as read:", error);
@@ -1948,33 +1992,63 @@ export const databaseService = {
 
   onAdminChatUpdate(userId: string, callback: (messages: any[]) => void) {
     const sanitizedUserId = userId.replace(/[.#$[\]/]/g, '_');
-    const chatRef = rtdbRef(rtdb, `messages/${sanitizedUserId}`);
-    return onValue(chatRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const messages = Object.values(data).sort((a: any, b: any) => a.timestamp - b.timestamp);
-        callback(messages);
-      } else {
-        callback([]);
-      }
+    
+    // Use Firestore as the primary source for chat updates
+    const historyRef = collection(db, 'messages', sanitizedUserId, 'history');
+    const q = query(historyRef, orderBy('timestamp', 'asc'));
+    
+    return onSnapshot(q, (snapshot) => {
+      const messages = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          ...data,
+          // Convert Firestore timestamp to JS number for compatibility
+          timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : (data.timestamp || Date.now())
+        };
+      });
+      callback(messages);
     }, (error) => {
-      console.error("RTDB Listener Error:", error);
+      console.error("Firestore Chat Listener Error:", error);
+      // Fallback to RTDB if Firestore fails (unlikely given rules, but for safety)
+      const chatRef = rtdbRef(rtdb, `messages/${sanitizedUserId}`);
+      onValue(chatRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const messages = Object.values(data).sort((a: any, b: any) => a.timestamp - b.timestamp);
+          callback(messages);
+        } else {
+          callback([]);
+        }
+      }, (rtdbError) => {
+        console.error("RTDB Chat Listener Fallback Error:", rtdbError);
+      });
     });
   },
 
   onUnreadAdminChatCount(userId: string, senderToWatch: 'admin' | 'user', callback: (count: number) => void) {
     const sanitizedUserId = userId.replace(/[.#$[\]/]/g, '_');
-    const chatRef = rtdbRef(rtdb, `messages/${sanitizedUserId}`);
-    return onValue(chatRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const unreadCount = Object.values(data).filter((msg: any) => msg.sender === senderToWatch && !msg.read).length;
-        callback(unreadCount);
-      } else {
-        callback(0);
-      }
+    
+    // Use Firestore for unread count
+    const historyRef = collection(db, 'messages', sanitizedUserId, 'history');
+    const q = query(historyRef, where('sender', '==', senderToWatch), where('read', '==', false));
+    
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.size);
     }, (error) => {
-      console.error("RTDB Unread Count Error:", error);
+      console.error("Firestore Unread Count Error:", error);
+      // Fallback to RTDB
+      const chatRef = rtdbRef(rtdb, `messages/${sanitizedUserId}`);
+      onValue(chatRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const unreadCount = Object.values(data).filter((msg: any) => msg.sender === senderToWatch && !msg.read).length;
+          callback(unreadCount);
+        } else {
+          callback(0);
+        }
+      }, (rtdbError) => {
+        console.error("RTDB Unread Count Fallback Error:", rtdbError);
+      });
     });
   },
 
@@ -1984,8 +2058,13 @@ export const databaseService = {
       const rtdbPath = `messages/${sanitizedUserId}/${messageId}`;
       const firestorePath = `messages/${sanitizedUserId}/history/${messageId}`;
       
+      const rtdbPromise = remove(rtdbRef(rtdb, rtdbPath)).catch(err => {
+        console.warn("RTDB Chat Delete Failed (likely permissions):", err.message);
+        return null;
+      });
+      
       await Promise.all([
-        remove(rtdbRef(rtdb, rtdbPath)),
+        rtdbPromise,
         deleteDoc(doc(db, 'messages', sanitizedUserId, 'history', messageId))
       ]);
       
@@ -2002,7 +2081,10 @@ export const databaseService = {
       const sanitizedUserId = userId.replace(/[.#$[\]/]/g, '_');
       const rtdbPath = `messages/${sanitizedUserId}`;
       
-      await remove(rtdbRef(rtdb, rtdbPath));
+      await remove(rtdbRef(rtdb, rtdbPath)).catch(err => {
+        console.warn("RTDB Conversation Delete Failed (likely permissions):", err.message);
+        return null;
+      });
       
       // Note: Deleting the entire history in Firestore would require a cloud function or deleting each doc.
       // For the dashboard, deleting the RTDB entry is enough to remove it from the list.

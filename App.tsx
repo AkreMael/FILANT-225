@@ -352,8 +352,12 @@ const App: React.FC = () => {
             try {
               const { signInAnonymously } = await import('firebase/auth');
               await signInAnonymously(auth);
-            } catch (e) {
-              console.error("Failed to sign in anonymously during recovery:", e);
+            } catch (e: any) {
+              if (e.code === 'auth/admin-restricted-operation') {
+                console.error("Anonymous authentication is disabled in Firebase Console. Please enable it in Authentication > Sign-in method.");
+              } else {
+                console.error("Failed to sign in anonymously during recovery:", e);
+              }
             }
           }
         }
