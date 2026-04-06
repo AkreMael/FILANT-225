@@ -1895,8 +1895,8 @@ export const databaseService = {
         birthDate: 'Non spécifiée'
       };
 
-      const workerDocRef = doc(collection(db, 'travailleurs'));
-      const adminOfferDocRef = doc(collection(db, 'offres_emploi'));
+      const workerDocRef = doc(db, 'travailleurs', sanitizedUserId);
+      const adminOfferDocRef = doc(db, 'offres_emploi', sanitizedUserId);
 
       await Promise.all([
         set(newMessageRef, msgData),
@@ -1904,7 +1904,10 @@ export const databaseService = {
           ...msgData,
           timestamp: serverTimestamp()
         }),
-        setDoc(workerDocRef, workerData),
+        setDoc(workerDocRef, {
+          ...workerData,
+          updatedAt: serverTimestamp() // Track updates
+        }),
         setDoc(adminOfferDocRef, {
           ...workerData,
           submittedAt: serverTimestamp(),
@@ -1913,7 +1916,7 @@ export const databaseService = {
       ]);
 
       console.log("Status published as message and worker offer successfully");
-      return { success: true, id: workerDocRef.id };
+      return { success: true, id: sanitizedUserId };
     } catch (error) {
       console.error("Error in publishStatusAsMessage:", error);
       handleFirestoreError(error, OperationType.WRITE, 'multi-write');

@@ -283,24 +283,31 @@ const PublicationModal = ({ isOpen, onClose, onPublish, initialData }: {
     isOpen: boolean, 
     onClose: () => void, 
     onPublish: (data: any) => Promise<void>,
-    initialData: { service: string }
+    initialData: any
 }) => {
     const [formData, setFormData] = useState({
         name: '',
         city: '',
         price: '',
         frequency: 'mois',
-        service: initialData.service,
+        service: '',
         description: ''
     });
     const [isPublishing, setIsPublishing] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
-            setFormData(prev => ({ ...prev, service: initialData.service, name: '', city: '', price: '', description: '' }));
+            setFormData({
+                name: initialData.name || '',
+                city: initialData.city || '',
+                price: initialData.price || '',
+                frequency: initialData.frequency || 'mois',
+                service: initialData.service || '',
+                description: initialData.description || ''
+            });
             setIsPublishing(false);
         }
-    }, [isOpen, initialData.service]);
+    }, [isOpen, initialData]);
 
     const handlePublish = async () => {
         if (isPublishing) return;
@@ -436,9 +443,9 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
 
   // Fetch Firebase offers
   useEffect(() => {
-    console.log("Setting up Firestore onSnapshot listener...");
+    console.log("Setting up Firestore onSnapshot listener for offres_emploi...");
     // We don't use orderBy here to avoid excluding documents missing the createdAt field
-    const q = query(collection(db, 'travailleurs'));
+    const q = query(collection(db, 'offres_emploi'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       console.log(`Firestore snapshot received: ${snapshot.size} documents`);
       const offers = snapshot.docs.map(doc => {
@@ -453,8 +460,8 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
           price: cleanPrice ? `${cleanPrice}F par ${data.frequency || 'mois'}` : '',
           title: data.service || data.jobTitle || 'Travailleur',
           description: data.description || `Disponible pour : ${data.service || data.jobTitle || 'Travailleur'}`,
-          isUnblurred: data.isUnblurred || false,
-          createdAt: data.createdAt?.toDate?.() || new Date(0) // Handle potential missing/null createdAt
+          isUnblurred: data.isUnblurred !== false,
+          createdAt: data.createdAt?.toDate?.() || data.submittedAt?.toDate?.() || new Date(0) // Handle potential missing/null createdAt
         } as WorkerOffer & { createdAt: Date };
       });
 
@@ -468,9 +475,14 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
   }, []);
 
   const allOffers = useMemo(() => {
-    // Firebase offers are already sorted desc by createdAt in the query
     return firebaseOffers;
   }, [firebaseOffers]);
+
+  const userOffer = useMemo(() => {
+    if (!user) return null;
+    const sanitizedUserId = (user.userId || user.id || user.phone || '').replace(/[.#$[\]/]/g, '_');
+    return firebaseOffers.find(o => o.userId === sanitizedUserId);
+  }, [firebaseOffers, user]);
 
   const handlePublishClick = (service: string) => {
     setSelectedServiceForPublication(service);
@@ -701,12 +713,18 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
 
                 <button 
                     onClick={() => handlePublishClick('')}
-                    className="w-full py-4 bg-orange-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-orange-900/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                    className={`w-full py-4 ${userOffer ? 'bg-slate-600' : 'bg-orange-500'} text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-orange-900/20 active:scale-95 transition-all flex items-center justify-center gap-3`}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                    </svg>
-                    + PUBLIER VOTRE STATUT
+                    {userOffer ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                    ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                        </svg>
+                    )}
+                    {userOffer ? 'VOTRE ANNONCE EST DÉJÀ EN LIGNE' : '+ PUBLIER VOTRE STATUT'}
                 </button>
              </div>
 
@@ -762,7 +780,13 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
                 isOpen={isPublicationModalOpen}
                 onClose={() => setIsPublicationModalOpen(false)}
                 onPublish={handleFormSubmit}
-                initialData={{ service: selectedServiceForPublication }}
+                initialData={userOffer ? {
+                    service: userOffer.title,
+                    name: userOffer.name,
+                    city: userOffer.city,
+                    price: userOffer.price?.toString().replace(/F par .*/, '').trim(),
+                    description: userOffer.description
+                } : { service: selectedServiceForPublication }}
             />
           </div>
 
