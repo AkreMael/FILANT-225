@@ -274,8 +274,8 @@ export const databaseService = {
         }
         localStorage.setItem(CONNECTION_LOGS_KEY, JSON.stringify(logs));
         
-        // Sync to Firestore
-        await databaseService.syncUserToFirestore(user);
+        // Sync to Firestore (Non-blocking)
+        databaseService.syncUserToFirestore(user);
     } catch (e) {
         console.error("Error logging connection", e);
     }
@@ -285,7 +285,7 @@ export const databaseService = {
     if (!auth.currentUser) {
       const { signInAnonymously } = await import('firebase/auth');
       try {
-        const cred = await signInAnonymously(auth);
+        const cred = await withTimeout(signInAnonymously(auth), 5000);
         console.log("Authenticated anonymously as:", cred.user.uid);
         return cred.user;
       } catch (authError: any) {
@@ -491,7 +491,6 @@ export const databaseService = {
   },
 
   loginUser: async (name: string, phone: string): Promise<{user: User | null, error?: string}> => {
-    await new Promise(res => setTimeout(res, 500));
     const users = getUsers();
     const normalizedInputName = name.trim().toLowerCase();
     const normalizedInputPhone = phone.replace(/\D/g, '');
@@ -501,13 +500,13 @@ export const databaseService = {
     const firestoreUser = await databaseService.getUserByPhoneFromFirestore(normalizedInputPhone);
     
     if (firestoreUser) {
-        // Strict Name Check
-        if (firestoreUser.name.trim().toLowerCase() !== normalizedInputName) {
-            return { user: null, error: "Le nom saisi ne correspond pas au numéro enregistré. Veuillez vérifier vos informations." };
-        }
+        // Recognition: If phone matches, we log them in.
+        // We can update the name if it's different to keep it fresh.
+        const user = {
+            ...firestoreUser,
+            name: name.trim() // Use the name they just entered if they want to update it
+        };
         
-        // Success - Sync to local
-        const user = firestoreUser;
         if (!users.some(u => u.phone === normalizedInputPhone)) {
             users.push(user);
             saveUsers(users);
@@ -542,7 +541,6 @@ export const databaseService = {
   },
 
   registerUser: async (name: string, city: string, phone: string): Promise<{user: User | null, error?: string}> => {
-    await new Promise(res => setTimeout(res, 500));
     const users = getUsers();
     const normalizedPhone = phone.replace(/\D/g, '');
     const normalizedName = name.trim().toLowerCase();
@@ -552,16 +550,13 @@ export const databaseService = {
     const existingFirestoreUser = await databaseService.getUserByPhoneFromFirestore(normalizedPhone);
     
     if (existingFirestoreUser) {
-        // Strict Verification: Name + City must match
-        const dbName = existingFirestoreUser.name.trim().toLowerCase();
-        const dbCity = existingFirestoreUser.city.trim().toLowerCase();
+        // Recognition: If phone exists, treat as login/recovery
+        const user = {
+            ...existingFirestoreUser,
+            name: name.trim(),
+            city: city.trim()
+        };
         
-        if (dbName !== normalizedName || dbCity !== normalizedCity) {
-            return { user: null, error: "Ce numéro est déjà enregistré avec un nom ou une ville différente. Veuillez utiliser vos informations d'origine." };
-        }
-        
-        // If they match, it's a recovery
-        const user = existingFirestoreUser;
         if (!users.some(u => u.phone === normalizedPhone)) {
             users.push(user);
             saveUsers(users); 

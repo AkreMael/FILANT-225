@@ -39,8 +39,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
   const handleRegister = async () => {
     const sanitizedPhone = phone.replace(/\s/g, '');
     
-    if (name.trim() === '' || city.trim() === '' || !/^\d{10}$/.test(sanitizedPhone)) {
-      onShowPopup("Veuillez remplir tous les champs correctement (nom, ville et numéro à 10 chiffres).", "alert");
+    if (name.trim() === '' || !/^\d{10}$/.test(sanitizedPhone)) {
+      onShowPopup("Veuillez entrer votre nom et un numéro à 10 chiffres.", "alert");
       return;
     }
 
@@ -169,7 +169,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
             
             {isRegisterView && !isAdminRole && (
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Votre Ville *</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Votre Ville (Optionnel pour les anciens)</label>
                 <div className="relative">
                   <CityIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input 
