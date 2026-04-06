@@ -1144,6 +1144,7 @@ export const databaseService = {
             createdAt: data.createdAt,
             status: data.status || 'pending',
             typeInscription: data.typeInscription || colName,
+            collectionName: colName,
             price: data.price || 0,
             title,
             category,
@@ -1574,6 +1575,17 @@ export const databaseService = {
       handleFirestoreError(e, OperationType.LIST, path);
       return [];
     }
+  },
+
+  onUsersUpdate: (callback: (users: User[]) => void) => {
+    const path = 'users';
+    const q = query(collection(db, path), orderBy('updatedAt', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+      callback(users);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, path);
+    });
   },
 
   updateUserInFirestore: async (phone: string, data: Partial<User>): Promise<void> => {
@@ -2176,6 +2188,19 @@ export const databaseService = {
       return { success: true, id: docRef.id };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'offres_emploi');
+      return { success: false, error };
+    }
+  },
+
+  async approveRegistration(id: string, collectionName: string) {
+    try {
+      await updateDoc(doc(db, collectionName, id), {
+        status: 'approved',
+        approvedAt: serverTimestamp()
+      });
+      return { success: true };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `${collectionName}/${id}`);
       return { success: false, error };
     }
   },

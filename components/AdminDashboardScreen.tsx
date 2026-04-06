@@ -423,11 +423,32 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
       setJobPostings(postings);
     });
 
+    // 5. Private Registrations (Firestore)
+    const unsubPrivate = databaseService.subscribeToPrivateRegistrations((registrations) => {
+      setPrivateRegistrations(registrations);
+    });
+
+    // 6. Scanned QR Contacts (Firestore)
+    let unsubQR: any;
+    databaseService.onScannedContactsChange((contacts) => {
+      setScannedContacts(contacts);
+    }).then(unsub => {
+      unsubQR = unsub;
+    });
+
+    // 7. Users (Firestore)
+    const unsubUsers = databaseService.onUsersUpdate((users) => {
+      setFirestoreUsers(users);
+    });
+
     return () => {
       unsubMessages();
       unsubPayments();
       unsubAssistant();
       unsubJobPostings();
+      unsubPrivate();
+      if (unsubQR) unsubQR();
+      unsubUsers();
     };
   }, []);
 
@@ -482,13 +503,6 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
   useEffect(() => {
       // Use a small delay to allow the UI to update immediately when switching views
       const timer = setTimeout(() => {
-          if ((view === 'contacts' || view === 'firestore-users' || view === 'notifications') && firestoreUsers.length === 0) {
-              setIsSyncing(true);
-              databaseService.getUsersFromFirestore().then(users => {
-                  setFirestoreUsers(users);
-                  setIsSyncing(false);
-              });
-          }
           if (view === 'associations' && associations.length === 0) setAssociations(databaseService.getAssociations());
           if (view === 'wave-payments' && wavePayments.length === 0) {
               setIsSyncing(true);
@@ -525,31 +539,9 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
         });
       }
 
-      let unsubscribeQR: any;
-      if (view === 'scanned-qr') {
-          setIsSyncing(true);
-          databaseService.onScannedContactsChange((contacts) => {
-              setScannedContacts(contacts);
-              setIsSyncing(false);
-          }).then(unsub => {
-              unsubscribeQR = unsub;
-          });
-      }
-
-      let unsubscribePrivate: any;
-      if (view === 'private-registrations') {
-          setIsSyncing(true);
-          unsubscribePrivate = databaseService.subscribeToPrivateRegistrations((registrations) => {
-              setPrivateRegistrations(registrations);
-              setIsSyncing(false);
-          });
-      }
-
       return () => {
           clearTimeout(timer);
           if (unsubscribeMessages) unsubscribeMessages();
-          if (unsubscribeQR) unsubscribeQR();
-          if (unsubscribePrivate) unsubscribePrivate();
       };
   }, [view]);
 
@@ -1993,6 +1985,21 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                         </div>
                         
                         <div className="flex gap-4">
+                            {selectedRegistration.status === 'pending' && (
+                                <button 
+                                    onClick={async () => {
+                                        setIsSyncing(true);
+                                        const res = await databaseService.approveRegistration(selectedRegistration.id, selectedRegistration.collectionName || selectedRegistration.typeInscription || 'travailleurs');
+                                        if (res.success) {
+                                            setSelectedRegistration(null);
+                                        }
+                                        setIsSyncing(false);
+                                    }}
+                                    className="flex-1 py-4 bg-green-600 text-white font-black rounded-2xl hover:bg-green-700 transition-all active:scale-95 uppercase text-xs tracking-widest shadow-lg"
+                                >
+                                    Approuver
+                                </button>
+                            )}
                             <AdminChatButton 
                                 user={{
                                     id: selectedRegistration.userId,
