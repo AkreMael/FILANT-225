@@ -207,6 +207,49 @@ const App: React.FC = () => {
     }
   };
 
+  const handleLogout = useCallback(() => {
+    if (currentUser?.phone) {
+      databaseService.logoutUser(currentUser.phone);
+    }
+    setIsProfileOpen(false);
+    setCurrentUser(null);
+    setShowSplash(false);
+    localStorage.removeItem('filant_currentUserPhone');
+    localStorage.removeItem('filant_user_role');
+    localStorage.removeItem('filant_selected_pro_role');
+    localStorage.removeItem('filant_has_selected_profile');
+    setNavHistory([]);
+    setActiveTab(Tab.Menu);
+    setMenuView('hub');
+  }, [currentUser?.phone]);
+
+  const showPopup = useCallback((
+    message: string, 
+    type: 'alert' | 'confirm', 
+    onConfirm?: (close: () => void, setLoading: (l: boolean) => void) => void,
+    confirmLabel?: string,
+    cancelLabel?: string
+  ) => {
+      setPopup({
+          show: true,
+          message,
+          type,
+          confirmLabel,
+          cancelLabel,
+          isConfirmLoading: false,
+          onConfirm: () => {
+              const close = () => setPopup(p => ({ ...p, show: false }));
+              const setLoading = (l: boolean) => setPopup(p => ({ ...p, isConfirmLoading: l }));
+              if (onConfirm) {
+                  onConfirm(close, setLoading);
+              } else {
+                  close();
+              }
+          },
+          onCancel: () => setPopup(prev => ({ ...prev, show: false }))
+      });
+  }, []);
+
   // Authentification anonyme pour Firestore
   useEffect(() => {
     let isMounted = true;
@@ -270,6 +313,15 @@ const App: React.FC = () => {
           }
 
           if (userData && isMounted) {
+            // Session Check
+            const currentSessionId = databaseService.getSessionId();
+            if (userData.activeSessionId && userData.activeSessionId !== currentSessionId) {
+              console.warn("Session mismatch detected. Logging out.");
+              handleLogout();
+              showPopup("Vous êtes déjà connecté sur un autre appareil.", "alert");
+              return;
+            }
+
             const fullUser = { ...userData, userId: user.uid };
             setCurrentUser(fullUser);
             setShowSplash(true);
@@ -338,6 +390,16 @@ const App: React.FC = () => {
         const data = snapshot.data();
         const cloudRole = data.role;
         const cloudIsBlocked = data.isBlocked;
+        const cloudSessionId = data.activeSessionId;
+
+        // Session Check
+        const currentSessionId = databaseService.getSessionId();
+        if (cloudSessionId && cloudSessionId !== currentSessionId) {
+          console.warn("Session mismatch detected in real-time. Logging out.");
+          handleLogout();
+          showPopup("Vous êtes déjà connecté sur un autre appareil.", "alert");
+          return;
+        }
         
         // Sync blocked status
         if (cloudIsBlocked !== undefined && cloudIsBlocked !== currentUser.isBlocked) {
@@ -427,33 +489,6 @@ const App: React.FC = () => {
     phone: currentUser?.phone || '',
     role: effectiveRole,
   };
-
-  const showPopup = useCallback((
-    message: string, 
-    type: 'alert' | 'confirm', 
-    onConfirm?: (close: () => void, setLoading: (l: boolean) => void) => void,
-    confirmLabel?: string,
-    cancelLabel?: string
-  ) => {
-      setPopup({
-          show: true,
-          message,
-          type,
-          confirmLabel,
-          cancelLabel,
-          isConfirmLoading: false,
-          onConfirm: () => {
-              const close = () => setPopup(p => ({ ...p, show: false }));
-              const setLoading = (l: boolean) => setPopup(p => ({ ...p, isConfirmLoading: l }));
-              if (onConfirm) {
-                  onConfirm(close, setLoading);
-              } else {
-                  close();
-              }
-          },
-          onCancel: () => setPopup(prev => ({ ...prev, show: false }))
-      });
-  }, []);
 
   const handleRestrictedAccess = useCallback((message?: string) => {
       if (message) {
@@ -564,19 +599,6 @@ const App: React.FC = () => {
       };
     }
   }, [currentUser?.phone, currentUser?.userId, currentUser?.id, currentUser?.name]);
-
-  const handleLogout = useCallback(() => {
-    setIsProfileOpen(false);
-    setCurrentUser(null);
-    setShowSplash(false);
-    localStorage.removeItem('filant_currentUserPhone');
-    localStorage.removeItem('filant_user_role');
-    localStorage.removeItem('filant_selected_pro_role');
-    localStorage.removeItem('filant_has_selected_profile');
-    setNavHistory([]);
-    setActiveTab(Tab.Menu);
-    setMenuView('hub');
-  }, []);
 
   const handleReset = useCallback(() => {
     setIsProfileOpen(false);

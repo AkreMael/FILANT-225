@@ -75,6 +75,7 @@ const NOTIFICATIONS_KEY_PREFIX = 'filant_user_notifications_';
 const ASSOCIATIONS_KEY = 'filant_admin_associations';
 const ACTIVE_CONTACTS_KEY = 'filant_admin_active_contacts';
 const ADMIN_CONTACTS_KEY = 'filant_admin_contacts';
+const SESSION_ID_KEY = 'filant_session_id';
 const CARD_LIFESPAN_MS = 30 * 24 * 60 * 60 * 1000; // 1 mois
 const CHAT_RETENTION_MS = 24 * 60 * 60 * 1000; // Suppression automatique après 24 heures
 
@@ -253,6 +254,15 @@ const mockOffers: Offer[] = [
 // --- Database Service ---
 
 export const databaseService = {
+  getSessionId: (): string => {
+    let sessionId = localStorage.getItem(SESSION_ID_KEY);
+    if (!sessionId) {
+        sessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        localStorage.setItem(SESSION_ID_KEY, sessionId);
+    }
+    return sessionId;
+  },
+
   logConnection: async (user: User) => {
     try {
         const logsString = localStorage.getItem(CONNECTION_LOGS_KEY);
@@ -333,7 +343,8 @@ export const databaseService = {
         isVerified: existingData.isVerified || user.isVerified || false,
         lastConnection: new Date().toISOString(),
         cardDataPro: cardDataPro || existingData.cardDataPro || null,
-        cardDataService: cardDataService || existingData.cardDataService || null
+        cardDataService: cardDataService || existingData.cardDataService || null,
+        activeSessionId: user.activeSessionId || existingData.activeSessionId || null
       };
 
       userData.lastSeen = serverTimestamp();
@@ -500,11 +511,18 @@ export const databaseService = {
     const firestoreUser = await databaseService.getUserByPhoneFromFirestore(normalizedInputPhone);
     
     if (firestoreUser) {
+        // Enforce Single Session
+        const currentSessionId = databaseService.getSessionId();
+        if (firestoreUser.activeSessionId && firestoreUser.activeSessionId !== currentSessionId) {
+            return { user: null, error: "Vous êtes déjà connecté sur un autre appareil." };
+        }
+
         // Recognition: If phone matches, we log them in.
         // We can update the name if it's different to keep it fresh.
         const user = {
             ...firestoreUser,
-            name: name.trim() // Use the name they just entered if they want to update it
+            name: name.trim(), // Use the name they just entered if they want to update it
+            activeSessionId: currentSessionId
         };
         
         if (!users.some(u => u.phone === normalizedInputPhone)) {
@@ -550,11 +568,18 @@ export const databaseService = {
     const existingFirestoreUser = await databaseService.getUserByPhoneFromFirestore(normalizedPhone);
     
     if (existingFirestoreUser) {
+        // Enforce Single Session
+        const currentSessionId = databaseService.getSessionId();
+        if (existingFirestoreUser.activeSessionId && existingFirestoreUser.activeSessionId !== currentSessionId) {
+            return { user: null, error: "Vous êtes déjà connecté sur un autre appareil." };
+        }
+
         // Recognition: If phone exists, treat as login/recovery
         const user = {
             ...existingFirestoreUser,
             name: name.trim(),
-            city: city.trim()
+            city: city.trim(),
+            activeSessionId: currentSessionId
         };
         
         if (!users.some(u => u.phone === normalizedPhone)) {
@@ -579,11 +604,13 @@ export const databaseService = {
         return { user: localUser };
     }
 
+    const currentSessionId = databaseService.getSessionId();
     const newUser: User = { 
         name: name.trim(), 
         city: city.trim(), 
         phone: normalizedPhone,
-        role: localStorage.getItem('filant_user_role') || 'Client'
+        role: localStorage.getItem('filant_user_role') || 'Client',
+        activeSessionId: currentSessionId
     };
     
     users.push(newUser);
@@ -1104,6 +1131,19 @@ export const databaseService = {
     });
 
     return () => unsubscribes.forEach(unsub => unsub());
+  },
+
+  logoutUser: async (phone: string) => {
+    try {
+        const sanitizedPhone = phone.replace(/\D/g, '');
+        const userRef = doc(db, 'users', sanitizedPhone);
+        await updateDoc(userRef, {
+            activeSessionId: null
+        });
+        console.log("Session cleared in Firestore for:", phone);
+    } catch (e) {
+        console.error("Error clearing session in Firestore:", e);
+    }
   },
 
   getFavorites: (phone: string): FavoriteRequest[] => {

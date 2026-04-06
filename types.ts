@@ -28,6 +28,7 @@ export interface User {
   isVerified?: boolean;
   isBlocked?: boolean;
   status?: 'active' | 'pending' | 'blocked';
+  activeSessionId?: string;
 }
 
 export interface Notification {
