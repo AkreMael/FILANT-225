@@ -133,8 +133,8 @@ interface NavigationPoint {
 }
 
 const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => databaseService.getActiveUser());
+  const [isAuthChecking, setIsAuthChecking] = useState(() => !databaseService.getActiveUser());
   const [showSplash, setShowSplash] = useState(false);
   const [hasCompletedFirstLaunch, setHasCompletedFirstLaunch] = useState(() => {
       return localStorage.getItem('filant_has_selected_profile') === 'true';
@@ -324,7 +324,11 @@ const App: React.FC = () => {
 
             const fullUser = { ...userData, userId: user.uid };
             setCurrentUser(fullUser);
-            setShowSplash(true);
+            databaseService.saveActiveUser(fullUser);
+            // Only show splash if we weren't already logged in locally
+            if (isAuthChecking) {
+              setShowSplash(true);
+            }
             localStorage.setItem('filant_currentUserPhone', userData.phone);
             
             // Sync role and mode
@@ -568,6 +572,7 @@ const App: React.FC = () => {
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
+    databaseService.saveActiveUser(user);
     setShowSplash(true);
     localStorage.setItem('filant_currentUserPhone', user.phone);
     

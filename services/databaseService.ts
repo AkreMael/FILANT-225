@@ -76,6 +76,7 @@ const ASSOCIATIONS_KEY = 'filant_admin_associations';
 const ACTIVE_CONTACTS_KEY = 'filant_admin_active_contacts';
 const ADMIN_CONTACTS_KEY = 'filant_admin_contacts';
 const SESSION_ID_KEY = 'filant_session_id';
+const ACTIVE_USER_KEY = 'filant_active_user';
 const CARD_LIFESPAN_MS = 30 * 24 * 60 * 60 * 1000; // 1 mois
 const CHAT_RETENTION_MS = 24 * 60 * 60 * 1000; // Suppression automatique après 24 heures
 
@@ -261,6 +262,25 @@ export const databaseService = {
         localStorage.setItem(SESSION_ID_KEY, sessionId);
     }
     return sessionId;
+  },
+
+  getActiveUser: (): User | null => {
+    try {
+        const userJson = localStorage.getItem(ACTIVE_USER_KEY);
+        return userJson ? JSON.parse(userJson) : null;
+    } catch (e) {
+        return null;
+    }
+  },
+
+  saveActiveUser: (user: User | null) => {
+    if (user) {
+        localStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(user));
+        localStorage.setItem('filant_currentUserPhone', user.phone);
+    } else {
+        localStorage.removeItem(ACTIVE_USER_KEY);
+        localStorage.removeItem('filant_currentUserPhone');
+    }
   },
 
   logConnection: async (user: User) => {
@@ -538,6 +558,7 @@ export const databaseService = {
         // Sync their data (contacts, etc.)
         await databaseService.syncUserDataFromCloud(user);
         await databaseService.logConnection(user);
+        databaseService.saveActiveUser(user);
         return { user };
     }
     
@@ -552,6 +573,7 @@ export const databaseService = {
           localStorage.setItem('filant_user_role', localUser.role);
       }
       await databaseService.logConnection(localUser);
+      databaseService.saveActiveUser(localUser);
       return { user: localUser };
     }
     
@@ -591,7 +613,8 @@ export const databaseService = {
             localStorage.setItem('filant_user_role', user.role);
         }
         await databaseService.syncUserDataFromCloud(user);
-        databaseService.logConnection(user);
+        await databaseService.logConnection(user);
+        databaseService.saveActiveUser(user);
         return { user };
     }
 
@@ -601,6 +624,7 @@ export const databaseService = {
         if (localUser.name.trim().toLowerCase() !== normalizedName || localUser.city.trim().toLowerCase() !== normalizedCity) {
             return { user: null, error: "Ce numéro est déjà enregistré avec des informations différentes localement." };
         }
+        databaseService.saveActiveUser(localUser);
         return { user: localUser };
     }
 
@@ -615,6 +639,7 @@ export const databaseService = {
     
     users.push(newUser);
     saveUsers(users);
+    databaseService.saveActiveUser(newUser);
     
     // Sync to Firestore (Non-blocking)
     databaseService.syncUserToFirestore(newUser);
@@ -1135,6 +1160,7 @@ export const databaseService = {
 
   logoutUser: async (phone: string) => {
     try {
+        databaseService.saveActiveUser(null);
         const sanitizedPhone = phone.replace(/\D/g, '');
         const userRef = doc(db, 'users', sanitizedPhone);
         await updateDoc(userRef, {
