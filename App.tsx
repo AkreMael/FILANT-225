@@ -134,6 +134,7 @@ interface NavigationPoint {
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [showSplash, setShowSplash] = useState(false);
   const [hasCompletedFirstLaunch, setHasCompletedFirstLaunch] = useState(() => {
       return localStorage.getItem('filant_has_selected_profile') === 'true';
@@ -221,11 +222,59 @@ const App: React.FC = () => {
       }
     };
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        testConnection();
-        // Set the user ID from Firebase Auth
-        setCurrentUser(prev => prev ? { ...prev, userId: user.uid } : null);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      try {
+        if (user) {
+          testConnection();
+          
+          // Try to recover user data from Firestore using UID or stored phone
+          const storedPhone = localStorage.getItem('filant_currentUserPhone');
+          let userData: User | null = null;
+
+          if (storedPhone) {
+            console.log("Attempting to recover user from phone:", storedPhone);
+            userData = await databaseService.getUserByPhoneFromFirestore(storedPhone);
+          }
+
+          if (!userData) {
+            console.log("Attempting to recover user from UID:", user.uid);
+            userData = await databaseService.getUserByUidFromFirestore(user.uid);
+          }
+
+          if (userData) {
+            const fullUser = { ...userData, userId: user.uid };
+            setCurrentUser(fullUser);
+            setShowSplash(true);
+            localStorage.setItem('filant_currentUserPhone', userData.phone);
+            
+            // Sync role and mode
+            const role = userData.role || localStorage.getItem('filant_user_role');
+            if (role && role !== 'Client') {
+              setIsClientModeActive(false);
+            }
+            
+            if (isAdmin(userData)) {
+              navigateTo({ activeTab: Tab.AdminDashboard });
+            }
+
+            // Sync to Firestore to ensure UID is linked
+            databaseService.syncUserToFirestore(fullUser);
+          }
+        } else {
+          // If no user is authenticated, try to sign in anonymously if we have a stored phone
+          const storedPhone = localStorage.getItem('filant_currentUserPhone');
+          if (storedPhone) {
+            try {
+              await signInAnonymously(auth);
+            } catch (e) {
+              console.error("Failed to sign in anonymously during recovery:", e);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error in onAuthStateChanged:", error);
+      } finally {
+        setIsAuthChecking(false);
       }
     });
     return () => unsubscribe();
@@ -411,49 +460,6 @@ const App: React.FC = () => {
     
     return () => unsubscribe();
   }, [currentUser?.phone, activeTab, showPopup, lastNotificationId, navigateTo]);
-
-  useEffect(() => {
-    let storedUserPhone = localStorage.getItem('filant_currentUserPhone');
-    let allUsers: (User & { code: string })[] = JSON.parse(localStorage.getItem('filant_users') || '[]');
-
-    const ensureMaelExists = () => {
-      if (!allUsers.some(u => u.phone === maelUser.phone)) {
-        allUsers.push({ ...maelUser, code: '0000' });
-        localStorage.setItem('filant_users', JSON.stringify(allUsers));
-        return JSON.parse(localStorage.getItem('filant_users') || '[]');
-      }
-      return allUsers;
-    };
-    
-    allUsers = ensureMaelExists();
-
-    if (storedUserPhone) {
-      const user = allUsers.find(u => u.phone === storedUserPhone);
-      if (user) {
-        const { code, ...userData } = user;
-        setCurrentUser(userData);
-        setShowSplash(true);
-        
-        // Synchronisation avec Firestore au chargement
-        databaseService.syncUserToFirestore(userData);
-        
-        const role = localStorage.getItem('filant_user_role');
-        if (role && role !== 'Client') {
-            setIsClientModeActive(false);
-        }
-
-        // Redirection automatique si admin
-        if (isAdmin(userData)) {
-          navigateTo({ activeTab: Tab.AdminDashboard });
-        }
-      } else {
-        localStorage.removeItem('filant_currentUserPhone');
-        setCurrentUser(null);
-      }
-    } else {
-      setCurrentUser(null);
-    }
-  }, []);
 
   useEffect(() => {
     if (currentUser && isAdmin(currentUser)) {
@@ -790,6 +796,10 @@ const App: React.FC = () => {
           </div>
         </GlobalRippleEffect>
       );
+  }
+
+  if (isAuthChecking) {
+    return <GlobalModeLoading message="Vérification de votre session..." />;
   }
 
   const isUserAdmin = isAdmin(currentUser);

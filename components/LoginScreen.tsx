@@ -40,7 +40,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
     const sanitizedPhone = phone.replace(/\s/g, '');
     
     if (name.trim() === '' || city.trim() === '' || !/^\d{10}$/.test(sanitizedPhone)) {
-      console.warn("Veuillez remplir tous les champs correctement. Le numéro doit comporter 10 chiffres.");
+      onShowPopup("Veuillez remplir tous les champs correctement (nom, ville et numéro à 10 chiffres).", "alert");
       return;
     }
 
@@ -50,9 +50,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
         if (user) {
           onLoginSuccess(user);
         } else {
-          console.error("Erreur lors de l'inscription:", registerError);
+          onShowPopup(registerError || "Erreur lors de l'inscription.", "alert");
         }
     } catch (error) {
+        onShowPopup("Une erreur est survenue lors de l'inscription. Veuillez réessayer.", "alert");
         console.error("Une erreur est survenue lors de l'inscription:", error);
     } finally {
         setIsLoading(false);
@@ -63,7 +64,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
     const sanitizedPhone = phone.replace(/\s/g, '');
     
     if (name.trim() === '' || !/^\d{10}$/.test(sanitizedPhone)) {
-      console.warn("Veuillez entrer votre nom et un numéro à 10 chiffres.");
+      onShowPopup("Veuillez entrer votre nom et un numéro à 10 chiffres.", "alert");
       return;
     }
 
@@ -73,7 +74,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
             sanitizedPhone !== ADMIN_PHONE || 
             adminCode !== ADMIN_PHONE + '0102'
         ) {
-            console.error("Identifiants incorrects. Accès refusé.");
+            onShowPopup("Identifiants incorrects. Accès refusé.", "alert");
             return;
         }
     }
@@ -84,9 +85,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
         if (user) {
           onLoginSuccess(user);
         } else {
-          console.error("Erreur de connexion:", loginError);
+          onShowPopup(loginError || "Erreur de connexion.", "alert");
         }
     } catch (error) {
+        onShowPopup("Une erreur est survenue lors de la connexion. Veuillez réessayer.", "alert");
         console.error("Une erreur est survenue lors de la connexion:", error);
     } finally {
         setIsLoading(false);
@@ -94,6 +96,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
   };
 
   const handleSubmit = () => {
+    if (isLoading) return;
     if (isRegisterView && !isAdminRole) {
       handleRegister();
     } else {

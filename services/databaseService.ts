@@ -274,32 +274,33 @@ export const databaseService = {
     }
   },
 
+  ensureAuth: async () => {
+    if (!auth.currentUser) {
+      const { signInAnonymously } = await import('firebase/auth');
+      try {
+        const cred = await signInAnonymously(auth);
+        console.log("Authenticated anonymously as:", cred.user.uid);
+        return cred.user;
+      } catch (authError: any) {
+        console.warn("Anonymous authentication failed or restricted:", authError.message);
+      }
+    }
+    return auth.currentUser;
+  },
+
   syncUserToFirestore: async (user: User) => {
     if (!user.phone) return;
     const sanitizedPhone = user.phone.replace(/\D/g, '');
     const path = `users/${sanitizedPhone}`;
     
     try {
-      if (!auth.currentUser) {
-        const { signInAnonymously } = await import('firebase/auth');
-        try {
-          await signInAnonymously(auth);
-          console.log("Authenticated anonymously as:", auth.currentUser?.uid);
-        } catch (authError: any) {
-          if (authError.code === 'auth/admin-restricted-operation' || authError.code === 'auth/operation-not-allowed') {
-            console.warn("Anonymous authentication is not enabled or is restricted. Some features may be limited. Please enable Anonymous Auth in the Firebase Console.");
-            // We proceed, but Firestore operations will likely fail if they require authentication
-          } else {
-            throw authError;
-          }
-        }
-      }
+      const fbUser = await databaseService.ensureAuth();
 
       // Update Firebase Auth Profile (displayName)
-      if (auth.currentUser && user.name) {
+      if (fbUser && user.name) {
         const { updateProfile } = await import('firebase/auth');
         try {
-          await updateProfile(auth.currentUser, {
+          await updateProfile(fbUser, {
             displayName: user.name
           });
           console.log("Firebase Auth Profile updated with name:", user.name);
@@ -316,7 +317,7 @@ export const databaseService = {
       const existingData = docSnap.exists() ? docSnap.data() : {};
 
       const userData: any = {
-        userId: auth.currentUser?.uid,
+        userId: fbUser?.uid || null,
         name: user.name,
         phone: sanitizedPhone,
         city: user.city,
@@ -327,28 +328,36 @@ export const databaseService = {
         cardDataService: cardDataService || null
       };
 
-      // Check if meaningful data has changed before writing
-      const hasChanged = !docSnap.exists() || 
-        existingData.name !== userData.name ||
-        existingData.city !== userData.city ||
-        existingData.role !== userData.role ||
-        existingData.isVerified !== userData.isVerified ||
-        JSON.stringify(existingData.cardDataPro) !== JSON.stringify(userData.cardDataPro) ||
-        JSON.stringify(existingData.cardDataService) !== JSON.stringify(userData.cardDataService);
-
-      if (hasChanged) {
-        userData.lastSeen = serverTimestamp();
-        userData.updatedAt = serverTimestamp();
-        userData.lastModeChange = serverTimestamp();
-        await setDoc(userRef, userData, { merge: true });
-        console.log("User synced to Firestore (data changed)");
-      } else {
-        console.log("User sync skipped (no data change)");
-      }
+      userData.lastSeen = serverTimestamp();
+      userData.updatedAt = serverTimestamp();
+      userData.lastModeChange = serverTimestamp();
+      
+      await setDoc(userRef, userData, { merge: true });
       console.log("User synced to Firestore successfully:", user.name);
     } catch (e) {
       handleFirestoreError(e, OperationType.WRITE, path);
     }
+  },
+
+  getUserByUidFromFirestore: async (uid: string): Promise<User | null> => {
+    const path = 'users';
+    try {
+      const { getDocs, query, collection, where, limit } = await import('firebase/firestore');
+      const q = query(collection(db, path), where('userId', '==', uid), limit(1));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const data = snapshot.docs[0].data();
+        return {
+          name: data.name,
+          phone: data.phone,
+          city: data.city,
+          role: data.role
+        };
+      }
+    } catch (e) {
+      console.error("Error fetching user by UID:", e);
+    }
+    return null;
   },
 
   getUserFromFirestore: async (name: string, phone: string): Promise<User | null> => {
@@ -357,18 +366,7 @@ export const databaseService = {
     const userRef = doc(db, 'users', sanitizedPhone);
     
     try {
-      if (!auth.currentUser) {
-        const { signInAnonymously } = await import('firebase/auth');
-        try {
-          await signInAnonymously(auth);
-        } catch (authError: any) {
-          if (authError.code === 'auth/admin-restricted-operation' || authError.code === 'auth/operation-not-allowed') {
-            console.warn("Anonymous authentication is not enabled or is restricted.");
-          } else {
-            throw authError;
-          }
-        }
-      }
+      await databaseService.ensureAuth();
       const docSnap = await getDocFromServer(userRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -394,18 +392,7 @@ export const databaseService = {
     const userRef = doc(db, 'users', sanitizedPhone);
     
     try {
-      if (!auth.currentUser) {
-        const { signInAnonymously } = await import('firebase/auth');
-        try {
-          await signInAnonymously(auth);
-        } catch (authError: any) {
-          if (authError.code === 'auth/admin-restricted-operation' || authError.code === 'auth/operation-not-allowed') {
-            console.warn("Anonymous authentication is not enabled or is restricted.");
-          } else {
-            throw authError;
-          }
-        }
-      }
+      await databaseService.ensureAuth();
       const docSnap = await getDocFromServer(userRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -791,19 +778,7 @@ export const databaseService = {
     };
 
     try {
-      if (!auth.currentUser) {
-        console.log("No user logged in, signing in anonymously...");
-        const { signInAnonymously } = await import('firebase/auth');
-        try {
-          await signInAnonymously(auth);
-        } catch (authError: any) {
-          if (authError.code === 'auth/admin-restricted-operation' || authError.code === 'auth/operation-not-allowed') {
-            console.warn("Anonymous authentication is not enabled or is restricted.");
-          } else {
-            throw authError;
-          }
-        }
-      }
+      await databaseService.ensureAuth();
 
       const collectionName = collectionMap[type] || 'other_registrations';
       console.log(`Target collection: ${collectionName}`);
