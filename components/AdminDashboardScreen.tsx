@@ -58,6 +58,9 @@ const ViewIcon = ({ className }: { className?: string }) => (
 const SaveIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
 );
+const PlusIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+);
 const ShareIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
 );
@@ -503,6 +506,9 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
   useEffect(() => {
       // Use a small delay to allow the UI to update immediately when switching views
       const timer = setTimeout(() => {
+          if (view === 'contacts' && adminContacts.length === 0) {
+              setAdminContacts(databaseService.getAdminContacts());
+          }
           if (view === 'associations' && associations.length === 0) setAssociations(databaseService.getAssociations());
           if (view === 'wave-payments' && wavePayments.length === 0) {
               setIsSyncing(true);
@@ -861,8 +867,16 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
 
   const renderAssociationView = () => (
     <div className="flex-1 flex flex-col h-full bg-[#ff802b] font-sans text-left overflow-hidden">
-        <header className="p-4 bg-white text-center sticky top-0 z-20 shadow-md">
+        <header className="p-4 bg-white flex items-center justify-between sticky top-0 z-20 shadow-md">
             <h2 className="text-sm font-black text-black uppercase tracking-[0.3em]">Association de contacts</h2>
+            <button 
+                onClick={() => setIsFormOpen(true)}
+                className="p-2 bg-[#00522b] text-white rounded-xl hover:bg-[#00522b]/80 transition-all active:scale-90 flex items-center gap-2"
+                title="Ajouter une association"
+            >
+                <PlusIcon className="w-4 h-4" />
+                <span className="text-[8px] font-black uppercase tracking-widest hidden sm:inline">Ajouter</span>
+            </button>
         </header>
 
         <div className="px-8 mt-6">
@@ -1044,19 +1058,17 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
   };
 
   const renderContactStorageView = () => {
-    const filteredUsers = firestoreUsers.filter(u => {
+    const filteredContacts = adminContacts.filter(c => {
         const matchesSearch = 
-            (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-            (u.phone || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (u.city || '').toLowerCase().includes(searchTerm.toLowerCase());
+            (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+            (c.phone || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (c.city || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (c.job || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (c.equipmentName || '').toLowerCase().includes(searchTerm.toLowerCase());
         
-        const matchesRole = filterRole === 'all' || u.role === filterRole;
-        const matchesStatus = filterStatus === 'all' || 
-            (filterStatus === 'active' && !u.isBlocked) || 
-            (filterStatus === 'blocked' && u.isBlocked) ||
-            (filterStatus === 'verified' && u.isVerified);
+        const matchesType = filterRole === 'all' || c.type.toLowerCase() === filterRole.toLowerCase();
 
-        return matchesSearch && matchesRole && matchesStatus;
+        return matchesSearch && matchesType;
     });
 
     return (
@@ -1065,17 +1077,12 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                 <h2 className="text-sm font-black text-black uppercase tracking-[0.3em]">Stockage des contacts</h2>
                 <div className="flex items-center gap-2">
                     <button 
-                        onClick={handleResetDatabase}
-                        disabled={isResetting}
-                        className="p-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all active:scale-90 flex items-center gap-2 disabled:opacity-50"
-                        title="Grand Nettoyage (Reset)"
+                        onClick={() => setIsFormOpen(true)}
+                        className="p-2 bg-[#00522b] text-white rounded-xl hover:bg-[#00522b]/80 transition-all active:scale-90 flex items-center gap-2"
+                        title="Ajouter un contact"
                     >
-                        {isResetting ? (
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : (
-                            <TrashIcon />
-                        )}
-                        <span className="text-[8px] font-black uppercase tracking-widest hidden sm:inline">Nettoyage</span>
+                        <PlusIcon className="w-4 h-4" />
+                        <span className="text-[8px] font-black uppercase tracking-widest hidden sm:inline">Ajouter</span>
                     </button>
                     <button 
                         onClick={handleExportCSV}
@@ -1093,7 +1100,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                 <div className="relative">
                     <input 
                         type="text"
-                        placeholder="Rechercher un nom, numéro, ville..."
+                        placeholder="Rechercher un nom, numéro, ville, métier..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full bg-white/10 border-2 border-white/20 rounded-2xl py-3 pl-10 pr-4 text-white placeholder:text-white/40 text-xs font-bold focus:outline-none focus:border-white/40 transition-all"
@@ -1110,60 +1117,44 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                         onChange={(e) => setFilterRole(e.target.value)}
                         className="bg-black text-white text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border-none focus:ring-0"
                     >
-                        <option value="all">Tous les rôles</option>
-                        <option value="Client">Clients</option>
-                        <option value="Agence">Agences</option>
-                        <option value="Travailleur">Travailleurs</option>
-                        <option value="Propriété">Équipements</option>
-                    </select>
-                    <select 
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                        className="bg-black text-white text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border-none focus:ring-0"
-                    >
-                        <option value="all">Tous les statuts</option>
-                        <option value="active">Actifs</option>
-                        <option value="verified">Vérifiés</option>
-                        <option value="blocked">Bloqués</option>
+                        <option value="all">Tous les types</option>
+                        <option value="CLIENT">Clients</option>
+                        <option value="AGENCE">Agences</option>
+                        <option value="TRAVAILLEUR">Travailleurs</option>
+                        <option value="PROPRIÉTAIRE">Propriétaires</option>
                     </select>
                 </div>
             </div>
             
             <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
-                {isSyncing ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-white/50">
-                        <div className="animate-spin mb-4">
-                            <SyncIcon />
-                        </div>
-                        <p className="font-black uppercase text-[10px] tracking-widest">Synchronisation Cloud...</p>
-                    </div>
-                ) : filteredUsers.length === 0 ? (
+                {filteredContacts.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-white/50">
                         <p className="font-black uppercase text-xs tracking-widest">Aucun contact trouvé</p>
                     </div>
                 ) : (
                     <div className="space-y-4 pb-20">
-                        {filteredUsers.map((user, idx) => (
-                            <div key={idx} className={`bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 transition-all ${user.isBlocked ? 'border-red-500/50 opacity-75' : 'border-black/10'}`}>
+                        {filteredContacts.map((contact, idx) => (
+                            <div key={idx} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl relative overflow-hidden border-2 border-black/10">
                                 <div className="flex justify-between items-start mb-3">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-0.5">
-                                            <h4 className="font-black text-white uppercase text-xs tracking-tight">{user.name || 'Utilisateur'}</h4>
-                                            {user.isVerified && <VerifiedIcon className="w-3 h-3 text-emerald-400" />}
-                                            {user.isBlocked && <BlockedIcon className="w-3 h-3 text-red-500" />}
+                                            <h4 className="font-black text-white uppercase text-xs tracking-tight">{contact.name}</h4>
                                         </div>
                                         <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">
-                                            {user.role || 'Client'} • {user.city || 'Ville inconnue'}
+                                            {contact.type} • {contact.city}
+                                            {contact.job && ` • ${contact.job}`}
+                                            {contact.equipmentName && ` • ${contact.equipmentName}`}
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <AdminChatButton 
-                                            user={user} 
-                                            onOpenChat={handleOpenChat} 
-                                            className="h-8 w-8"
-                                        />
                                         <button 
-                                            onClick={() => { setItemToDelete(user); setDeleteId(user.phone); }} 
+                                            onClick={() => { setEditingContact(contact); setAdminContactInputs(contact); setIsFormOpen(true); }}
+                                            className="p-1.5 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all active:scale-90"
+                                        >
+                                            <EditIcon className="w-4 h-4" />
+                                        </button>
+                                        <button 
+                                            onClick={() => { setItemToDelete(contact); setDeleteId(contact.id); }} 
                                             className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all active:scale-90"
                                         >
                                             <TrashIcon className="w-4 h-4" />
@@ -1173,33 +1164,20 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
 
                                 <div className="bg-white/5 p-2 rounded-xl border border-white/10 mb-4">
                                     <p className="text-[7px] font-black text-white/40 uppercase tracking-widest mb-0.5">Téléphone</p>
-                                    <p className="text-[11px] font-mono font-black text-white">+225 {user.phone}</p>
+                                    <p className="text-[11px] font-mono font-black text-white">{contact.phone}</p>
                                 </div>
 
-                                <div className="flex items-center gap-2">
-                                    <button 
-                                        onClick={() => handleToggleVerify(user)}
-                                        className={`flex-1 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 ${
-                                            user.isVerified 
-                                                ? 'bg-emerald-500 text-white' 
-                                                : 'bg-white/10 text-white/60 hover:bg-white/20'
-                                        }`}
-                                    >
-                                        <VerifiedIcon className="w-3 h-3" />
-                                        {user.isVerified ? 'Vérifié' : 'Vérifier'}
-                                    </button>
-                                    <button 
-                                        onClick={() => handleToggleBlock(user)}
-                                        className={`flex-1 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 ${
-                                            user.isBlocked 
-                                                ? 'bg-red-500 text-white' 
-                                                : 'bg-white/10 text-white/60 hover:bg-white/20'
-                                        }`}
-                                    >
-                                        <BlockedIcon className="w-3 h-3" />
-                                        {user.isBlocked ? 'Activer' : 'Bloquer'}
-                                    </button>
-                                </div>
+                                {contact.description && (
+                                    <p className="text-[10px] text-white/70 italic mb-4">"{contact.description}"</p>
+                                )}
+
+                                <button 
+                                    onClick={() => handleSaveToNativeContacts(contact)}
+                                    className="w-full py-2 bg-white/10 text-white rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-white/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    <DownloadIcon className="w-3 h-3" />
+                                    Enregistrer dans le répertoire
+                                </button>
                             </div>
                         ))}
                     </div>
@@ -2033,6 +2011,259 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
   return (
       <div className="absolute inset-0 bg-gray-50 flex flex-col overflow-hidden">
           {renderContent()}
+
+          {/* Modal d'ajout/modification de contact admin */}
+          {isFormOpen && view === 'contacts' && (
+              <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-6 backdrop-blur-md animate-in fade-in duration-200">
+                  <div className="bg-white rounded-[3rem] p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 border-8 border-[#ff802b]/20 max-h-[90vh] overflow-y-auto scrollbar-hide">
+                      <div className="flex justify-between items-center mb-6">
+                          <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">
+                              {editingContact ? 'Modifier le contact' : 'Nouveau contact'}
+                          </h3>
+                          <button 
+                              onClick={() => { setIsFormOpen(false); setEditingContact(null); }}
+                              className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                          >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                      </div>
+
+                      <div className="space-y-4">
+                          <div>
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Type de contact</p>
+                              <select 
+                                  value={adminContactInputs.type}
+                                  onChange={(e) => setAdminContactInputs({ ...adminContactInputs, type: e.target.value as any })}
+                                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 text-sm font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all"
+                              >
+                                  <option value="TRAVAILLEUR">Travailleur</option>
+                                  <option value="PROPRIÉTAIRE">Propriétaire</option>
+                                  <option value="AGENCE">Agence</option>
+                                  <option value="CLIENT">Client</option>
+                              </select>
+                          </div>
+
+                          <div>
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Nom Complet</p>
+                              <input 
+                                  type="text"
+                                  value={adminContactInputs.name}
+                                  onChange={(e) => setAdminContactInputs({ ...adminContactInputs, name: e.target.value })}
+                                  placeholder="Nom et prénoms"
+                                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 text-sm font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all"
+                              />
+                          </div>
+
+                          <div>
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ville</p>
+                              <input 
+                                  type="text"
+                                  value={adminContactInputs.city}
+                                  onChange={(e) => setAdminContactInputs({ ...adminContactInputs, city: e.target.value })}
+                                  placeholder="Ville de résidence"
+                                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 text-sm font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all"
+                              />
+                          </div>
+
+                          <div>
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Téléphone</p>
+                              <input 
+                                  type="text"
+                                  value={adminContactInputs.phone}
+                                  onChange={(e) => setAdminContactInputs({ ...adminContactInputs, phone: e.target.value })}
+                                  placeholder="Numéro sans indicatif"
+                                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 text-sm font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all"
+                              />
+                          </div>
+
+                          {adminContactInputs.type === 'TRAVAILLEUR' && (
+                              <div>
+                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Métier</p>
+                                  <input 
+                                      type="text"
+                                      value={adminContactInputs.job}
+                                      onChange={(e) => setAdminContactInputs({ ...adminContactInputs, job: e.target.value })}
+                                      placeholder="Ex: Chauffeur, Maçon..."
+                                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 text-sm font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all"
+                                  />
+                              </div>
+                          )}
+
+                          {adminContactInputs.type === 'PROPRIÉTAIRE' && (
+                              <>
+                                  <div>
+                                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Nom de l'équipement</p>
+                                      <input 
+                                          type="text"
+                                          value={adminContactInputs.equipmentName}
+                                          onChange={(e) => setAdminContactInputs({ ...adminContactInputs, equipmentName: e.target.value })}
+                                          placeholder="Ex: Camion, Pelle..."
+                                          className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 text-sm font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all"
+                                      />
+                                  </div>
+                                  <div>
+                                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Nom de l'utilisateur</p>
+                                      <input 
+                                          type="text"
+                                          value={adminContactInputs.userName}
+                                          onChange={(e) => setAdminContactInputs({ ...adminContactInputs, userName: e.target.value })}
+                                          placeholder="Nom de celui qui utilise"
+                                          className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 text-sm font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all"
+                                      />
+                                  </div>
+                              </>
+                          )}
+
+                          {adminContactInputs.type === 'AGENCE' && (
+                              <div>
+                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Nom de l'agence</p>
+                                  <input 
+                                      type="text"
+                                      value={adminContactInputs.agencyName}
+                                      onChange={(e) => setAdminContactInputs({ ...adminContactInputs, agencyName: e.target.value })}
+                                      placeholder="Nom de l'entreprise"
+                                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 text-sm font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all"
+                                  />
+                              </div>
+                          )}
+
+                          <div>
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Description / Notes</p>
+                              <textarea 
+                                  value={adminContactInputs.description}
+                                  onChange={(e) => setAdminContactInputs({ ...adminContactInputs, description: e.target.value })}
+                                  placeholder="Informations complémentaires..."
+                                  rows={3}
+                                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 text-sm font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all resize-none"
+                              />
+                          </div>
+
+                          <button 
+                              onClick={editingContact ? handleUpdateAdminContact : handleAddAdminContact}
+                              className="w-full py-4 bg-black text-white font-black rounded-2xl shadow-xl transition-all active:scale-95 uppercase text-xs tracking-widest flex items-center justify-center gap-2"
+                          >
+                              <SaveIcon className="w-4 h-4" />
+                              {editingContact ? 'Mettre à jour' : 'Enregistrer le contact'}
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          )}
+
+          {/* Modal d'ajout d'association */}
+          {isFormOpen && view === 'associations' && (
+              <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-6 backdrop-blur-md animate-in fade-in duration-200">
+                  <div className="bg-white rounded-[3rem] p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 border-8 border-[#ff802b]/20 max-h-[90vh] overflow-y-auto scrollbar-hide">
+                      <div className="flex justify-between items-center mb-6">
+                          <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Nouvelle Association</h3>
+                          <button 
+                              onClick={() => setIsFormOpen(false)}
+                              className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                          >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                      </div>
+
+                      <div className="space-y-6">
+                          {/* Prestataire Section */}
+                          <div className="space-y-3">
+                              <p className="text-xs font-black text-[#ff802b] uppercase tracking-widest border-b-2 border-slate-100 pb-1">Prestataire</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Type</p>
+                                      <select 
+                                          value={assocInputs.providerType}
+                                          onChange={(e) => setAssocInputs({ ...assocInputs, providerType: e.target.value as any })}
+                                          className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-2 px-3 text-xs font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all"
+                                      >
+                                          <option value="TRAVAILLEUR">Travailleur</option>
+                                          <option value="PROPRIÉTAIRE">Propriétaire</option>
+                                          <option value="AGENCE">Agence</option>
+                                      </select>
+                                  </div>
+                                  <div>
+                                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Métier/Matériel</p>
+                                      <input 
+                                          type="text"
+                                          value={assocInputs.providerJob}
+                                          onChange={(e) => setAssocInputs({ ...assocInputs, providerJob: e.target.value })}
+                                          placeholder="Ex: Chauffeur"
+                                          className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-2 px-3 text-xs font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all"
+                                      />
+                                  </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Nom</p>
+                                      <input 
+                                          type="text"
+                                          value={assocInputs.providerName}
+                                          onChange={(e) => setAssocInputs({ ...assocInputs, providerName: e.target.value })}
+                                          placeholder="Nom prestataire"
+                                          className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-2 px-3 text-xs font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all"
+                                      />
+                                  </div>
+                                  <div>
+                                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Téléphone</p>
+                                      <input 
+                                          type="text"
+                                          value={assocInputs.providerPhone}
+                                          onChange={(e) => setAssocInputs({ ...assocInputs, providerPhone: e.target.value })}
+                                          placeholder="Numéro"
+                                          className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-2 px-3 text-xs font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all"
+                                      />
+                                  </div>
+                              </div>
+                          </div>
+
+                          {/* Client Section */}
+                          <div className="space-y-3">
+                              <p className="text-xs font-black text-[#ff802b] uppercase tracking-widest border-b-2 border-slate-100 pb-1">Client</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Nom Client</p>
+                                      <input 
+                                          type="text"
+                                          value={assocInputs.clientName}
+                                          onChange={(e) => setAssocInputs({ ...assocInputs, clientName: e.target.value })}
+                                          placeholder="Nom du client"
+                                          className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-2 px-3 text-xs font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all"
+                                      />
+                                  </div>
+                                  <div>
+                                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Téléphone</p>
+                                      <input 
+                                          type="text"
+                                          value={assocInputs.clientPhone}
+                                          onChange={(e) => setAssocInputs({ ...assocInputs, clientPhone: e.target.value })}
+                                          placeholder="Numéro"
+                                          className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-2 px-3 text-xs font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all"
+                                      />
+                                  </div>
+                              </div>
+                              <div>
+                                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Description du besoin</p>
+                                  <textarea 
+                                      value={assocInputs.clientDescription}
+                                      onChange={(e) => setAssocInputs({ ...assocInputs, clientDescription: e.target.value })}
+                                      placeholder="Détails de la mission..."
+                                      rows={2}
+                                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-2 px-3 text-xs font-bold focus:outline-none focus:border-[#ff802b]/50 transition-all resize-none"
+                                  />
+                              </div>
+                          </div>
+
+                          <button 
+                              onClick={handleAddAssociation}
+                              className="w-full py-4 bg-black text-white font-black rounded-2xl shadow-xl transition-all active:scale-95 uppercase text-xs tracking-widest flex items-center justify-center gap-2"
+                          >
+                              <SaveIcon className="w-4 h-4" />
+                              Créer l'association
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          )}
 
           {/* Modal d'envoi de notification */}
         {isNotificationModalOpen && notificationTargetUser && (

@@ -360,9 +360,9 @@ export const databaseService = {
 
       const userData: any = {
         userId: fbUser?.uid || existingData.userId || null,
-        name: user.name,
+        name: user.name || existingData.name || '',
         phone: sanitizedPhone,
-        city: user.city,
+        city: user.city || existingData.city || '',
         role: user.role || existingData.role || localStorage.getItem('filant_user_role') || 'Client',
         isVerified: existingData.isVerified || user.isVerified || false,
         lastConnection: new Date().toISOString(),
@@ -390,13 +390,12 @@ export const databaseService = {
       const q = query(collection(db, path), where('userId', '==', uid), limit(1));
       const snapshot = await withTimeout(getDocs(q));
       if (!snapshot.empty) {
-        const data = snapshot.docs[0].data();
+        const doc = snapshot.docs[0];
+        const data = doc.data();
         return {
-          name: data.name,
-          phone: data.phone,
-          city: data.city,
-          role: data.role
-        };
+          id: doc.id,
+          ...data
+        } as User;
       }
     } catch (e) {
       console.error("Error fetching user by UID:", e);
@@ -432,7 +431,6 @@ export const databaseService = {
 
   getUserByPhoneFromFirestore: async (phone: string): Promise<User | null> => {
     const sanitizedPhone = phone.replace(/\D/g, '');
-    const path = `users/${sanitizedPhone}`;
     const userRef = doc(db, 'users', sanitizedPhone);
     
     try {
@@ -441,11 +439,9 @@ export const databaseService = {
       if (docSnap.exists()) {
         const data = docSnap.data();
         return {
-          name: data.name,
-          phone: data.phone,
-          city: data.city,
-          role: data.role
-        };
+          id: docSnap.id,
+          ...data
+        } as User;
       }
     } catch (e) {
       console.error("Error in getUserByPhoneFromFirestore:", e);

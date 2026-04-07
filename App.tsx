@@ -300,6 +300,16 @@ const App: React.FC = () => {
               console.log("Attempting to recover user from UID:", user.uid);
               userData = await databaseService.getUserByUidFromFirestore(user.uid);
             }
+            
+            // Fallback to local storage if Firestore recovery failed
+            if (!userData) {
+              console.log("Firestore recovery failed, falling back to local storage");
+              userData = databaseService.getActiveUser();
+              // If we have a local user, ensure it has the current UID
+              if (userData) {
+                userData.userId = user.uid;
+              }
+            }
           };
 
           const timeoutPromise = new Promise((_, reject) => 
