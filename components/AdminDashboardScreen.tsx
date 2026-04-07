@@ -495,6 +495,36 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
       clientDescription: ''
   });
 
+  const [cardFilter, setCardFilter] = useState<'all' | 'active' | 'expired'>('all');
+
+  const renderActiveView = () => {
+    if (view === 'contacts') return renderContactStorageView();
+    if (view === 'associations') return renderAssociationView();
+    if (view === 'card-tracking') return renderCardTrackingView();
+    if (view === 'active-contacts') return renderActiveContactsView();
+    if (view === 'user-messages') return renderUserMessagesView();
+    if (view === 'firestore-users') return renderFirestoreUsersView();
+    if (view === 'wave-payments') return renderWavePaymentsView();
+    if (view === 'assistant-requests') return renderAssistantRequestsView();
+    if (view === 'scanned-qr') return renderScannedQRView();
+    if (view === 'job-postings') return renderJobPostingsView();
+    if (view === 'private-registrations') return renderPrivateRegistrationsView();
+    if (view === 'notifications') return renderNotificationsView();
+    
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center text-white/30 p-6">
+        <img src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/343956e5-aaed-4531-85f6-a07422df385b.png" alt="Logo" className="w-20 h-20 lg:w-32 lg:h-32 object-contain opacity-20 mb-4 lg:mb-6" referrerPolicy="no-referrer" />
+        <h3 className="text-sm lg:text-xl font-black uppercase tracking-widest text-center">Sélectionnez une catégorie</h3>
+      </div>
+    );
+  };
+
+  const activeViewContent = useMemo(() => renderActiveView(), [
+      view, firestoreUsers, privateRegistrations, wavePayments, assistantRequests, 
+      scannedContacts, conversations, associations, activeContacts, adminContacts, jobPostings, viewedJobPostings,
+      searchTerm, isSyncing, isFormOpen, selectedRegistration, selectedQR, deleteId, itemToDelete, editingContact, selectedContacts, shareMode, viewingContact
+  ]);
+
   const refreshScannedContacts = async () => {
     setIsSyncing(true);
     try {
@@ -953,8 +983,6 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
     </div>
   );
   const renderCardTrackingView = () => {
-    const [cardFilter, setCardFilter] = useState<'all' | 'active' | 'expired'>('all');
-    
     const filteredUsers = firestoreUsers.filter(u => {
         const cardData = (u as any).cardData_pro || (u as any).cardData_service;
         const isMiseEnRelationActive = !!(u as any).isMiseEnRelationActive;
@@ -1934,207 +1962,173 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
     </div>
   );
 
-  const renderContent = () => {
-    const renderActiveView = () => {
-      if (view === 'contacts') return renderContactStorageView();
-      if (view === 'associations') return renderAssociationView();
-      if (view === 'card-tracking') return renderCardTrackingView();
-      if (view === 'active-contacts') return renderActiveContactsView();
-      if (view === 'user-messages') return renderUserMessagesView();
-      if (view === 'firestore-users') return renderFirestoreUsersView();
-      if (view === 'wave-payments') return renderWavePaymentsView();
-      if (view === 'assistant-requests') return renderAssistantRequestsView();
-      if (view === 'scanned-qr') return renderScannedQRView();
-      if (view === 'job-postings') return renderJobPostingsView();
-      if (view === 'private-registrations') return renderPrivateRegistrationsView();
-      if (view === 'notifications') return renderNotificationsView();
-      
-      return (
-        <div className="flex-1 flex flex-col items-center justify-center text-white/30 p-6">
-          <img src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/343956e5-aaed-4531-85f6-a07422df385b.png" alt="Logo" className="w-20 h-20 lg:w-32 lg:h-32 object-contain opacity-20 mb-4 lg:mb-6" referrerPolicy="no-referrer" />
-          <h3 className="text-sm lg:text-xl font-black uppercase tracking-widest text-center">Sélectionnez une catégorie</h3>
-        </div>
-      );
-    };
-
-    const activeViewContent = useMemo(() => renderActiveView(), [
-        view, firestoreUsers, privateRegistrations, wavePayments, assistantRequests, 
-        scannedContacts, conversations, associations, activeContacts, adminContacts, jobPostings, viewedJobPostings,
-        searchTerm, isSyncing, isFormOpen, selectedRegistration, selectedQR, deleteId, itemToDelete, editingContact, selectedContacts, shareMode, viewingContact
-    ]);
-
-    return (
-      <div className="flex flex-col lg:flex-row h-screen w-screen overflow-hidden bg-[#00522b]">
-        {/* Left Side: Grid of buttons - Hidden on mobile if a view is selected */}
-        <div className={`${view !== 'grid' ? 'hidden lg:flex' : 'flex'} w-full lg:w-[60%] p-4 lg:p-10 flex flex-col h-full relative`}>
-          <header className="mb-6 lg:mb-10">
-            <div className="flex items-center gap-4">
-                <button onClick={handleBack} className="p-2 lg:p-3 bg-white/10 text-white rounded-xl lg:rounded-2xl hover:bg-white/20 transition-all active:scale-90">
-                    <BackIcon className="w-5 h-5 lg:w-6 lg:h-6" />
+  return (
+      <div className="absolute inset-0 bg-gray-50 flex flex-col overflow-hidden">
+          <div className="flex flex-col lg:flex-row h-screen w-screen overflow-hidden bg-[#00522b]">
+            {/* Left Side: Grid of buttons - Hidden on mobile if a view is selected */}
+            <div className={`${view !== 'grid' ? 'hidden lg:flex' : 'flex'} w-full lg:w-[60%] p-4 lg:p-10 flex flex-col h-full relative`}>
+              <header className="mb-6 lg:mb-10">
+                <div className="flex items-center gap-4">
+                    <button onClick={handleBack} className="p-2 lg:p-3 bg-white/10 text-white rounded-xl lg:rounded-2xl hover:bg-white/20 transition-all active:scale-90">
+                        <BackIcon className="w-5 h-5 lg:w-6 lg:h-6" />
+                    </button>
+                    <h1 className="text-2xl sm:text-3xl lg:text-5xl font-black tracking-tighter flex flex-wrap items-center gap-2 lg:gap-4">
+                        <span className="text-white">ADMINISTRATION</span>
+                        <span className="text-[#ff802b]">FILANT225</span>
+                    </h1>
+                </div>
+                <div className="h-0.5 lg:h-1 bg-white/20 w-full mt-4 lg:mt-6" />
+              </header>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 lg:gap-6 flex-1 content-start overflow-y-auto pr-2 lg:pr-4 scrollbar-hide pb-20">
+                {sidebarButtonsMemo.map(btn => {
+                  const count = getUnreadCount(btn.id);
+                  return (
+                    <button 
+                      key={btn.id}
+                      onClick={() => handleSetView(btn.id as any)}
+                      className={`aspect-[16/9] rounded-2xl lg:rounded-[2rem] p-3 lg:p-6 flex flex-col items-center justify-center text-center transition-all active:scale-95 shadow-xl border-2 lg:border-4 border-transparent relative ${
+                        view === btn.id 
+                          ? 'bg-black text-[#ff802b]' 
+                          : 'bg-white text-[#ff802b] hover:bg-white/90'
+                      }`}
+                    >
+                      <span className="text-[10px] sm:text-xs lg:text-sm font-black uppercase tracking-widest leading-tight">
+                        {btn.label}
+                      </span>
+                      {count > 0 && (
+                        <div className="absolute -top-1 -right-1 lg:-top-2 lg:-right-2 bg-red-600 text-white min-w-[20px] h-5 lg:min-w-[28px] lg:h-7 rounded-full flex items-center justify-center px-1 border-2 border-white shadow-lg animate-bounce">
+                          <span className="text-[10px] lg:text-xs font-black">{count}</span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+    
+              {onLogout && (
+                <button onClick={handleLogout} className="absolute bottom-6 lg:bottom-8 left-4 lg:left-10 flex items-center gap-2 px-4 py-2 lg:px-6 lg:py-3 bg-red-500 text-white rounded-xl lg:rounded-2xl hover:bg-red-600 transition-all active:scale-95 text-[10px] lg:text-xs font-black uppercase tracking-widest shadow-xl">
+                  Déconnexion
                 </button>
-                <h1 className="text-2xl sm:text-3xl lg:text-5xl font-black tracking-tighter flex flex-wrap items-center gap-2 lg:gap-4">
-                    <span className="text-white">ADMINISTRATION</span>
-                    <span className="text-[#ff802b]">FILANT225</span>
-                </h1>
+              )}
             </div>
-            <div className="h-0.5 lg:h-1 bg-white/20 w-full mt-4 lg:mt-6" />
-          </header>
-          
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 lg:gap-6 flex-1 content-start overflow-y-auto pr-2 lg:pr-4 scrollbar-hide pb-20">
-            {sidebarButtonsMemo.map(btn => {
-              const count = getUnreadCount(btn.id);
-              return (
-                <button 
-                  key={btn.id}
-                  onClick={() => handleSetView(btn.id as any)}
-                  className={`aspect-[16/9] rounded-2xl lg:rounded-[2rem] p-3 lg:p-6 flex flex-col items-center justify-center text-center transition-all active:scale-95 shadow-xl border-2 lg:border-4 border-transparent relative ${
-                    view === btn.id 
-                      ? 'bg-black text-[#ff802b]' 
-                      : 'bg-white text-[#ff802b] hover:bg-white/90'
-                  }`}
-                >
-                  <span className="text-[10px] sm:text-xs lg:text-sm font-black uppercase tracking-widest leading-tight">
-                    {btn.label}
-                  </span>
-                  {count > 0 && (
-                    <div className="absolute -top-1 -right-1 lg:-top-2 lg:-right-2 bg-red-600 text-white min-w-[20px] h-5 lg:min-w-[28px] lg:h-7 rounded-full flex items-center justify-center px-1 border-2 border-white shadow-lg animate-bounce">
-                      <span className="text-[10px] lg:text-xs font-black">{count}</span>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {onLogout && (
-            <button onClick={handleLogout} className="absolute bottom-6 lg:bottom-8 left-4 lg:left-10 flex items-center gap-2 px-4 py-2 lg:px-6 lg:py-3 bg-red-500 text-white rounded-xl lg:rounded-2xl hover:bg-red-600 transition-all active:scale-95 text-[10px] lg:text-xs font-black uppercase tracking-widest shadow-xl">
-              Déconnexion
-            </button>
-          )}
-        </div>
-
-        {/* Right Side: Content Panel - Full screen on mobile if a view is selected */}
-        <div className={`${view === 'grid' ? 'hidden lg:flex' : 'flex'} w-full lg:w-[40%] bg-[#ff802b] flex flex-col h-full shadow-[-10px_0_30px_rgba(0,0,0,0.2)] lg:shadow-[-20px_0_60px_rgba(0,0,0,0.3)] relative z-10`}>
-          {view !== 'grid' && (
-            <div className="p-4 lg:p-6 border-b border-white/20 bg-white/5 flex items-center gap-4 z-30">
-              <button 
-                onClick={handleBack}
-                className="p-2 lg:p-3 bg-white/20 text-white rounded-xl lg:rounded-2xl hover:bg-white/30 transition-all active:scale-90 flex items-center gap-2 font-black text-[10px] lg:text-xs tracking-widest"
-              >
-                <BackIcon className="w-4 h-4 lg:w-5 lg:h-5" />
-                <span>RETOUR</span>
-              </button>
-              <h2 className="text-white font-black uppercase tracking-widest text-[10px] lg:text-sm truncate">
-                {sidebarButtonsMemo.find(b => b.id === view)?.label || view}
-              </h2>
+    
+            {/* Right Side: Content Panel - Full screen on mobile if a view is selected */}
+            <div className={`${view === 'grid' ? 'hidden lg:flex' : 'flex'} w-full lg:w-[40%] bg-[#ff802b] flex flex-col h-full shadow-[-10px_0_30px_rgba(0,0,0,0.2)] lg:shadow-[-20px_0_60px_rgba(0,0,0,0.3)] relative z-10`}>
+              {view !== 'grid' && (
+                <div className="p-4 lg:p-6 border-b border-white/20 bg-white/5 flex items-center gap-4 z-30">
+                  <button 
+                    onClick={handleBack}
+                    className="p-2 lg:p-3 bg-white/20 text-white rounded-xl lg:rounded-2xl hover:bg-white/30 transition-all active:scale-90 flex items-center gap-2 font-black text-[10px] lg:text-xs tracking-widest"
+                  >
+                    <BackIcon className="w-4 h-4 lg:w-5 lg:h-5" />
+                    <span>RETOUR</span>
+                  </button>
+                  <h2 className="text-white font-black uppercase tracking-widest text-[10px] lg:text-sm truncate">
+                    {sidebarButtonsMemo.find(b => b.id === view)?.label || view}
+                  </h2>
+                </div>
+              )}
+              {activeViewContent}
             </div>
-          )}
-          {activeViewContent}
-        </div>
-
-        {/* Shared Modal for Registration Details */}
-        {/* Shared Modal for Registration Details */}
-        {selectedRegistration && (
-            <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-6 backdrop-blur-md animate-in fade-in duration-200">
-                <div className="bg-white rounded-[3rem] p-10 w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto scrollbar-hide border-8 border-[#ff802b]/20">
-                    <div className="flex justify-between items-center mb-8 border-b-4 border-slate-100 pb-6">
-                        <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Détails Inscription</h3>
-                        <button 
-                            onClick={() => setSelectedRegistration(null)}
-                            className="p-3 hover:bg-slate-100 rounded-full transition-colors"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                    </div>
-                    
-                    <div className="space-y-8">
-                        <div className="bg-slate-50 rounded-[2rem] p-8 border-2 border-slate-100">
-                            <div className="flex justify-between items-center mb-6 border-b-2 border-slate-200 pb-4">
-                                <span className="text-xs font-black text-[#ff802b] uppercase tracking-widest">{selectedRegistration.category}</span>
-                                <span className={`text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest ${
-                                    selectedRegistration.status === 'approved' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
-                                }`}>
-                                    {selectedRegistration.status}
-                                </span>
-                            </div>
-                            <div className="space-y-6">
-                                <div className="grid grid-cols-1 gap-6">
-                                    <div>
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nom Complet</p>
-                                        <p className="text-lg font-black text-slate-900 uppercase">{selectedRegistration.title}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Contact Téléphonique</p>
-                                        <p className="text-lg font-mono font-black text-slate-700">+225 {selectedRegistration.phone}</p>
-                                    </div>
-                                </div>
-                                
-                                <div className="pt-6 border-t-2 border-slate-200">
-                                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Informations Détaillées</p>
-                                    <div className="grid grid-cols-1 gap-4">
-                                        {Object.entries(selectedRegistration.data || {}).map(([key, value]) => {
-                                            if (key === 'ville' || key === 'phone' || key === 'name') return null;
-                                            return (
-                                                <div key={key} className="bg-white p-4 rounded-2xl border-2 border-slate-100 shadow-sm">
-                                                    <p className="text-[9px] font-black text-[#ff802b] uppercase tracking-widest mb-1">{key}</p>
-                                                    <p className="text-sm font-bold text-slate-800">{String(value)}</p>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
+    
+            {/* Shared Modal for Registration Details */}
+            {/* Shared Modal for Registration Details */}
+            {selectedRegistration && (
+                <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-6 backdrop-blur-md animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[3rem] p-10 w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto scrollbar-hide border-8 border-[#ff802b]/20">
+                        <div className="flex justify-between items-center mb-8 border-b-4 border-slate-100 pb-6">
+                            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Détails Inscription</h3>
+                            <button 
+                                onClick={() => setSelectedRegistration(null)}
+                                className="p-3 hover:bg-slate-100 rounded-full transition-colors"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
                         </div>
                         
-                        <div className="flex gap-4">
-                            {selectedRegistration.status === 'pending' && (
+                        <div className="space-y-8">
+                            <div className="bg-slate-50 rounded-[2rem] p-8 border-2 border-slate-100">
+                                <div className="flex justify-between items-center mb-6 border-b-2 border-slate-200 pb-4">
+                                    <span className="text-xs font-black text-[#ff802b] uppercase tracking-widest">{selectedRegistration.category}</span>
+                                    <span className={`text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest ${
+                                        selectedRegistration.status === 'approved' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
+                                    }`}>
+                                        {selectedRegistration.status}
+                                    </span>
+                                </div>
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-1 gap-6">
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nom Complet</p>
+                                            <p className="text-lg font-black text-slate-900 uppercase">{selectedRegistration.title}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Contact Téléphonique</p>
+                                            <p className="text-lg font-mono font-black text-slate-700">+225 {selectedRegistration.phone}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="pt-6 border-t-2 border-slate-200">
+                                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Informations Détaillées</p>
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {Object.entries(selectedRegistration.data || {}).map(([key, value]) => {
+                                                if (key === 'ville' || key === 'phone' || key === 'name') return null;
+                                                return (
+                                                    <div key={key} className="bg-white p-4 rounded-2xl border-2 border-slate-100 shadow-sm">
+                                                        <p className="text-[9px] font-black text-[#ff802b] uppercase tracking-widest mb-1">{key}</p>
+                                                        <p className="text-sm font-bold text-slate-800">{String(value)}</p>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="flex gap-4">
+                                {selectedRegistration.status === 'pending' && (
+                                    <button 
+                                        onClick={async () => {
+                                            setIsSyncing(true);
+                                            const res = await databaseService.approveRegistration(selectedRegistration.id, selectedRegistration.collectionName || selectedRegistration.typeInscription || 'travailleurs');
+                                            if (res.success) {
+                                                setSelectedRegistration(null);
+                                            }
+                                            setIsSyncing(false);
+                                        }}
+                                        className="flex-1 py-4 bg-green-600 text-white font-black rounded-2xl hover:bg-green-700 transition-all active:scale-95 uppercase text-xs tracking-widest shadow-lg"
+                                    >
+                                        Approuver
+                                    </button>
+                                )}
+                                <AdminChatButton 
+                                    user={{
+                                        id: selectedRegistration.userId,
+                                        userId: selectedRegistration.userId,
+                                        name: selectedRegistration.title,
+                                        phone: selectedRegistration.phone,
+                                        city: selectedRegistration.data?.ville || 'Inconnue'
+                                    }} 
+                                    onOpenChat={handleOpenChat} 
+                                    className="h-16 w-16"
+                                />
                                 <button 
-                                    onClick={async () => {
-                                        setIsSyncing(true);
-                                        const res = await databaseService.approveRegistration(selectedRegistration.id, selectedRegistration.collectionName || selectedRegistration.typeInscription || 'travailleurs');
-                                        if (res.success) {
-                                            setSelectedRegistration(null);
-                                        }
-                                        setIsSyncing(false);
+                                    onClick={() => {
+                                        setDeleteId(selectedRegistration.id);
+                                        setItemToDelete(selectedRegistration);
+                                        setSelectedRegistration(null);
                                     }}
-                                    className="flex-1 py-4 bg-green-600 text-white font-black rounded-2xl hover:bg-green-700 transition-all active:scale-95 uppercase text-xs tracking-widest shadow-lg"
+                                    className="flex-1 py-4 bg-red-50 text-red-600 font-black rounded-2xl hover:bg-red-100 transition-all active:scale-95 uppercase text-xs tracking-widest border-2 border-red-100"
                                 >
-                                    Approuver
+                                    Supprimer la demande
                                 </button>
-                            )}
-                            <AdminChatButton 
-                                user={{
-                                    id: selectedRegistration.userId,
-                                    userId: selectedRegistration.userId,
-                                    name: selectedRegistration.title,
-                                    phone: selectedRegistration.phone,
-                                    city: selectedRegistration.data?.ville || 'Inconnue'
-                                }} 
-                                onOpenChat={handleOpenChat} 
-                                className="h-16 w-16"
-                            />
-                            <button 
-                                onClick={() => {
-                                    setDeleteId(selectedRegistration.id);
-                                    setItemToDelete(selectedRegistration);
-                                    setSelectedRegistration(null);
-                                }}
-                                className="flex-1 py-4 bg-red-50 text-red-600 font-black rounded-2xl hover:bg-red-100 transition-all active:scale-95 uppercase text-xs tracking-widest border-2 border-red-100"
-                            >
-                                Supprimer la demande
-                            </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        )}
-      </div>
-    );
-  };
-
-  return (
-      <div className="absolute inset-0 bg-gray-50 flex flex-col overflow-hidden">
-          {renderContent()}
+            )}
+          </div>
 
           {/* Modal d'ajout/modification de contact admin */}
           {isFormOpen && view === 'contacts' && (
