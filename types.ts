@@ -29,6 +29,8 @@ export interface User {
   isBlocked?: boolean;
   status?: 'active' | 'pending' | 'blocked';
   activeSessionId?: string;
+  cardActivationDate?: string; // ISO string
+  cardExpirationDate?: string; // ISO string
 }
 
 export interface Notification {

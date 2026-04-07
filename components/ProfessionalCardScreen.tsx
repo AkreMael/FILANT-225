@@ -35,13 +35,36 @@ const ProfessionalCardScreen: React.FC<ProfessionalCardScreenProps> = ({ user, o
     return aiRef.current;
   };
 
+  const [daysRemaining, setDaysRemaining] = useState<number>(0);
+  const isExpired = cardData?.cardExpirationDate ? new Date(cardData.cardExpirationDate).getTime() <= Date.now() : false;
+
   useEffect(() => {
     const data = databaseService.getCardData(user.phone, cardType);
     if (data) {
       setCardData(data);
       setProfession(data.profession || '');
+      if (data.cardExpirationDate) {
+        setDaysRemaining(databaseService.getDaysRemaining(data.cardExpirationDate));
+      }
     }
   }, [user.phone, cardType]);
+
+  const handleRenew = () => {
+    const event = new CustomEvent('trigger-payment-view', {
+        detail: {
+            title: 'Renouvellement Carte FILANT°225',
+            amount: '500',
+            waveLink: 'https://pay.wave.com/m/M_ci_jwxwatdcoKS8/c/ci/?amount=500',
+            paymentType: 'Service',
+            onSuccess: () => {
+                const updatedData = databaseService.renewCard(user.phone, cardType as any, cardData);
+                setCardData(updatedData);
+                setDaysRemaining(30);
+            }
+        }
+    });
+    window.dispatchEvent(event);
+  };
 
   const handleSaveProfession = () => {
     if (!profession.trim()) return;
@@ -389,6 +412,35 @@ const ProfessionalCardScreen: React.FC<ProfessionalCardScreenProps> = ({ user, o
           <canvas ref={canvasRef} className="hidden" />
         </div>
       )}
+
+      {/* Validity Status */}
+      <div className="mt-6 max-w-md mx-auto">
+        {isExpired ? (
+          <div className="bg-red-500/20 border border-red-500/50 rounded-2xl p-4 text-center">
+            <p className="text-red-400 font-black uppercase tracking-widest text-sm mb-3">Votre carte a expiré</p>
+            <button 
+              onClick={handleRenew}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-3 rounded-xl uppercase tracking-widest transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2"
+            >
+              <RefreshCw className="w-5 h-5" />
+              Renouveler votre carte (500F)
+            </button>
+          </div>
+        ) : (
+          <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-green-500 p-1.5 rounded-full">
+                <Check className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-green-400 font-black uppercase tracking-widest text-xs">Carte active</span>
+            </div>
+            <div className="text-right">
+              <p className="text-white font-black text-sm uppercase tracking-tighter">Il vous reste</p>
+              <p className="text-green-400 font-black text-xl leading-none">{daysRemaining} JOURS</p>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Instructions */}
       <div className="mt-8 max-w-md mx-auto text-center">

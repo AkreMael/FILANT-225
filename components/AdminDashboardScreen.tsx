@@ -58,6 +58,9 @@ const ViewIcon = ({ className }: { className?: string }) => (
 const SaveIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
 );
+const CreditCardIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-8 w-8 text-blue-600"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H4a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+);
 const PlusIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
 );
@@ -75,6 +78,7 @@ const sidebarButtons = [
   { id: 'notifications', label: 'Notifications' },
   { id: 'active-contacts', label: 'Activations' },
   { id: 'associations', label: 'Associations' },
+  { id: 'card-tracking', label: 'Suivi des cartes' },
   { id: 'user-messages', label: 'Messages' },
   { id: 'private-registrations', label: 'Inscriptions' },
   { id: 'job-postings', label: 'Emplois' },
@@ -217,7 +221,7 @@ const UserListItem = React.memo<{ user: User; onOpenChat?: (user: User) => void 
 UserListItem.displayName = 'UserListItem';
 
 const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onLogout, onSelectUser, onOpenChat, initialView = 'grid' }) => {
-  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'user-messages' | 'firestore-users' | 'wave-payments' | 'assistant-requests' | 'scanned-qr' | 'private-registrations' | 'notifications'>(initialView);
+  const [view, setView] = useState<'grid' | 'contacts' | 'associations' | 'active-contacts' | 'user-messages' | 'firestore-users' | 'wave-payments' | 'assistant-requests' | 'scanned-qr' | 'private-registrations' | 'notifications' | 'card-tracking'>(initialView);
   const [firestoreUsers, setFirestoreUsers] = useState<User[]>([]);
   const [privateRegistrations, setPrivateRegistrations] = useState<PrivateRegistration[]>([]);
   const [selectedRegistration, setSelectedRegistration] = useState<PrivateRegistration | null>(null);
@@ -948,6 +952,125 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
         </div>
     </div>
   );
+  const renderCardTrackingView = () => {
+    const [cardFilter, setCardFilter] = useState<'all' | 'active' | 'expired'>('all');
+    
+    const filteredUsers = firestoreUsers.filter(u => {
+        const cardData = (u as any).cardData_pro || (u as any).cardData_service;
+        const isMiseEnRelationActive = !!(u as any).isMiseEnRelationActive;
+        const expirationDate = (u as any).cardExpirationDate;
+        const isExpired = expirationDate ? new Date(expirationDate).getTime() <= Date.now() : true;
+        const isActive = isMiseEnRelationActive && !isExpired;
+
+        const matchesSearch = 
+            (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+            (u.phone || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (u.city || '').toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesFilter = 
+            cardFilter === 'all' || 
+            (cardFilter === 'active' && isActive) || 
+            (cardFilter === 'expired' && (isExpired || !isMiseEnRelationActive));
+            
+        return matchesSearch && matchesFilter;
+    });
+
+    return (
+        <div className="flex-1 flex flex-col h-full bg-[#ff802b] font-sans text-left overflow-hidden">
+            <header className="p-4 bg-white flex items-center justify-between sticky top-0 z-20 shadow-md">
+                <h2 className="text-sm font-black text-black uppercase tracking-[0.3em]">Suivi des Cartes</h2>
+            </header>
+
+            <div className="p-4 space-y-3 bg-black/5">
+                <div className="relative">
+                    <input 
+                        type="text"
+                        placeholder="Rechercher un utilisateur..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-white/10 border-2 border-white/20 rounded-2xl py-3 pl-10 pr-4 text-white placeholder:text-white/40 text-xs font-bold focus:outline-none focus:border-white/40 transition-all"
+                    />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                        <SearchIcon />
+                    </div>
+                </div>
+                
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {[
+                        { id: 'all', label: 'Tous' },
+                        { id: 'active', label: 'Actifs' },
+                        { id: 'expired', label: 'Expirés' }
+                    ].map(f => (
+                        <button
+                            key={f.id}
+                            onClick={() => setCardFilter(f.id as any)}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+                                cardFilter === f.id ? 'bg-black text-white shadow-lg' : 'bg-white/20 text-white hover:bg-white/30'
+                            }`}
+                        >
+                            {f.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
+                {filteredUsers.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-white/50">
+                        <p className="font-black uppercase text-xs tracking-widest">Aucun utilisateur trouvé</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                        {filteredUsers.map((u, idx) => {
+                            const expirationDate = (u as any).cardExpirationDate;
+                            const isMiseEnRelationActive = !!(u as any).isMiseEnRelationActive;
+                            const isExpired = expirationDate ? new Date(expirationDate).getTime() <= Date.now() : true;
+                            const isActive = isMiseEnRelationActive && !isExpired;
+                            const daysRemaining = expirationDate ? databaseService.getDaysRemaining(expirationDate) : 0;
+
+                            return (
+                                <div key={idx} className="bg-[#2d1b0d] rounded-2xl p-4 shadow-xl border-2 border-black/10">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h4 className="font-black text-white uppercase text-sm tracking-tight">{u.name}</h4>
+                                            <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">{u.city}</p>
+                                        </div>
+                                        <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                                            isActive ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                                        }`}>
+                                            {isActive ? '🟢 Carte active' : '🔴 Carte inactive'}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-white/5 p-3 rounded-xl border border-white/10 space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Téléphone</span>
+                                            <span className="text-xs font-mono font-black text-white">+225 {u.phone}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Statut</span>
+                                            <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-green-400' : 'text-red-400'}`}>
+                                                {isActive ? `Expire dans ${daysRemaining} jours` : 'Expirée'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="mt-4 flex items-center justify-between">
+                                        <span className="text-[8px] text-white/30 font-black uppercase tracking-widest">
+                                            {expirationDate ? `Expire le ${new Date(expirationDate).toLocaleDateString('fr-FR')}` : 'Pas de date'}
+                                        </span>
+                                        <AdminChatButton user={u} onOpenChat={onOpenChat} className="h-8 w-8" />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+  };
+
   const handleSendNotification = async () => {
     if (!notificationTargetUser || !notificationTitle || !notificationMessage) return;
     setIsSendingNotification(true);
@@ -1815,6 +1938,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
     const renderActiveView = () => {
       if (view === 'contacts') return renderContactStorageView();
       if (view === 'associations') return renderAssociationView();
+      if (view === 'card-tracking') return renderCardTrackingView();
       if (view === 'active-contacts') return renderActiveContactsView();
       if (view === 'user-messages') return renderUserMessagesView();
       if (view === 'firestore-users') return renderFirestoreUsersView();

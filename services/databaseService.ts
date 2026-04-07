@@ -125,6 +125,8 @@ export interface CardData {
   profession?: string;
   companyPhone?: string;
   captureCount?: number; // Nombre d'intégrations de photos
+  cardActivationDate?: string; // ISO string
+  cardExpirationDate?: string; // ISO string
 }
 
 export interface AdminContact {
@@ -1279,8 +1281,50 @@ export const databaseService = {
   saveCardData: (phone: string, data: CardData | null, type: 'pro' | 'service' = 'pro') => {
       const suffix = type === 'service' ? '_service' : '';
       const key = getScopedKey(phone, CARD_KEY_PREFIX + suffix);
-      if (data) localStorage.setItem(key, JSON.stringify(data));
-      else localStorage.removeItem(key);
+      if (data) {
+          localStorage.setItem(key, JSON.stringify(data));
+          
+          // Sync to Firestore if possible
+          const sanitizedPhone = phone.replace(/\D/g, '');
+          const userRef = doc(db, 'users', sanitizedPhone);
+          updateDoc(userRef, {
+              [`cardData_${type}`]: data,
+              // Also update top-level fields for easier admin tracking
+              cardActivationDate: data.cardActivationDate || null,
+              cardExpirationDate: data.cardExpirationDate || null,
+              isMiseEnRelationActive: !!(data.hasPaidInitial || data.isRegularized)
+          }).catch(err => console.warn("Failed to sync card data to Firestore:", err));
+      } else {
+          localStorage.removeItem(key);
+      }
+  },
+
+  getDaysRemaining: (expirationDate: string | undefined): number => {
+    if (!expirationDate) return 0;
+    const exp = new Date(expirationDate).getTime();
+    const now = new Date().getTime();
+    const diff = exp - now;
+    return Math.max(0, Math.ceil(diff / (24 * 60 * 60 * 1000)));
+  },
+
+  activateCard: (phone: string, type: 'pro' | 'service', currentData: CardData | null): CardData => {
+    const now = new Date();
+    const expiration = new Date(now.getTime() + CARD_LIFESPAN_MS);
+    
+    const newData: CardData = {
+        ...(currentData || { uploadTimestamp: Date.now() }),
+        cardActivationDate: now.toISOString(),
+        cardExpirationDate: expiration.toISOString(),
+        isRegularized: true,
+        hasPaidInitial: true
+    };
+    
+    databaseService.saveCardData(phone, newData, type);
+    return newData;
+  },
+
+  renewCard: (phone: string, type: 'pro' | 'service', currentData: CardData | null): CardData => {
+    return databaseService.activateCard(phone, type, currentData);
   },
 
   getChatHistory: (phone: string): StoredChatMessage[] => {

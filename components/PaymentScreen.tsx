@@ -111,6 +111,21 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({ onBack }) => {
                         </button>
                     </div>
                 </div>
+
+                {/* Card 5 - Renouvellement Carte */}
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg flex items-center justify-between gap-4">
+                     <div className="flex-1">
+                        <h2 className="font-bold text-base sm:text-lg">Renouvellement Carte</h2>
+                        <p className="text-green-600 dark:text-green-400 font-bold text-lg">500 CFA</p>
+                    </div>
+                    <button onClick={() => handlePaymentClick('Renouvellement Carte FILANT°225', '500', 'Service')} className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg text-center text-sm sm:text-base transform hover:scale-105 transition-transform flex items-center gap-2">
+                        <div className="flex flex-col">
+                            <span>Payer</span>
+                            <span>500 CFA</span>
+                        </div>
+                        <img src={PAYMENT_LOGO_URL} alt="" className="w-5 h-5 object-contain brightness-0 invert" referrerPolicy="no-referrer" />
+                    </button>
+                </div>
             </main>
         </div>
     );
