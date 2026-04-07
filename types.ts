@@ -29,6 +29,7 @@ export interface User {
   isBlocked?: boolean;
   status?: 'active' | 'pending' | 'blocked';
   activeSessionId?: string;
+  pin?: string; // 4-digit PIN
   cardActivationDate?: string; // ISO string
   cardExpirationDate?: string; // ISO string
 }

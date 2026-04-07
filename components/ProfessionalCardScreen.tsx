@@ -340,7 +340,7 @@ const ProfessionalCardScreen: React.FC<ProfessionalCardScreenProps> = ({ user, o
             <div className="bg-green-600 text-white px-3 py-2 rounded flex items-center justify-between">
               <div className="flex-1 flex items-center gap-2 overflow-hidden">
                 <span className="font-bold text-xs shrink-0">NUMÉRO:</span>
-                <span className="font-bold text-xs tracking-wider">{COMPANY_PHONE}</span>
+                <span className="font-bold text-xs tracking-wider">{user.phone.startsWith('+') ? user.phone : `+225 ${user.phone}`}</span>
               </div>
             </div>
           </div>

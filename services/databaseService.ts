@@ -365,6 +365,7 @@ export const databaseService = {
         name: user.name || existingData.name || '',
         phone: sanitizedPhone,
         city: user.city || existingData.city || '',
+        pin: user.pin || existingData.pin || null,
         role: user.role || existingData.role || localStorage.getItem('filant_user_role') || 'Client',
         isVerified: existingData.isVerified || user.isVerified || false,
         lastConnection: new Date().toISOString(),
@@ -523,27 +524,55 @@ export const databaseService = {
     return users.find(u => u.phone === phone.replace(/\D/g, '')) || null;
   },
 
-  loginUser: async (name: string, phone: string): Promise<{user: User | null, error?: string}> => {
+  loginUser: async (phone: string, pin: string): Promise<{user: User | null, error?: string}> => {
     const users = getUsers();
-    const normalizedInputName = name.trim().toLowerCase();
     const normalizedInputPhone = phone.replace(/\D/g, '');
     
+    // Admin Special Login
+    const ADMIN_PHONE = '0705052632';
+    if (normalizedInputPhone === ADMIN_PHONE && pin === '1234') {
+        let adminUser = await databaseService.getUserByPhoneFromFirestore(ADMIN_PHONE);
+        if (!adminUser) {
+            // Create admin if not exists
+            const newUser: User = {
+                name: 'Mael',
+                city: 'Bassam',
+                phone: ADMIN_PHONE,
+                pin: '1234',
+                role: 'Admin 225',
+                activeSessionId: databaseService.getSessionId()
+            };
+            await databaseService.syncUserToFirestore(newUser);
+            adminUser = newUser;
+        } else if (adminUser.pin !== '1234') {
+            // Update admin PIN if it was different
+            adminUser.pin = '1234';
+            await databaseService.syncUserToFirestore(adminUser);
+        }
+        
+        databaseService.saveActiveUser(adminUser);
+        localStorage.setItem('filant_user_role', 'Admin 225');
+        return { user: adminUser };
+    }
+
     // 1. Check Firestore first (Source of truth)
     console.log("Checking Firestore for user:", normalizedInputPhone);
     const firestoreUser = await databaseService.getUserByPhoneFromFirestore(normalizedInputPhone);
     
     if (firestoreUser) {
+        // Verify PIN
+        if (firestoreUser.pin !== pin) {
+            return { user: null, error: "Code PIN incorrect." };
+        }
+
         // Enforce Single Session
         const currentSessionId = databaseService.getSessionId();
         if (firestoreUser.activeSessionId && firestoreUser.activeSessionId !== currentSessionId) {
             return { user: null, error: "Vous êtes déjà connecté sur un autre appareil." };
         }
 
-        // Recognition: If phone matches, we log them in.
-        // We can update the name if it's different to keep it fresh.
         const user = {
             ...firestoreUser,
-            name: name.trim(), // Use the name they just entered if they want to update it
             activeSessionId: currentSessionId
         };
         
@@ -567,7 +596,7 @@ export const databaseService = {
     // 2. Fallback to localStorage (if offline or legacy)
     let localUser = users.find(u => 
         u.phone === normalizedInputPhone && 
-        u.name.trim().toLowerCase() === normalizedInputName
+        u.pin === pin
     );
     
     if (localUser) {
@@ -579,55 +608,24 @@ export const databaseService = {
       return { user: localUser };
     }
     
-    return { user: null, error: "Utilisateur non trouvé. Veuillez vous inscrire." };
+    return { user: null, error: "Utilisateur non trouvé ou Code PIN incorrect." };
   },
 
-  registerUser: async (name: string, city: string, phone: string): Promise<{user: User | null, error?: string}> => {
+  registerUser: async (name: string, city: string, phone: string, pin: string): Promise<{user: User | null, error?: string}> => {
     const users = getUsers();
     const normalizedPhone = phone.replace(/\D/g, '');
-    const normalizedName = name.trim().toLowerCase();
-    const normalizedCity = city.trim().toLowerCase();
     
     // 1. Check Firestore (Source of truth)
     const existingFirestoreUser = await databaseService.getUserByPhoneFromFirestore(normalizedPhone);
     
     if (existingFirestoreUser) {
-        // Enforce Single Session
-        const currentSessionId = databaseService.getSessionId();
-        if (existingFirestoreUser.activeSessionId && existingFirestoreUser.activeSessionId !== currentSessionId) {
-            return { user: null, error: "Vous êtes déjà connecté sur un autre appareil." };
-        }
-
-        // Recognition: If phone exists, treat as login/recovery
-        const user = {
-            ...existingFirestoreUser,
-            name: name.trim(),
-            city: city.trim(),
-            activeSessionId: currentSessionId
-        };
-        
-        if (!users.some(u => u.phone === normalizedPhone)) {
-            users.push(user);
-            saveUsers(users); 
-        }
-        
-        if (user.role) {
-            localStorage.setItem('filant_user_role', user.role);
-        }
-        await databaseService.syncUserDataFromCloud(user);
-        await databaseService.logConnection(user);
-        databaseService.saveActiveUser(user);
-        return { user };
+        return { user: null, error: "Ce numéro est déjà enregistré. Veuillez vous connecter." };
     }
 
     // 2. Check localStorage (Legacy/Offline)
     const localUser = users.find(u => u.phone === normalizedPhone);
     if (localUser) {
-        if (localUser.name.trim().toLowerCase() !== normalizedName || localUser.city.trim().toLowerCase() !== normalizedCity) {
-            return { user: null, error: "Ce numéro est déjà enregistré avec des informations différentes localement." };
-        }
-        databaseService.saveActiveUser(localUser);
-        return { user: localUser };
+        return { user: null, error: "Ce numéro est déjà enregistré localement. Veuillez vous connecter." };
     }
 
     const currentSessionId = databaseService.getSessionId();
@@ -635,6 +633,7 @@ export const databaseService = {
         name: name.trim(), 
         city: city.trim(), 
         phone: normalizedPhone,
+        pin: pin,
         role: localStorage.getItem('filant_user_role') || 'Client',
         activeSessionId: currentSessionId
     };
@@ -648,6 +647,129 @@ export const databaseService = {
     databaseService.logConnection(newUser);
     
     return { user: newUser };
+  },
+
+  resetPin: async (phone: string, newPin: string): Promise<{success: boolean, error?: string}> => {
+    const normalizedPhone = phone.replace(/\D/g, '');
+    const userRef = doc(db, 'users', normalizedPhone);
+    
+    try {
+      const docSnap = await getDoc(userRef);
+      if (!docSnap.exists()) {
+        return { success: false, error: "Utilisateur non trouvé." };
+      }
+      
+      await updateDoc(userRef, {
+        pin: newPin,
+        updatedAt: serverTimestamp()
+      });
+      
+      // Update local storage too
+      const users = getUsers();
+      const userIdx = users.findIndex(u => u.phone === normalizedPhone);
+      if (userIdx !== -1) {
+        users[userIdx].pin = newPin;
+        saveUsers(users);
+      }
+      
+      return { success: true };
+    } catch (e) {
+      console.error("Error resetting PIN:", e);
+      return { success: false, error: "Erreur lors de la réinitialisation du code PIN." };
+    }
+  },
+
+  cleanupDatabase: async () => {
+    const ADMIN_PHONE = '0705052632';
+    console.log("Starting full database cleanup...");
+    
+    try {
+      await databaseService.ensureAuth();
+      
+      const collectionsToClear = [
+        'users',
+        'recruitments',
+        'messages',
+        'travailleurs',
+        'agences',
+        'proprietaires',
+        'entreprises',
+        'Chats',
+        'scanned_contacts',
+        'reviews',
+        'interventions',
+        'availabilities'
+      ];
+
+      for (const colName of collectionsToClear) {
+        const colRef = collection(db, colName);
+        const snapshot = await getDocs(colRef);
+        
+        const batch = writeBatch(db);
+        let deleteCount = 0;
+        
+        snapshot.forEach((doc) => {
+          // Preserve admin in users collection
+          if (colName === 'users' && doc.id === ADMIN_PHONE) {
+            return;
+          }
+          batch.delete(doc.ref);
+          deleteCount++;
+        });
+        
+        if (deleteCount > 0) {
+          await batch.commit();
+          console.log(`Deleted ${deleteCount} documents from ${colName}.`);
+        }
+      }
+
+      // 2. Ensure Admin exists with PIN 1234
+      const adminRef = doc(db, 'users', ADMIN_PHONE);
+      const adminData: User = {
+        name: 'Mael',
+        city: 'Bassam',
+        phone: ADMIN_PHONE,
+        pin: '1234',
+        role: 'Admin 225',
+        isVerified: true,
+        status: 'active'
+      };
+      
+      await setDoc(adminRef, {
+        ...adminData,
+        updatedAt: serverTimestamp(),
+        lastSeen: serverTimestamp()
+      }, { merge: true });
+      
+      console.log("Admin account verified/created with PIN 1234.");
+
+      // 3. Cleanup LocalStorage
+      localStorage.removeItem(USERS_KEY);
+      localStorage.removeItem(CONNECTION_LOGS_KEY);
+      
+      // Remove all scoped keys
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.startsWith(FAVORITES_KEY_PREFIX) || 
+          key.startsWith(CONTACTS_KEY_PREFIX) || 
+          key.startsWith(REQUESTS_KEY_PREFIX) || 
+          key.startsWith(CARD_KEY_PREFIX) || 
+          key.startsWith(CHAT_KEY_PREFIX) || 
+          key.startsWith(NOTIFICATIONS_KEY_PREFIX)
+        )) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+
+      console.log("LocalStorage cleanup completed.");
+      return true;
+    } catch (e) {
+      console.error("Error during database cleanup:", e);
+      return false;
+    }
   },
   
   getWorkers: async (): Promise<Worker[]> => {

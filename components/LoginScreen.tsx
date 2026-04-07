@@ -25,6 +25,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
   const [name, setName] = useState('');
   const [city, setCity] = useState('');
   const [phone, setPhone] = useState('');
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [adminCode, setAdminCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -39,14 +42,24 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
   const handleRegister = async () => {
     const sanitizedPhone = phone.replace(/\s/g, '');
     
-    if (name.trim() === '' || !/^\d{10}$/.test(sanitizedPhone)) {
-      onShowPopup("Veuillez entrer votre nom et un numéro à 10 chiffres.", "alert");
+    if (name.trim() === '' || city.trim() === '' || !/^\d{10}$/.test(sanitizedPhone)) {
+      onShowPopup("Veuillez entrer votre nom, votre ville et un numéro à 10 chiffres.", "alert");
+      return;
+    }
+
+    if (!/^\d{4}$/.test(pin)) {
+      onShowPopup("Le code PIN doit être composé de 4 chiffres.", "alert");
+      return;
+    }
+
+    if (pin !== confirmPin) {
+      onShowPopup("Erreur, les codes ne correspondent pas. Veuillez réessayer.", "alert");
       return;
     }
 
     setIsLoading(true);
     try {
-        const { user, error: registerError } = await databaseService.registerUser(name, city, sanitizedPhone);
+        const { user, error: registerError } = await databaseService.registerUser(name, city, sanitizedPhone, pin);
         if (user) {
           onLoginSuccess(user);
         } else {
@@ -63,14 +76,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
   const handleLogin = async () => {
     const sanitizedPhone = phone.replace(/\s/g, '');
     
-    if (name.trim() === '' || !/^\d{10}$/.test(sanitizedPhone)) {
-      onShowPopup("Veuillez entrer votre nom et un numéro à 10 chiffres.", "alert");
+    if (!/^\d{10}$/.test(sanitizedPhone)) {
+      onShowPopup("Veuillez entrer un numéro à 10 chiffres.", "alert");
+      return;
+    }
+
+    if (!/^\d{4}$/.test(pin)) {
+      onShowPopup("Veuillez entrer votre code PIN à 4 chiffres.", "alert");
       return;
     }
 
     if (isAdminRole) {
         if (
-            name.trim().toLowerCase() !== 'mael' || 
             sanitizedPhone !== ADMIN_PHONE || 
             adminCode !== ADMIN_PHONE + '0102'
         ) {
@@ -81,7 +98,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
     
     setIsLoading(true);
     try {
-        const { user, error: loginError } = await databaseService.loginUser(name, sanitizedPhone);
+        const { user, error: loginError } = await databaseService.loginUser(sanitizedPhone, pin);
         if (user) {
           onLoginSuccess(user);
         } else {
@@ -95,10 +112,48 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
     }
   };
 
+  const handleResetPin = async () => {
+    const sanitizedPhone = phone.replace(/\s/g, '');
+    
+    if (!/^\d{10}$/.test(sanitizedPhone)) {
+      onShowPopup("Veuillez entrer votre numéro à 10 chiffres.", "alert");
+      return;
+    }
+
+    if (!/^\d{4}$/.test(pin)) {
+      onShowPopup("Le nouveau code PIN doit être composé de 4 chiffres.", "alert");
+      return;
+    }
+
+    if (pin !== confirmPin) {
+      onShowPopup("Erreur, les codes ne correspondent pas. Veuillez réessayer.", "alert");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { success, error } = await databaseService.resetPin(sanitizedPhone, pin);
+      if (success) {
+        onShowPopup("Code PIN réinitialisé avec succès. Veuillez vous connecter.", "alert");
+        setIsForgotPassword(false);
+        setIsRegisterView(false);
+        setPin('');
+        setConfirmPin('');
+      } else {
+        onShowPopup(error || "Erreur lors de la réinitialisation.", "alert");
+      }
+    } catch (error) {
+      onShowPopup("Une erreur est survenue. Veuillez réessayer.", "alert");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = () => {
-    console.log("handleSubmit called. isLoading:", isLoading, "isRegisterView:", isRegisterView);
     if (isLoading) return;
-    if (isRegisterView && !isAdminRole) {
+    if (isForgotPassword) {
+      handleResetPin();
+    } else if (isRegisterView && !isAdminRole) {
       handleRegister();
     } else {
       handleLogin();
@@ -134,42 +189,46 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
         <div className="w-full max-w-md space-y-6 sm:space-y-8 pb-12">
           <div className="text-center space-y-2">
             <h2 className="text-2xl font-black text-black uppercase tracking-tight">
-              {isAdminRole ? "Administration" : (isRegisterView ? "Inscription" : "Connexion")}
+              {isAdminRole ? "Administration" : (isForgotPassword ? "Réinitialisation PIN" : (isRegisterView ? "Inscription" : "Connexion"))}
             </h2>
             <div className="h-1.5 w-20 bg-orange-500 mx-auto rounded-full"></div>
             
             <div className="text-sm text-gray-500 font-medium pt-4 px-4">
               {isAdminRole ? (
                 <span className="text-red-600 font-black">Accès Restreint</span>
+              ) : isForgotPassword ? (
+                <Typewriter text="Entrez votre numéro et votre nouveau code PIN à 4 chiffres." speed={20} delay={500} />
               ) : isRegisterView ? (
                 <Typewriter text="Inscrivez-vous pour profiter pleinement de nos services sur FILANT°225." speed={20} delay={500} />
               ) : (
-                <Typewriter text="Connectez-vous avec votre nom et numéro WhatsApp." speed={20} delay={500} />
+                <Typewriter text="Connectez-vous avec votre numéro WhatsApp et votre code PIN." speed={20} delay={500} />
               )}
             </div>
           </div>
           
           <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-5">
-            <div className="space-y-1.5">
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Votre Nom *</label>
-              <div className="relative">
-                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input 
-                    type="text" 
-                    placeholder="Ex: Filant Mael" 
-                    value={name} 
-                    onChange={(e) => setName(e.target.value)} 
-                    className="w-full pl-12 pr-12 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" 
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <SpeakerIcon text="Entrez votre nom" className="text-orange-500" />
+            {!isForgotPassword && (isRegisterView || isAdminRole) && (
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Votre Nom *</label>
+                <div className="relative">
+                  <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input 
+                      type="text" 
+                      placeholder="Ex: Filant Mael" 
+                      value={name} 
+                      onChange={(e) => setName(e.target.value)} 
+                      className="w-full pl-12 pr-12 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" 
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <SpeakerIcon text="Entrez votre nom" className="text-orange-500" />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             
-            {isRegisterView && !isAdminRole && (
+            {!isForgotPassword && isRegisterView && !isAdminRole && (
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Votre Ville (Optionnel pour les anciens)</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Votre Ville *</label>
                 <div className="relative">
                   <CityIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input 
@@ -209,6 +268,48 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
               </div>
             </div>
 
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                {isForgotPassword ? "Nouveau Code PIN (4 chiffres) *" : (isRegisterView ? "Créer Code PIN (4 chiffres) *" : "Code PIN *")}
+              </label>
+              <div className="relative">
+                <KeyIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input 
+                    type="password" 
+                    inputMode="numeric"
+                    maxLength={4}
+                    placeholder="••••" 
+                    value={pin} 
+                    onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} 
+                    className="w-full pl-12 pr-12 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" 
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <SpeakerIcon text="Entrez votre code PIN à 4 chiffres" className="text-orange-500" />
+                </div>
+              </div>
+            </div>
+
+            {(isRegisterView || isForgotPassword) && !isAdminRole && (
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Confirmer Code PIN *</label>
+                <div className="relative">
+                  <KeyIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input 
+                      type="password" 
+                      inputMode="numeric"
+                      maxLength={4}
+                      placeholder="••••" 
+                      value={confirmPin} 
+                      onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))} 
+                      className="w-full pl-12 pr-12 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-gray-800 font-bold placeholder-gray-300 focus:border-orange-500 outline-none transition-all" 
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <SpeakerIcon text="Confirmez votre code PIN" className="text-orange-500" />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {isAdminRole && (
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Code Admin *</label>
@@ -234,16 +335,37 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShowPopup }
                   disabled={isLoading} 
                   className="w-full py-5 px-4 rounded-3xl shadow-xl flex items-center justify-center font-black text-white transition-all transform active:scale-95 bg-orange-500 hover:bg-orange-600 disabled:opacity-80 disabled:cursor-not-allowed min-h-[64px] uppercase tracking-widest text-sm"
               >
-                  {isLoading ? <Spinner /> : (isRegisterView && !isAdminRole ? 'S\'inscrire maintenant' : (isAdminRole ? 'Connexion Admin' : 'Se connecter'))}
+                  {isLoading ? <Spinner /> : (isForgotPassword ? 'Réinitialiser PIN' : (isRegisterView && !isAdminRole ? 'S\'inscrire maintenant' : (isAdminRole ? 'Connexion Admin' : 'Se connecter')))}
               </button>
             </div>
           </form>
           
           {!isAdminRole && (
-              <div className="text-center pt-4">
-                <button onClick={() => { setIsRegisterView(!isRegisterView); }} className="text-xs font-black text-gray-400 hover:text-orange-500 uppercase tracking-widest transition-colors">
+              <div className="flex flex-col items-center space-y-4 pt-4">
+                <button 
+                  onClick={() => { 
+                    setIsRegisterView(!isRegisterView); 
+                    setIsForgotPassword(false);
+                    setPin('');
+                    setConfirmPin('');
+                  }} 
+                  className="text-xs font-black text-gray-400 hover:text-orange-500 uppercase tracking-widest transition-colors"
+                >
                     {isRegisterView ? 'Déjà un compte ? Se connecter' : 'Pas de compte ? S\'inscrire'}
                 </button>
+                
+                {!isRegisterView && (
+                  <button 
+                    onClick={() => {
+                      setIsForgotPassword(!isForgotPassword);
+                      setPin('');
+                      setConfirmPin('');
+                    }}
+                    className="text-xs font-bold text-orange-500/70 hover:text-orange-500 uppercase tracking-widest transition-colors"
+                  >
+                    {isForgotPassword ? 'Retour à la connexion' : 'Mot de passe oublié ?'}
+                  </button>
+                )}
               </div>
           )}
           <div className="mt-8 pt-6 border-t border-gray-100 w-full">

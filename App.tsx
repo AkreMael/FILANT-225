@@ -146,6 +146,28 @@ const App: React.FC = () => {
   
   const [navHistory, setNavHistory] = useState<NavigationPoint[]>([]);
 
+  // --- DATABASE CLEANUP TRIGGER ---
+  useEffect(() => {
+    const runCleanup = async () => {
+      const isCleaned = localStorage.getItem('filant_db_cleaned_v2');
+      if (!isCleaned) {
+        setIsAuthChecking(true);
+        const success = await databaseService.cleanupDatabase();
+        if (success) {
+          localStorage.setItem('filant_db_cleaned_v2', 'true');
+          // If the current user was not admin, log them out
+          const activeUser = databaseService.getActiveUser();
+          if (activeUser && activeUser.phone !== '0705052632') {
+            databaseService.saveActiveUser(null);
+            setCurrentUser(null);
+          }
+        }
+        setIsAuthChecking(false);
+      }
+    };
+    runCleanup();
+  }, []);
+
   const navigateTo = useCallback((updates: Partial<NavigationPoint>) => {
     const currentState: NavigationPoint = { activeTab, menuView, offerSubView };
     
@@ -613,9 +635,6 @@ const App: React.FC = () => {
     databaseService.saveActiveUser(user);
     setShowSplash(true);
     localStorage.setItem('filant_currentUserPhone', user.phone);
-    
-    // Synchronisation avec Firestore lors de la connexion
-    databaseService.syncUserToFirestore(user);
     
     const role = localStorage.getItem('filant_user_role');
     if (role && role !== 'Client') {
