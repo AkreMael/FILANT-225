@@ -78,7 +78,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, onToggle
               <div 
                 className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg mb-1 relative overflow-hidden ${
                   isRestricted
-                    ? 'bg-gray-700 grayscale cursor-not-allowed'
+                    ? 'bg-gray-700 grayscale'
                     : hasUnread
                       ? 'animate-blink-red-green'
                       : isActive 

@@ -206,7 +206,7 @@ const ProfessionalCardScreen: React.FC<ProfessionalCardScreenProps> = ({ user, o
     }
   };
 
-  const qrValue = `Métier: ${profession || 'Non spécifié'}\nNom: ${user.name}\nVille: ${user.city}\nNuméro: ${COMPANY_PHONE}`;
+  const qrValue = `Métier: ${profession || 'Non spécifié'}\nNom: ${user.name}\nVille: ${user.city}\nNuméro: ${user.phone}`;
 
   const downloadQRCode = () => {
     const canvas = document.getElementById('qr-code-canvas') as HTMLCanvasElement;
@@ -435,8 +435,8 @@ const ProfessionalCardScreen: React.FC<ProfessionalCardScreenProps> = ({ user, o
               <span className="text-green-400 font-black uppercase tracking-widest text-xs">Carte active</span>
             </div>
             <div className="text-right">
-              <p className="text-white font-black text-sm uppercase tracking-tighter">Il vous reste</p>
-              <p className="text-green-400 font-black text-xl leading-none">{daysRemaining} JOURS</p>
+              <p className="text-white font-black text-sm uppercase tracking-tighter">Activé pour</p>
+              <p className="text-green-400 font-black text-xl leading-none">{daysRemaining} jours</p>
             </div>
           </div>
         )}

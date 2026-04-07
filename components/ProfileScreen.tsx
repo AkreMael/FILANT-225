@@ -450,7 +450,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
                 <div className="bg-orange-100 p-1 rounded-full"><ChevronRight className="h-4 w-4 text-orange-500" /></div>
             </div>
             <p className="text-gray-400 font-bold text-sm mt-0.5 tracking-tighter uppercase">Résidence: {user.city}</p>
-            <p className="text-slate-900 font-black text-sm mt-2 bg-gray-100 px-3 py-1 rounded-full">+225 {user.phone}</p>
+            <p className="text-slate-900 font-black text-sm mt-2 bg-gray-100 px-3 py-1 rounded-full">{user.phone.startsWith('+') ? user.phone : `+225 ${user.phone}`}</p>
         </div>
         <div className="flex-1 space-y-6 pb-32">
             <div className="bg-white rounded-3xl overflow-hidden mx-4 shadow-sm border border-gray-100">

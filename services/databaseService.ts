@@ -1327,6 +1327,22 @@ export const databaseService = {
     return databaseService.activateCard(phone, type, currentData);
   },
 
+  onCardDataUpdate: (phone: string, type: 'pro' | 'service', callback: (data: CardData | null) => void) => {
+    const sanitizedPhone = phone.replace(/\D/g, '');
+    const userRef = doc(db, 'users', sanitizedPhone);
+    return onSnapshot(userRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        const cardData = data[`cardData_${type}`] as CardData | undefined;
+        callback(cardData || null);
+      } else {
+        callback(null);
+      }
+    }, (error) => {
+      console.error("Error in card data listener:", error);
+    });
+  },
+
   getChatHistory: (phone: string): StoredChatMessage[] => {
       try {
           const key = getScopedKey(phone, CHAT_KEY_PREFIX);

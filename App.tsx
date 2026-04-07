@@ -167,6 +167,7 @@ const App: React.FC = () => {
   const [showScannerGlobal, setShowScannerGlobal] = useState(false);
   const [paymentConfirmationContext, setPaymentConfirmationContext] = useState<PaymentConfirmationContext | null>(null);
   const [isMiseEnRelationActive, setIsMiseEnRelationActive] = useState(false);
+  const [cardDaysRemaining, setCardDaysRemaining] = useState<number | null>(null);
   
   const [isClientModeActive, setIsClientModeActive] = useState(() => {
     const role = localStorage.getItem('filant_user_role');
@@ -560,12 +561,35 @@ const App: React.FC = () => {
   }, [currentUser]);
 
   useEffect(() => {
-    if (currentUser) {
-      const cardType = getCardType(displayUser.role);
-      const data = databaseService.getCardData(currentUser.phone, cardType);
-      setIsMiseEnRelationActive(!!(data?.hasPaidInitial || data?.isRegularized));
+    if (!currentUser?.phone) {
+      setIsMiseEnRelationActive(false);
+      setCardDaysRemaining(null);
+      return;
     }
-  }, [currentUser, displayUser.role]);
+
+    const role = effectiveRole;
+    const cardType = getCardType(role);
+    
+    // Initial load
+    const data = databaseService.getCardData(currentUser.phone, cardType);
+    setIsMiseEnRelationActive(!!(data?.hasPaidInitial || data?.isRegularized));
+    if (data) {
+      setCardDaysRemaining(databaseService.getDaysRemaining(data.cardExpirationDate));
+    }
+
+    // Real-time listener
+    const unsubscribe = databaseService.onCardDataUpdate(currentUser.phone, cardType, (updatedData) => {
+      if (updatedData) {
+        setIsMiseEnRelationActive(!!(updatedData.hasPaidInitial || updatedData.isRegularized));
+        setCardDaysRemaining(databaseService.getDaysRemaining(updatedData.cardExpirationDate));
+      } else {
+        setIsMiseEnRelationActive(false);
+        setCardDaysRemaining(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentUser?.phone, effectiveRole]);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -1356,6 +1380,19 @@ const App: React.FC = () => {
             activeTab={activeTab} 
             setActiveTab={(tab) => {
                 if (isProfileOpen) setIsProfileOpen(false);
+                
+                if (tab === Tab.Card) {
+                    if (displayUser.role === 'Client') {
+                        handleRestrictedAccess();
+                        return;
+                    }
+                    
+                    if (!isMiseEnRelationActive && !isAdmin(currentUser)) {
+                        showPopup("Activez votre mise en relation.", "alert");
+                        return;
+                    }
+                }
+                
                 handleTabChange(tab);
             }}
             onToggleProfile={handleToggleProfile}
