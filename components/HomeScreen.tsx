@@ -379,6 +379,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
         return text.match(regex)?.[1]?.trim();
     };
     const sanitizePhoneNumber = (phone: string): string => {
+        if (!phone) return '';
         let cleanPhone = phone.replace(/[\s-.]/g, '');
         if (cleanPhone.startsWith('+225')) cleanPhone = cleanPhone.slice(4);
         return cleanPhone;

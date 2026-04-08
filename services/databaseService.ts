@@ -397,6 +397,7 @@ export const databaseService = {
         const data = doc.data();
         return {
           id: doc.id,
+          phone: data.phone || doc.id, // Ensure phone is present
           ...data
         } as User;
       }
@@ -443,6 +444,7 @@ export const databaseService = {
         const data = docSnap.data();
         return {
           id: docSnap.id,
+          phone: data.phone || docSnap.id, // Ensure phone is present
           ...data
         } as User;
       }

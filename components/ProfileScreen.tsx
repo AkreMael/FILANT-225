@@ -273,6 +273,8 @@ const FavoriteDetailView: React.FC<{ fav: FavoriteRequest, onBack: () => void }>
 
 // --- PROFILE SCREEN COMPONENT ---
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, onReset, isClientModeActive, onToggleClientMode, setActiveTab, onShowPopup, deferredPrompt, onInstallPWA }) => {
+  if (!user) return null;
+
   const panelRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -300,6 +302,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
   };
 
   const [profileImage, setProfileImage] = useState<string | null>(() => {
+      if (!user?.phone) return null;
       const stored = localStorage.getItem(`${PROFILE_IMAGE_KEY_PREFIX}${user.phone}`);
       const storedTs = localStorage.getItem(`${PROFILE_TS_KEY_PREFIX}${user.phone}`);
       if (storedTs) {
@@ -310,19 +313,22 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
   });
 
   const isProfileLocked = React.useMemo(() => {
+    if (!user?.phone) return false;
     const storedTs = localStorage.getItem(`${PROFILE_TS_KEY_PREFIX}${user.phone}`);
     if (!storedTs || !profileImage) return false;
     const ts = parseInt(storedTs);
     return (Date.now() - ts) < ONE_MONTH_MS;
-  }, [user.phone, profileImage]);
+  }, [user?.phone, profileImage]);
 
   useEffect(() => {
-    setContacts(databaseService.getContacts(user.phone));
+    if (user?.phone) {
+      setContacts(databaseService.getContacts(user.phone));
+    }
     requestAnimationFrame(() => {
         if (panelRef.current) panelRef.current.classList.remove('translate-x-full');
         if (overlayRef.current) overlayRef.current.classList.remove('opacity-0');
     });
-  }, [user.phone]);
+  }, [user?.phone]);
 
   const handleBack = () => {
     if (view === 'favorite-detail') setView('favorites');
@@ -346,8 +352,10 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
         const base64 = event.target?.result as string;
         const now = Date.now();
         setProfileImage(base64);
-        localStorage.setItem(`${PROFILE_IMAGE_KEY_PREFIX}${user.phone}`, base64);
-        localStorage.setItem(`${PROFILE_TS_KEY_PREFIX}${user.phone}`, now.toString());
+        if (user?.phone) {
+            localStorage.setItem(`${PROFILE_IMAGE_KEY_PREFIX}${user.phone}`, base64);
+            localStorage.setItem(`${PROFILE_TS_KEY_PREFIX}${user.phone}`, now.toString());
+        }
     };
     reader.readAsDataURL(file);
   };
@@ -356,6 +364,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
     setShowScanner(false);
     const info = extractQRInfo(data);
     const sanitizePhone = (phone: string): string => {
+        if (!phone) return '';
         let cleanPhone = phone.replace(/[\s-.]/g, '');
         if (cleanPhone.startsWith('+225')) cleanPhone = cleanPhone.slice(4);
         return cleanPhone;
@@ -446,11 +455,18 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onClose, onLogout, 
             <ProfileAvatar imageUrl={profileImage} onUpload={() => fileInputRef.current?.click()} isLocked={isProfileLocked} />
             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
             <div className="flex items-center gap-2 mt-5">
-                <h1 className="text-2xl font-black text-gray-900 capitalize tracking-tight">{user.name}</h1>
+                <h1 className="text-2xl font-black text-gray-900 capitalize tracking-tight">{user.name || 'Utilisateur'}</h1>
                 <div className="bg-orange-100 p-1 rounded-full"><ChevronRight className="h-4 w-4 text-orange-500" /></div>
             </div>
-            <p className="text-gray-400 font-bold text-sm mt-0.5 tracking-tighter uppercase">Résidence: {user.city}</p>
-            <p className="text-slate-900 font-black text-sm mt-2 bg-gray-100 px-3 py-1 rounded-full">{user.phone.startsWith('+') ? user.phone : `+225 ${user.phone}`}</p>
+            <p className="text-gray-400 font-bold text-sm mt-0.5 tracking-tighter uppercase">Résidence: {user.city || 'Non spécifiée'}</p>
+            <p className="text-slate-900 font-black text-sm mt-2 bg-gray-100 px-3 py-1 rounded-full">
+                {(() => {
+                    const p = user.phone || '';
+                    if (p.startsWith('+')) return p;
+                    if (p.startsWith('225')) return `+${p}`;
+                    return `+225${p}`;
+                })()}
+            </p>
         </div>
         <div className="flex-1 space-y-6 pb-32">
             <div className="bg-white rounded-3xl overflow-hidden mx-4 shadow-sm border border-gray-100">

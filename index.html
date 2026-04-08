@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#f97316">
     <title>FILANT°225</title>
     <script src="https://cdn.tailwindcss.com"></script>
   <script type="importmap">
@@ -32,7 +32,7 @@
     height: 100%;
     height: 100dvh;
     overflow: hidden;
-    background-color: #0f172a; /* Slate 900 */
+    background-color: #ffffff;
     -webkit-text-size-adjust: 100%;
     touch-action: manipulation;
     /* Désactiver la sélection de texte pour une sensation App native */
@@ -125,6 +125,14 @@
   @keyframes unfold-in { 0% { opacity: 0; transform: perspective(1000px) rotateX(-90deg); transform-origin: top center; } 100% { opacity: 1; transform: perspective(1000px) rotateX(0deg); transform-origin: top center; } }
   .animate-unfold-in { animation: unfold-in 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
 
+  @keyframes initial-progress {
+    0% { width: 0%; }
+    100% { width: 60%; }
+  }
+  .animate-initial-progress {
+    animation: initial-progress 3s ease-out forwards;
+  }
+
   @keyframes blink-gray {
     0%, 100% { color: #9ca3af; opacity: 1; }
     50% { opacity: 0.4; }
@@ -175,8 +183,25 @@
 </style>
 <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-slate-900">
-    <div id="root"></div>
+  <body class="bg-white">
+    <div id="root">
+      <div id="initial-loader" style="position: fixed; inset: 0; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; font-family: system-ui, -apple-system, sans-serif;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+          <h2 style="font-size: 1.875rem; font-weight: 700; color: #0f172a; margin-bottom: 0.5rem;">(Akwaba!)</h2>
+        </div>
+        <div style="margin-bottom: 2rem;">
+          <div style="background: rgba(249, 115, 22, 0.05); padding: 1rem; border-radius: 9999px; border: 2px solid rgba(249, 115, 22, 0.1);">
+            <img src="https://i.supaimg.com/5cd01a23-e101-4415-9e28-ff02a617cd11.png" alt="Logo" style="width: 6rem; height: 6rem; object-fit: contain;">
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.25rem;">
+          <span style="font-size: 3.75rem; font-weight: 900; color: #f97316;">FILANT225</span>
+        </div>
+        <div style="position: absolute; bottom: 5rem; width: 12rem; height: 4px; background: #f1f5f9; border-radius: 9999px; overflow: hidden;">
+          <div class="animate-initial-progress" style="height: 100%; background: #f97316; width: 0%; border-radius: 9999px;"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>

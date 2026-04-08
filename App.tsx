@@ -111,13 +111,13 @@ const RestrictedNotification = ({ show, message }: { show: boolean, message: str
 );
 
 const GlobalModeLoading = ({ message }: { message: string }) => (
-    <div className="absolute inset-0 z-[2000] bg-slate-900 flex flex-col items-center justify-center p-10 text-center animate-in fade-in duration-300">
+    <div className="absolute inset-0 z-[2000] bg-white flex flex-col items-center justify-center p-10 text-center animate-in fade-in duration-300">
         <div className="relative">
             <div className="w-24 h-24 border-4 border-orange-500/20 rounded-full"></div>
             <div className="absolute inset-0 w-24 h-24 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
-        <h2 className="mt-8 text-2xl font-black text-white uppercase tracking-widest animate-pulse">Chargement</h2>
-        <p className="mt-4 text-orange-400 font-bold text-sm max-w-xs">{message}</p>
+        <h2 className="mt-8 text-2xl font-black text-slate-900 uppercase tracking-widest animate-pulse">Chargement</h2>
+        <p className="mt-4 text-orange-600 font-bold text-sm max-w-xs">{message}</p>
         <div className="mt-12 flex gap-1">
             <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
             <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
@@ -429,8 +429,6 @@ const App: React.FC = () => {
     const unsubscribe = onSnapshot(userRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        const cloudRole = data.role;
-        const cloudIsBlocked = data.isBlocked;
         const cloudSessionId = data.activeSessionId;
 
         // Session Check
@@ -442,33 +440,45 @@ const App: React.FC = () => {
           return;
         }
         
-        // Sync blocked status
-        if (cloudIsBlocked !== undefined && cloudIsBlocked !== currentUser.isBlocked) {
-          console.log("Blocked status updated from cloud:", cloudIsBlocked);
-          setCurrentUser(prev => prev ? { ...prev, isBlocked: cloudIsBlocked } : null);
-        }
+        // Sync full user data
+        setCurrentUser(prev => {
+          if (!prev) return null;
+          
+          const hasChanged = 
+            prev.name !== data.name || 
+            prev.city !== data.city || 
+            prev.role !== data.role || 
+            prev.isBlocked !== data.isBlocked ||
+            prev.phone !== (data.phone || prev.phone);
 
-        // Sync role
-        if (cloudRole && cloudRole !== currentUser.role) {
-          console.log("Role updated from cloud in real-time:", cloudRole);
-          
-          // Update local state
-          setCurrentUser(prev => prev ? { ...prev, role: cloudRole } : null);
-          
-          // Update localStorage
-          localStorage.setItem('filant_user_role', cloudRole);
-          
-          // Update UI mode
-          if (cloudRole === 'Client') {
-            setIsClientModeActive(true);
-          } else {
-            setIsClientModeActive(false);
-            localStorage.setItem('filant_selected_pro_role', cloudRole);
+          if (hasChanged) {
+            console.log("User data updated from cloud in real-time");
+            const updated = { 
+              ...prev, 
+              ...data,
+              phone: data.phone || prev.phone // Ensure phone is preserved
+            };
+            
+            // Update localStorage for persistence
+            databaseService.saveActiveUser(updated);
+            if (data.role) {
+              localStorage.setItem('filant_user_role', data.role);
+              // Update UI mode if role changed
+              if (data.role === 'Client') {
+                setIsClientModeActive(true);
+              } else if (data.role !== prev.role) {
+                setIsClientModeActive(false);
+                localStorage.setItem('filant_selected_pro_role', data.role);
+              }
+            }
+            
+            return updated;
           }
-        }
+          return prev;
+        });
       }
     }, (error) => {
-      console.error("Error in real-time role listener:", error);
+      console.error("Error in real-time user listener:", error);
     });
 
     return () => unsubscribe();
@@ -849,6 +859,7 @@ const App: React.FC = () => {
     const info = extractQRInfo(data);
     
     const sanitizePhone = (phone: string): string => {
+        if (!phone) return '';
         let cleanPhone = phone.replace(/[\s-.]/g, '');
         if (cleanPhone.startsWith('+225')) cleanPhone = cleanPhone.slice(4);
         return cleanPhone;
@@ -904,8 +915,8 @@ const App: React.FC = () => {
   if (!hasCompletedFirstLaunch) {
       return (
         <GlobalRippleEffect>
-          <div className="flex justify-center bg-slate-950 w-full h-full min-h-[100dvh]">
-            <div className="w-full max-w-[480px] h-[100dvh] relative flex flex-col overflow-hidden bg-slate-900 shadow-2xl">
+          <div className="flex justify-center bg-white w-full h-full min-h-[100dvh]">
+            <div className="w-full max-w-[480px] h-[100dvh] relative flex flex-col overflow-hidden bg-white shadow-2xl">
               {/* Status Bar Area */}
               <div className="w-full bg-blue-600 flex-shrink-0 z-[999] h-[env(safe-area-inset-top,24px)] min-h-[24px]" />
               
@@ -927,8 +938,8 @@ const App: React.FC = () => {
   if (!currentUser) {
     return (
         <GlobalRippleEffect>
-          <div className="flex justify-center bg-slate-950 w-full h-full min-h-[100dvh]">
-            <div className="w-full max-w-[480px] h-[100dvh] relative flex flex-col overflow-hidden bg-slate-900 shadow-2xl">
+          <div className="flex justify-center bg-white w-full h-full min-h-[100dvh]">
+            <div className="w-full max-w-[480px] h-[100dvh] relative flex flex-col overflow-hidden bg-white shadow-2xl">
               {/* Status Bar Area */}
               <div className="w-full bg-blue-600 flex-shrink-0 z-[999] h-[env(safe-area-inset-top,24px)] min-h-[24px]" />
               
@@ -954,8 +965,8 @@ const App: React.FC = () => {
 
   if (showSplash) {
       return (
-          <div className="flex justify-center bg-slate-950 w-full h-full min-h-[100dvh]">
-            <div className="w-full max-w-[480px] h-[100dvh] relative flex flex-col overflow-hidden bg-slate-900 shadow-2xl">
+          <div className="flex justify-center bg-white w-full h-full min-h-[100dvh]">
+            <div className="w-full max-w-[480px] h-[100dvh] relative flex flex-col overflow-hidden bg-white shadow-2xl">
               {/* Status Bar Area */}
               <div className="w-full bg-blue-600 flex-shrink-0 z-[999] h-[env(safe-area-inset-top,24px)] min-h-[24px]" />
               
@@ -974,7 +985,7 @@ const App: React.FC = () => {
   if (isUserAdmin) {
     return (
       <GlobalRippleEffect>
-        <div className="flex justify-center bg-slate-950 w-full min-h-[100dvh]">
+        <div className="flex justify-center bg-white w-full min-h-[100dvh]">
           <div className="w-full h-[100dvh] relative flex flex-col bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-200 shadow-2xl overflow-hidden admin-layout">
             
             {/* Status Bar Area */}
@@ -1262,7 +1273,7 @@ const App: React.FC = () => {
       break;
   }
 
-  const isAdminView = activeTab === Tab.AdminDashboard || activeTab === Tab.AdminChat || isUserAdmin || (activeTab === Tab.Menu && menuView.startsWith('admin_'));
+  const isAdminView = activeTab === Tab.AdminDashboard || activeTab === Tab.AdminChat || isUserAdmin || (activeTab === Tab.Menu && menuView?.startsWith('admin_'));
 
   if (currentUser?.isBlocked) {
     return (
@@ -1287,7 +1298,7 @@ const App: React.FC = () => {
 
   return (
     <GlobalRippleEffect>
-      <div className="flex justify-center bg-slate-950 w-full min-h-[100dvh]">
+      <div className="flex justify-center bg-white w-full min-h-[100dvh]">
         <div className={`w-full ${isAdminView ? 'admin-layout' : 'max-w-[480px]'} h-[100dvh] relative flex flex-col bg-white dark:bg-slate-900 text-gray-800 dark:text-gray-200 shadow-2xl overflow-hidden`}>
           
           {/* Status Bar Area */}
