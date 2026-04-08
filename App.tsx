@@ -456,6 +456,8 @@ const App: React.FC = () => {
             const updated = { 
               ...prev, 
               ...data,
+              name: (data.name && !['Utilisateur', 'Inconnu', ''].includes(data.name)) ? data.name : prev.name,
+              city: (data.city && !['Non spécifiée', ''].includes(data.city)) ? data.city : prev.city,
               phone: data.phone || prev.phone // Ensure phone is preserved
             };
             
@@ -646,9 +648,11 @@ const App: React.FC = () => {
     setShowSplash(true);
     localStorage.setItem('filant_currentUserPhone', user.phone);
     
-    const role = localStorage.getItem('filant_user_role');
-    if (role && role !== 'Client') {
+    if (user.role) {
+      localStorage.setItem('filant_user_role', user.role);
+      if (user.role !== 'Client') {
         setIsClientModeActive(false);
+      }
     }
 
     // Redirection automatique si admin

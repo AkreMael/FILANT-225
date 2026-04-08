@@ -362,9 +362,9 @@ export const databaseService = {
 
       const userData: any = {
         userId: fbUser?.uid || existingData.userId || null,
-        name: user.name || existingData.name || '',
+        name: (user.name && !['Utilisateur', 'Inconnu', ''].includes(user.name)) ? user.name : (existingData.name || user.name || ''),
         phone: sanitizedPhone,
-        city: user.city || existingData.city || '',
+        city: (user.city && !['Non spécifiée', ''].includes(user.city)) ? user.city : (existingData.city || user.city || ''),
         pin: user.pin || existingData.pin || null,
         role: user.role || existingData.role || localStorage.getItem('filant_user_role') || 'Client',
         isVerified: existingData.isVerified || user.isVerified || false,
@@ -578,10 +578,16 @@ export const databaseService = {
             activeSessionId: currentSessionId
         };
         
-        if (!users.some(u => u.phone === normalizedInputPhone)) {
+        // Update local cache with latest data from Firestore
+        const existingIndex = users.findIndex(u => u.phone === normalizedInputPhone);
+        if (existingIndex !== -1) {
+            users[existingIndex] = { ...users[existingIndex], ...user };
+        } else {
             users.push(user);
-            saveUsers(users);
         }
+        saveUsers(users);
+        
+        console.log("User found in Firestore and local cache updated:", user.name, user.city);
         
         // Persist role for App.tsx logic
         if (user.role) {
