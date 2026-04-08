@@ -240,14 +240,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   const cardData = databaseService.getCardData(user.phone, cardType);
 
   useEffect(() => {
-      if (!cardData) {
+      if (!cardData?.cardExpirationDate) {
           setTimeLeft(null);
           return;
       }
       
       const interval = setInterval(() => {
           const now = Date.now();
-          const end = cardData.uploadTimestamp + CARD_LIFESPAN_MS;
+          const end = new Date(cardData.cardExpirationDate!).getTime();
           const diff = end - now;
           
           if (diff <= 0) {
@@ -268,9 +268,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
       }, 1000);
       
       return () => clearInterval(interval);
-  }, [cardData]);
+  }, [cardData?.cardExpirationDate]);
 
-  const isCardExpired = cardData && (Date.now() > cardData.uploadTimestamp + CARD_LIFESPAN_MS);
+  const isCardExpired = cardData?.cardExpirationDate ? new Date(cardData.cardExpirationDate).getTime() <= Date.now() : false;
 
   const handleNightServiceClick = () => {
       onOpenNightService();
@@ -314,8 +314,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           return;
       }
       
-      // If active, we do nothing or just show a status alert
-      onShowPopup("Votre mise en relation est active et valable 1 mois.", "alert");
+      // If active, navigate to the professional card screen
+      setActiveTab(Tab.Card);
   };
 
   const handleRecoveryPayment = () => {

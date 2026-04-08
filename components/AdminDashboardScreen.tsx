@@ -497,34 +497,6 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
 
   const [cardFilter, setCardFilter] = useState<'all' | 'active' | 'expired'>('all');
 
-  const renderActiveView = () => {
-    if (view === 'contacts') return renderContactStorageView();
-    if (view === 'associations') return renderAssociationView();
-    if (view === 'card-tracking') return renderCardTrackingView();
-    if (view === 'active-contacts') return renderActiveContactsView();
-    if (view === 'user-messages') return renderUserMessagesView();
-    if (view === 'firestore-users') return renderFirestoreUsersView();
-    if (view === 'wave-payments') return renderWavePaymentsView();
-    if (view === 'assistant-requests') return renderAssistantRequestsView();
-    if (view === 'scanned-qr') return renderScannedQRView();
-    if (view === 'job-postings') return renderJobPostingsView();
-    if (view === 'private-registrations') return renderPrivateRegistrationsView();
-    if (view === 'notifications') return renderNotificationsView();
-    
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center text-white/30 p-6">
-        <img src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/343956e5-aaed-4531-85f6-a07422df385b.png" alt="Logo" className="w-20 h-20 lg:w-32 lg:h-32 object-contain opacity-20 mb-4 lg:mb-6" referrerPolicy="no-referrer" />
-        <h3 className="text-sm lg:text-xl font-black uppercase tracking-widest text-center">Sélectionnez une catégorie</h3>
-      </div>
-    );
-  };
-
-  const activeViewContent = useMemo(() => renderActiveView(), [
-      view, firestoreUsers, privateRegistrations, wavePayments, assistantRequests, 
-      scannedContacts, conversations, associations, activeContacts, adminContacts, jobPostings, viewedJobPostings,
-      searchTerm, isSyncing, isFormOpen, selectedRegistration, selectedQR, deleteId, itemToDelete, editingContact, selectedContacts, shareMode, viewingContact
-  ]);
-
   const refreshScannedContacts = async () => {
     setIsSyncing(true);
     try {
@@ -1061,7 +1033,9 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
                                             <h4 className="font-black text-white uppercase text-sm tracking-tight">{u.name}</h4>
-                                            <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">{u.city}</p>
+                                            <p className="text-[10px] text-[#ff802b] font-black uppercase tracking-widest">
+                                                {u.city} • {((u as any).cardData_pro?.profession || (u as any).cardData_service?.profession || 'Sans métier')}
+                                            </p>
                                         </div>
                                         <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
                                             isActive ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
@@ -1961,6 +1935,34 @@ const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onBack, onL
         </div>
     </div>
   );
+
+  const renderActiveView = () => {
+    if (view === 'contacts') return renderContactStorageView();
+    if (view === 'associations') return renderAssociationView();
+    if (view === 'card-tracking') return renderCardTrackingView();
+    if (view === 'active-contacts') return renderActiveContactsView();
+    if (view === 'user-messages') return renderUserMessagesView();
+    if (view === 'firestore-users') return renderFirestoreUsersView();
+    if (view === 'wave-payments') return renderWavePaymentsView();
+    if (view === 'assistant-requests') return renderAssistantRequestsView();
+    if (view === 'scanned-qr') return renderScannedQRView();
+    if (view === 'job-postings') return renderJobPostingsView();
+    if (view === 'private-registrations') return renderPrivateRegistrationsView();
+    if (view === 'notifications') return renderNotificationsView();
+    
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center text-white/30 p-6">
+        <img src="https://i.supaimg.com/0543a7e5-673b-44b9-9668-8152c5aea01b/343956e5-aaed-4531-85f6-a07422df385b.png" alt="Logo" className="w-20 h-20 lg:w-32 lg:h-32 object-contain opacity-20 mb-4 lg:mb-6" referrerPolicy="no-referrer" />
+        <h3 className="text-sm lg:text-xl font-black uppercase tracking-widest text-center">Sélectionnez une catégorie</h3>
+      </div>
+    );
+  };
+
+  const activeViewContent = useMemo(() => renderActiveView(), [
+      view, firestoreUsers, privateRegistrations, wavePayments, assistantRequests, 
+      scannedContacts, conversations, associations, activeContacts, adminContacts, jobPostings, viewedJobPostings,
+      searchTerm, isSyncing, isFormOpen, selectedRegistration, selectedQR, deleteId, itemToDelete, editingContact, selectedContacts, shareMode, viewingContact
+  ]);
 
   return (
       <div className="absolute inset-0 bg-gray-50 flex flex-col overflow-hidden">
