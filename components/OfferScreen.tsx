@@ -4,6 +4,8 @@ import { Tab } from '../types';
 import { databaseService } from '../services/databaseService';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
+import SpeakerIcon from './common/SpeakerIcon';
+import { audioService } from '../services/audioService';
 
 // Define WorkerOffer locally since we're removing googleSheetsService
 export interface WorkerOffer {
@@ -692,102 +694,81 @@ const OfferScreen: React.FC<OfferScreenProps> = ({ onNavigateToMenu, setActiveTa
             onLinkClick={onOpenIntervention}
           />
 
+          {/* Demande d'embauche simplified section */}
           <div className="bg-[#16a34a] pt-16 pb-16 mb-6 relative overflow-hidden transition-all duration-500">
              {/* Gradient Overlays for smooth transition */}
              <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-[#F8F9FB] to-transparent pointer-events-none z-10"></div>
              <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#F8F9FB] to-transparent pointer-events-none z-10"></div>
 
-             <div className="px-5 mb-6 relative z-20">
-                <div className="flex justify-between items-baseline mb-1">
-                    <h2 
-                        className="text-white font-black text-2xl uppercase tracking-tighter"
-                    >
-                        DEMANDE D'EMBAUCHE
-                    </h2>
-                </div>
-                <p className="font-bold text-base leading-snug max-w-[90%] mb-6">
-                    <span className="text-[#a3e635]">L’image est masquée avec FILANT°225. L’apparence ne compte pas, mais plutôt la propriété, la compétence, l’efficacité et la confiance.</span>
-                    <br />
-                    <span className="text-white">Veuillez rechercher votre travail idéal.</span>
-                </p>
-
-                <button 
-                    onClick={() => handlePublishClick('')}
-                    className={`w-full py-4 ${userOffer ? 'bg-slate-600' : 'bg-orange-500'} text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-orange-900/20 active:scale-95 transition-all flex items-center justify-center gap-3`}
-                >
-                    {userOffer ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                    ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                        </svg>
-                    )}
-                    {userOffer ? 'VOTRE ANNONCE EST DÉJÀ EN LIGNE (MODIFIER)' : '+ PUBLIER VOTRE STATUT'}
-                </button>
-             </div>
-
-             <div className={`flex ${isExpanded ? 'flex-wrap justify-center' : 'overflow-x-auto scrollbar-hide'} gap-4 px-4 pb-2 transition-all duration-500 relative z-20`}>
-                {isLoadingOffers ? (
-                    Array.from({ length: 3 }).map((_, idx) => (
-                        <div key={idx} className="flex-shrink-0 w-[150px] h-[260px] bg-white/20 rounded-3xl animate-pulse flex items-center justify-center">
-                            <span className="text-white/30 text-[10px] font-black uppercase tracking-widest">Chargement...</span>
+             <div className="px-6 relative z-20">
+                <h2 className="text-white font-black text-2xl uppercase tracking-tighter mb-6">
+                    DEMANDE D'EMBAUCHE
+                </h2>
+                
+                <div className="bg-white/10 backdrop-blur-md rounded-[2rem] p-6 border border-white/20 shadow-2xl">
+                    <p className="text-white font-bold text-lg leading-tight mb-6">
+                        🔥 Tu cherches travail sérieux ? Écoute ça d’abord !
+                    </p>
+                    
+                    <div className="space-y-4 mb-8">
+                        <p className="text-[#a3e635] font-black text-sm uppercase tracking-wide">Chez FILANT°225, on est dans le concret 👇</p>
+                        
+                        <div className="space-y-2">
+                            <div className="flex items-start gap-3">
+                                <span className="text-xl">👉</span>
+                                <p className="text-white text-sm font-bold">Pas besoin de diplôme compliqué</p>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <span className="text-xl">👉</span>
+                                <p className="text-white text-sm font-bold">Pas besoin de connexion spéciale</p>
+                            </div>
                         </div>
-                    ))
-                ) : allOffers.length > 0 ? (
-                    <>
-                        {(isExpanded ? allOffers : allOffers.slice(0, 4)).map((item, idx) => (
-                            <InterventionCard 
-                                key={idx} 
-                                item={item} 
-                                currentUser={user}
-                            />
-                        ))}
-                        {!isExpanded && allOffers.length > 4 && (
-                            <button 
-                                onClick={() => setIsExpanded(true)}
-                                className="flex-shrink-0 w-[150px] h-[260px] bg-white/10 border-2 border-dashed border-white/30 rounded-3xl flex flex-col items-center justify-center gap-2 active:scale-95 transition-all"
-                            >
-                                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                                    </svg>
-                                </div>
-                                <span className="text-white text-[10px] font-black uppercase tracking-widest">Voir plus</span>
-                            </button>
-                        )}
-                    </>
-                ) : (
-                    <div className="w-full flex flex-col items-center justify-center py-10 bg-white/10 rounded-3xl border border-white/20">
-                        <span className="text-white font-black text-xs uppercase tracking-widest">Aucune offre disponible</span>
-                        <p className="text-white/60 text-[10px] font-bold mt-2">Revenez plus tard !</p>
-                    </div>
-                )}
-             </div>
-             {isExpanded && (
-                 <div className="px-4 mt-6 flex justify-center relative z-20">
-                    <button 
-                        onClick={() => setIsExpanded(false)}
-                        className="px-6 py-2 bg-white/10 rounded-full text-white text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all border border-white/20"
-                    >
-                        Voir moins
-                    </button>
-                 </div>
-             )}
 
-            <PublicationModal 
-                isOpen={isPublicationModalOpen}
-                onClose={() => setIsPublicationModalOpen(false)}
-                onPublish={handleFormSubmit}
-                initialData={userOffer ? {
-                    service: userOffer.title,
-                    name: userOffer.name,
-                    city: userOffer.city,
-                    price: userOffer.price?.toString().replace(/F par .*/, '').trim(),
-                    description: userOffer.description
-                } : { service: selectedServiceForPublication }}
-            />
+                        <p className="text-white/80 text-xs font-black uppercase tracking-widest pt-2">Nous, on travaille avec :</p>
+                        <div className="grid grid-cols-1 gap-2">
+                            <div className="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/10">
+                                <span className="text-xl">🔧</span>
+                                <p className="text-white text-xs font-bold uppercase">Travailleurs qualifiés</p>
+                            </div>
+                            <div className="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/10">
+                                <span className="text-xl">🚗</span>
+                                <p className="text-white text-xs font-bold uppercase">Agents mobiles pour nos activités</p>
+                            </div>
+                            <div className="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/10">
+                                <span className="text-xl">🏠</span>
+                                <p className="text-white text-xs font-bold uppercase">Agents immobiliers</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-start gap-3 pt-2">
+                            <span className="text-xl">💼</span>
+                            <p className="text-white text-sm font-bold italic">Ici, c'est la mise en relation</p>
+                        </div>
+                        
+                        <div className="flex items-start gap-3">
+                            <span className="text-xl">👉</span>
+                            <p className="text-white text-sm font-bold">Si tu es motivé, sérieux et prêt à bouger, tu peux avoir ta place avec nous.</p>
+                        </div>
+                    </div>
+
+                    <div className="pt-6 border-t border-white/10 flex flex-col items-center">
+                        <p className="text-white/70 text-[10px] font-black uppercase tracking-widest mb-4 text-center">
+                            🎧 Clique ici pour écouter l’audio et comprendre tout clairement 👇
+                        </p>
+                        
+                        <button 
+                            onClick={() => {
+                                const audioText = `Tu cherches travail sérieux ? Écoute ça d’abord ! Chez FILANT 225, on est dans le concret. Pas besoin de diplôme compliqué. Pas besoin de connexion spéciale. Nous, on travaille avec : Travailleurs qualifiés, Agents mobiles pour nos activités, Agents immobiliers. Ici, c'est la mise en relation. Si tu es motivé, sérieux et prêt à bouger, tu peux avoir ta place avec nous.`;
+                                audioService.speak(audioText);
+                            }}
+                            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-5 rounded-2xl shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-sm"
+                        >
+                            <SpeakerIcon className="w-6 h-6" />
+                            <span>MONTER UN TEXTE EN AUDIO</span>
+                        </button>
+                    </div>
+                </div>
+             </div>
           </div>
 
           {/* Agence Immobilière */}

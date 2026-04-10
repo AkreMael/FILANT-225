@@ -1144,7 +1144,6 @@ const App: React.FC = () => {
             onNavigate={handleHomeNavigate} 
             user={displayUser} 
             setActiveTab={handleTabChange}
-            onOpenNightService={() => setInteractiveModalContext({ formType: 'night_service', title: 'Service de Nuit' })}
             onOpenBuildingService={(item) => setInteractiveModalContext({ 
                 formType: 'rapid_building_service', 
                 title: item.title, 
@@ -1262,7 +1261,6 @@ const App: React.FC = () => {
         onNavigate={handleHomeNavigate} 
         user={displayUser} 
         setActiveTab={handleTabChange}
-        onOpenNightService={() => setInteractiveModalContext({ formType: 'night_service', title: 'Service de Nuit' })}
         onOpenBuildingService={(item) => setInteractiveModalContext({ 
             formType: 'rapid_building_service', 
             title: item.title, 

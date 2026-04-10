@@ -38,7 +38,6 @@ const SearchBarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h
 const NotificationIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>;
 
 const ServiceRapideIcon: React.FC = () => <IconWrapper className="w-12 h-12 bg-white/20"><svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-current" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg></IconWrapper>;
-const ServiceDeNuitIcon: React.FC = () => <IconWrapper className="w-12 h-12 bg-white/20"><svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /><path d="M16 10.5c-.5 0-1 .5-1 1s.5 1 1 1 .5-1 1-1" /><path d="M18 13c0 .5-.5 1-1 1s-1-.5-1-1" /></svg></IconWrapper>;
 const EquipmentIcon: React.FC = () => <IconWrapper className="w-12 h-12 bg-orange-600/20"><svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.528-1.036.94-2.197 1.088-3.386l-.738-2.652L3 14l2.652.738c1.19.147 2.35.56 3.386 1.088l3.03-2.496z" /><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 21.75l-4.135-4.134a1.21 1.21 0 010-1.707l4.134-4.135a1.21 1.21 0 011.707 0l4.135 4.135a1.21 1.21 0 010 1.707l-4.134 4.135a1.21 1.21 0 01-1.707 0z" /></svg></IconWrapper>;
 
 // --- Admin Icons ---
@@ -176,7 +175,6 @@ interface HomeScreenProps {
   onNavigate: (view: 'worker_list' | 'registration_hub' | 'my_worker' | 'location_hub' | 'admin_sms' | 'location_map' | 'notifications' | 'emergency_form' | 'assistant_qr' | 'admin_connections' | 'admin_active_contacts' | 'admin_associations', category?: 'appartement' | 'equipement') => void;
   user: User;
   setActiveTab: (tab: Tab) => void;
-  onOpenNightService: () => void;
   onOpenBuildingService: (item: any) => void;
   onRestrictedAccess: (message?: string) => void;
   onOpenFavorites?: () => void;
@@ -198,7 +196,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   onNavigate, 
   user, 
   setActiveTab, 
-  onOpenNightService, 
   onOpenBuildingService, 
   onRestrictedAccess, 
   onOpenFavorites, 
@@ -210,7 +207,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   onInstallPWA
 }) => {
   const isMainServiceOpen = true;
-  const isNightServiceOpen = true;
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showNoOffer, setShowNoOffer] = useState(false);
@@ -271,10 +267,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   }, [cardData?.cardExpirationDate]);
 
   const isCardExpired = cardData?.cardExpirationDate ? new Date(cardData.cardExpirationDate).getTime() <= Date.now() : false;
-
-  const handleNightServiceClick = () => {
-      onOpenNightService();
-  };
 
   const handleMainServiceClick = (view: 'worker_list' | 'registration_hub' | 'my_worker' | 'location_hub' | 'admin_sms' | 'location_map' | 'notifications' | 'emergency_form' | 'assistant_qr' | 'admin_connections' | 'admin_active_contacts' | 'admin_associations', category?: 'appartement' | 'equipement') => {
       onNavigate(view, category);
@@ -944,7 +936,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                             )}
 
                             <div className="flex flex-col gap-2 w-full">
-                                {isProRole ? (
+                                {isProRole && (
                                     <div className="flex flex-col w-full">
                                         <button 
                                             onClick={handleCardClick}
@@ -968,24 +960,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                                             {!cardData && <div className="bg-white/20 p-2 rounded-full"><PointerArrow className="h-5 w-5" /></div>}
                                         </button>
                                     </div>
-                                ) : (
-                                    <button 
-                                        onClick={handleNightServiceClick}
-                                        className="w-full bg-black text-white rounded-3xl p-5 flex items-center justify-between shadow-xl transform active:scale-[0.98] transition-all border border-white/5 relative overflow-hidden"
-                                    >
-                                        <div className="flex items-center space-x-4">
-                                            <ServiceDeNuitIcon />
-                                            <div className="flex flex-col items-start">
-                                                <span className="text-lg font-black uppercase tracking-tight leading-none">Service de Nuit</span>
-                                                <span className={`text-[10px] mt-1 font-bold text-green-400`}>
-                                                    ● En service actuellement
-                                                </span>
-                                            </div>
-                                        </div>
-                                        {isNightServiceOpen && (
-                                            <div className="animate-pulse bg-green-500 w-3 h-3 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.8)]"></div>
-                                        )}
-                                    </button>
                                 )}
                             </div>
                         </div>
